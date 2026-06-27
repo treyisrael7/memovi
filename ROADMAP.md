@@ -32,6 +32,10 @@ The roadmap follows several principles:
 
 # Milestone 0 — Foundation
 
+**Status**
+
+Complete — 2026-06-27
+
 **Objective**
 
 Establish the engineering foundation that every future feature depends on.
@@ -39,15 +43,15 @@ Establish the engineering foundation that every future feature depends on.
 **Deliverables**
 
 * Repository structure
-* Monorepo setup
-* Development environment
-* Docker Compose
-* CI/CD pipeline
+* Python workspace
+* Frontend workspace
+* Local Docker Compose infrastructure
+* GitHub Actions validation
 * Code quality tooling
+* Pre-commit hooks
+* VS Code Dev Container
+* Task runner
 * Project documentation
-* Cursor rules
-* Local observability
-* Initial deployment configuration
 
 **Success Criteria**
 

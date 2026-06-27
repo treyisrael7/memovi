@@ -1,0 +1,93 @@
+name: memovi
+
+services:
+  # Primary relational store for durable platform data. The pgvector image keeps
+  # local PostgreSQL 18 ready for future vector indexes without creating schemas.
+  postgres:
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-memovi}
+      POSTGRES_USER: ${POSTGRES_USER:-memovi_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-memovi_local_pg_9f4c8e2d7a6b41c3}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - memovi_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - memovi_internal
+
+  # Low-latency cache and queue-adjacent primitive for local development.
+  redis:
+    image: redis:8
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:-memovi_local_redis_42e7f8a6c9d54b1a}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-memovi_local_redis_42e7f8a6c9d54b1a}
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - memovi_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$${REDIS_PASSWORD}\" ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - memovi_internal
+
+  # S3-compatible object storage for uploaded files and generated artifacts.
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command:
+      - server
+      - /data
+      - --console-address
+      - ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-memovi_minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-memovi_local_minio_5c7f1e9a3b6d4a82}
+      MINIO_REGION_NAME: ${MINIO_REGION_NAME:-us-east-1}
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-http://localhost:9000}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-http://localhost:9001}
+    ports:
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - memovi_minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - memovi_internal
+
+networks:
+  memovi_internal:
+    name: memovi_internal
+    driver: bridge
+    internal: true
+
+volumes:
+  memovi_postgres_data:
+    name: memovi_postgres_data
+  memovi_redis_data:
+    name: memovi_redis_data
+  memovi_minio_data:
+    name: memovi_minio_data

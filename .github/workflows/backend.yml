@@ -1,0 +1,83 @@
+name: Backend CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version:
+          - "3.14"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Ruff
+        run: uv run ruff check .
+
+      - name: Black
+        run: uv run black --check .
+
+      - name: MyPy
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          python_files = [
+              path
+              for path in subprocess.check_output(
+                  ["git", "ls-files", "*.py", "*.pyi"],
+                  text=True,
+              ).splitlines()
+              if not Path(path).parts[0].startswith(".")
+          ]
+
+          if not python_files:
+              print("No Python files found; skipping MyPy until backend code exists.")
+              sys.exit(0)
+
+          sys.exit(subprocess.call(["uv", "run", "mypy", *python_files]))
+          PY
+
+      - name: Pytest
+        run: |
+          set +e
+          uv run pytest
+          status=$?
+          set -e
+
+          if [ "$status" -eq 5 ]; then
+            echo "No tests collected; treating empty test suite as valid for the initial workspace."
+            exit 0
+          fi
+
+          exit "$status"

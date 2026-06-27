@@ -1,0 +1,138 @@
+[project]
+name = "memovi"
+version = "0.1.0"
+description = "Self-hosted knowledge platform for durable, organized, retrievable memory."
+readme = "README.md"
+requires-python = ">=3.14"
+license = "MIT"
+authors = [
+    { name = "Trey Israel" },
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = []
+
+[dependency-groups]
+runtime = [
+    "alembic",
+    "asyncpg",
+    "fastapi",
+    "httpx",
+    "pgvector",
+    "psycopg",
+    "pydantic>=2",
+    "sqlalchemy>=2",
+]
+dev = [
+    "black",
+    "mypy",
+    "pre-commit",
+    "ruff",
+]
+test = [
+    "coverage[toml]",
+    "pytest",
+    "pytest-asyncio",
+]
+
+[tool.uv]
+package = false
+default-groups = [
+    "runtime",
+    "dev",
+    "test",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py314"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.git
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.ruff_cache
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+extend-exclude = [
+    ".venv",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = [
+    "B",
+    "C4",
+    "E",
+    "F",
+    "I",
+    "RUF",
+    "SIM",
+    "UP",
+]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+pretty = true
+show_error_codes = true
+warn_unused_configs = true
+namespace_packages = true
+explicit_package_bases = true
+exclude = [
+    "^\\.venv/",
+    "^build/",
+    "^dist/",
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = [
+    "--strict-config",
+    "--strict-markers",
+]
+asyncio_mode = "auto"
+filterwarnings = [
+    "error",
+]
+
+[tool.coverage.run]
+branch = true
+source = [
+    ".",
+]
+omit = [
+    ".venv/*",
+    "build/*",
+    "dist/*",
+    "docs/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    'if __name__ == "__main__":',
+    "raise NotImplementedError",
+]
+
+[tool.coverage.xml]
+output = "coverage.xml"

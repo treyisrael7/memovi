@@ -1,0 +1,13 @@
+{
+  "name": "memovi",
+  "private": true,
+  "packageManager": "pnpm@10.33.4",
+  "scripts": {
+    "web:build": "pnpm --filter @memovi/web build",
+    "web:dev": "pnpm --filter @memovi/web dev",
+    "web:format": "pnpm --filter @memovi/web format",
+    "web:format:check": "pnpm --filter @memovi/web format:check",
+    "web:lint": "pnpm --filter @memovi/web lint",
+    "web:typecheck": "pnpm --filter @memovi/web typecheck"
+  }
+}

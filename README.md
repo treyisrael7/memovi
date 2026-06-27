@@ -2,394 +2,151 @@
 
 > Your knowledge, organized. AI that remembers what matters.
 
-Memovi is an AI-powered knowledge platform that continuously ingests information from multiple sources, transforms it into structured knowledge, and makes it searchable through semantic retrieval and intelligent assistants.
+Memovi is a self-hosted knowledge platform for turning fragmented documents,
+notes, conversations, code, and external services into durable, searchable
+memory.
 
-Rather than acting as another chatbot, Memovi serves as a personal knowledge infrastructure capable of connecting documents, conversations, notes, code, and external services into a unified memory system.
+This README is the developer entry point. For system design, see
+[`ARCHITECTURE.md`](ARCHITECTURE.md) and [`docs/architecture/`](docs/architecture/).
 
----
+## Prerequisites
 
-## Vision
+- Python 3.14
+- [`uv`](https://docs.astral.sh/uv/)
+- Node.js 24 with Corepack
+- pnpm 10.33.4
+- [`Task`](https://taskfile.dev/)
+- Docker Desktop or Docker Engine with Compose
+- Git
+- GitHub CLI
 
-The long-term vision of Memovi is to become an extensible knowledge platform rather than a single AI application.
+VS Code users can use the Dev Container instead of installing most tools
+directly. See [`docs/development/dev-container.md`](docs/development/dev-container.md).
 
-```
-               External Sources
-      ┌─────────────────────────────────┐
-      │ GitHub • Gmail • Slack • Drive │
-      │ Notion • Obsidian • Files      │
-      └─────────────────────────────────┘
-                     │
-                     ▼
-              Connector Framework
-                     │
-                     ▼
-             Document Processing
-      OCR → Chunking → Metadata → Events
-                     │
-                     ▼
-          Knowledge & Memory Platform
-                     │
-      PostgreSQL • pgvector • Redis
-                     │
-                     ▼
-         Retrieval & AI Runtime Layer
-                     │
-                     ▼
-      Web • Desktop • Mobile • API
+## Installation
+
+Install Task, then set up the repository:
+
+```bash
+task setup
 ```
 
-Every feature in Memovi is designed to build upon this pipeline instead of existing as an isolated component.
+This installs Python dependencies, installs frontend dependencies, enables the
+pinned pnpm version, and installs pre-commit hooks.
 
----
+If you are not using Task, the equivalent commands are documented in
+[`docs/development/developer-tooling.md`](docs/development/developer-tooling.md).
 
-# Goals
+## Repository Layout
 
-- Build a production-quality AI platform
-- Demonstrate modern backend architecture
-- Support multiple AI providers
-- Enable scalable document ingestion
-- Create an extensible connector ecosystem
-- Remain self-hostable
-- Follow clean architecture and DDD principles
-
----
-
-# Core Principles
-
-## Modular Monolith
-
-Memovi begins as a modular monolith.
-
-Each domain owns:
-
-- API
-- Business Logic
-- Database Models
-- Events
-- Tests
-
-Modules can later be extracted into independent services without major rewrites.
-
----
-
-## Domain Driven Design
-
-Source code is organized around business domains instead of technical layers.
-
-Example:
-
-```
-memory/
-
-    application/
-
-    domain/
-
-    infrastructure/
-
-    api/
+```text
+.
+|-- apps/
+|   |-- api/                  # Future FastAPI application
+|   `-- web/                  # Next.js frontend workspace
+|-- packages/
+|   |-- auth/
+|   |-- connectors/
+|   |-- config/
+|   |-- contracts/
+|   |-- documents/
+|   |-- intelligence/
+|   |-- memory/
+|   |-- observability/
+|   |-- search/
+|   `-- shared/
+|-- database/
+|-- docker/
+|-- docs/
+|   |-- adr/
+|   |-- architecture/         # Architecture reference docs
+|   `-- development/          # Local development docs
+|-- scripts/
+|-- tests/
+|   |-- architecture/
+|   |-- integration/
+|   `-- fixtures/
+|-- .devcontainer/            # VS Code Dev Container definition
+|-- .github/workflows/        # Repository validation workflows
+|-- compose.yml               # Local PostgreSQL, Redis, and MinIO
+|-- pyproject.toml            # Python workspace and tooling config
+|-- pnpm-workspace.yaml       # pnpm workspace config
+`-- Taskfile.yml              # Repository task runner
 ```
 
-Business rules remain isolated from infrastructure concerns.
+Backend, package, database, script, and test directories are placeholders only.
+No backend application modules, API endpoints, models, migrations, or business
+logic have been created yet.
 
----
+## Development Workflow
 
-## Event-Driven Processing
+Start from a clean setup:
 
-Long-running operations are asynchronous.
-
-Example:
-
-```
-Document Uploaded
-        │
-        ▼
-Embedding Worker
-        │
-        ▼
-Embeddings Created
-        │
-        ▼
-Summary Worker
-        │
-        ▼
-Memory Updated
+```bash
+task setup
 ```
 
-This architecture allows features to evolve independently.
+Start local infrastructure and the frontend development server:
 
----
-
-# Planned Features
-
-## Knowledge Management
-
-- Documents
-- Notes
-- Conversations
-- Semantic Search
-- Version History
-- Collections
-- Tags
-
----
-
-## AI
-
-- Chat with your knowledge
-- Retrieval Augmented Generation
-- AI Summaries
-- Prompt Templates
-- Multiple LLM Providers
-- Agent Runtime (future)
-
----
-
-## Connectors
-
-- Local Files
-- GitHub
-- Google Drive
-- Gmail
-- Slack
-- Discord
-- Notion
-- Obsidian
-- Confluence
-- Jira
-
----
-
-## Search
-
-- Full Text Search
-- Vector Search
-- Hybrid Search
-- Metadata Filtering
-- Semantic Ranking
-
----
-
-## Authentication
-
-- Email
-- OAuth
-- API Keys
-- RBAC
-
----
-
-# Architecture
-
-```
-Internet
-    │
-Traefik
-    │
-Next.js
-    │
-FastAPI
-    │
-──────────────────────────────────
-
-Auth
-
-Memory
-
-Search
-
-Documents
-
-Connectors
-
-AI
-
-──────────────────────────────────
-        Domain Events
-──────────────────────────────────
-
-Workers
-
-OCR
-
-Chunking
-
-Embeddings
-
-Summaries
-
-──────────────────────────────────
-
-PostgreSQL + pgvector
-
-Redis
-
-MinIO
+```bash
+task dev
 ```
 
----
+Run validation before opening a pull request:
 
-# Repository Structure
-
-```
-apps/
-
-    web/
-
-    api/
-
-packages/
-
-    core/
-
-    events/
-
-    database/
-
-    config/
-
-    logging/
-
-    connectors/
-
-    ai/
-
-    shared/
-
-docs/
-
-    architecture/
-
-    decisions/
-
-    api/
-
-    diagrams/
+```bash
+task lint
+task format
+task typecheck
+task test
 ```
 
----
+Pre-commit runs formatting, linting, type checks, and file hygiene checks before
+commits. CI runs backend and frontend validation through GitHub Actions.
 
-# Technology Stack
+## Task Commands
 
-## Frontend
+- `task setup` installs dependencies and Git hooks.
+- `task backend` runs backend lint, format check, typecheck, and tests.
+- `task frontend` runs frontend lint, format check, typecheck, and build.
+- `task docker-up` starts local infrastructure.
+- `task docker-down` stops local infrastructure.
+- `task lint` runs backend and frontend linters.
+- `task format` formats backend and frontend files.
+- `task typecheck` runs backend and frontend type checks.
+- `task test` runs tests.
+- `task dev` starts Docker infrastructure and the frontend dev server.
 
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- TanStack Query
+Run `task --list` for the full command list, including scoped backend and
+frontend subtasks.
 
-## Backend
+## Docker Services
 
-- FastAPI
-- SQLAlchemy
-- Pydantic
-- Alembic
+Local infrastructure is defined in `compose.yml`:
 
-## Infrastructure
+- PostgreSQL 18 with pgvector on `127.0.0.1:5432`
+- Redis 8 on `127.0.0.1:6379`
+- MinIO API on `127.0.0.1:9000`
+- MinIO console on `127.0.0.1:9001`
 
-- PostgreSQL
-- pgvector
-- Redis
-- MinIO
-- Docker
+Start services:
 
-## AI
-
-- Ollama
-- OpenAI
-- Anthropic
-- Sentence Transformers
-
-## Observability
-
-- OpenTelemetry
-- Prometheus
-- Grafana
-- Loki
-
----
-
-# Roadmap
-
-## Phase 1
-
-- Authentication
-- Document Upload
-- Vector Search
-- AI Chat
-- Local Files
-
----
-
-## Phase 2
-
-- Connectors
-- Event Processing
-- OCR
-- Summaries
-- Collections
-
----
-
-## Phase 3
-
-- Agent Runtime
-- Browser Extension
-- Desktop Client
-- Mobile Support
-
----
-
-## Phase 4
-
-- Knowledge Graph
-- Temporal Memory
-- Plugin Marketplace
-- Multi-user Workspaces
-
----
-
-# Design Philosophy
-
-Memovi is designed as a platform instead of a single application.
-
-Every feature should contribute to a shared knowledge pipeline:
-
-```
-Connect
-
-↓
-
-Normalize
-
-↓
-
-Store
-
-↓
-
-Index
-
-↓
-
-Retrieve
-
-↓
-
-Reason
-
-↓
-
-Learn
+```bash
+task docker-up
 ```
 
-If a new feature does not strengthen this pipeline, it likely belongs outside the core platform.
+Stop services:
 
----
+```bash
+task docker-down
+```
 
-# Status
+Service credentials, health checks, volumes, and configuration are documented in
+[`docs/development/local-infrastructure.md`](docs/development/local-infrastructure.md). Copy
+`.env.example` to `.env` when you need local overrides.
 
-🚧 Early Development
+## Status
 
-The project is currently focused on building the core platform and architecture before expanding into advanced AI capabilities.
+Memovi is in early development. The repository currently provides the Python
+workspace, frontend workspace, local infrastructure, developer tooling, CI, and
+Dev Container foundation.

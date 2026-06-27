@@ -1,0 +1,130 @@
+version: "3"
+
+vars:
+  WEB_PACKAGE: "@memovi/web"
+  PNPM_VERSION: "10.33.4"
+
+tasks:
+  setup:
+    desc: Install repository dependencies and Git hooks.
+    cmds:
+      - corepack enable
+      - corepack prepare pnpm@{{.PNPM_VERSION}} --activate
+      - uv sync --all-groups
+      - pnpm install --frozen-lockfile
+      - uv run pre-commit install
+
+  backend:
+    desc: Run all backend validation tasks.
+    deps:
+      - backend:lint
+      - backend:format-check
+      - backend:typecheck
+      - backend:test
+
+  frontend:
+    desc: Run all frontend validation tasks.
+    deps:
+      - frontend:lint
+      - frontend:format-check
+      - frontend:typecheck
+      - frontend:build
+
+  docker-up:
+    desc: Start local infrastructure services.
+    cmds:
+      - docker compose up -d
+
+  docker-down:
+    desc: Stop local infrastructure services.
+    cmds:
+      - docker compose down
+
+  lint:
+    desc: Run backend and frontend linters.
+    deps:
+      - backend:lint
+      - frontend:lint
+
+  format:
+    desc: Format backend and frontend files.
+    deps:
+      - backend:format
+      - frontend:format
+
+  typecheck:
+    desc: Run backend and frontend type checks.
+    deps:
+      - backend:typecheck
+      - frontend:typecheck
+
+  test:
+    desc: Run tests.
+    deps:
+      - backend:test
+
+  dev:
+    desc: Start local infrastructure and the frontend development server.
+    deps:
+      - docker-up
+    cmds:
+      - pnpm --filter {{.WEB_PACKAGE}} dev
+
+  backend:lint:
+    desc: Run Ruff for Python code.
+    cmds:
+      - uv run ruff check .
+
+  backend:format:
+    desc: Format Python code with Black and Ruff fixes.
+    cmds:
+      - uv run ruff check --fix .
+      - uv run black .
+
+  backend:format-check:
+    desc: Check Python formatting with Black.
+    cmds:
+      - uv run black --check .
+
+  backend:typecheck:
+    desc: Run MyPy when Python files exist.
+    cmds:
+      - >-
+        python -c "from pathlib import Path; import subprocess, sys;
+        files = [path for path in subprocess.check_output(['git', 'ls-files', '*.py', '*.pyi'], text=True).splitlines() if not Path(path).parts[0].startswith('.')];
+        print('No Python files found; skipping MyPy.') if not files else None;
+        sys.exit(0 if not files else subprocess.call(['uv', 'run', 'mypy', *files]))"
+
+  backend:test:
+    desc: Run Pytest when tests exist.
+    cmds:
+      - >-
+        python -c "import subprocess, sys;
+        status = subprocess.call(['uv', 'run', 'pytest']);
+        print('No tests collected; treating empty test suite as valid for the initial workspace.') if status == 5 else None;
+        sys.exit(0 if status == 5 else status)"
+
+  frontend:lint:
+    desc: Run ESLint for the web app.
+    cmds:
+      - pnpm --filter {{.WEB_PACKAGE}} lint
+
+  frontend:format:
+    desc: Format the web app with Prettier.
+    cmds:
+      - pnpm --filter {{.WEB_PACKAGE}} format
+
+  frontend:format-check:
+    desc: Check web app formatting with Prettier.
+    cmds:
+      - pnpm --filter {{.WEB_PACKAGE}} format:check
+
+  frontend:typecheck:
+    desc: Run TypeScript checks for the web app.
+    cmds:
+      - pnpm --filter {{.WEB_PACKAGE}} typecheck
+
+  frontend:build:
+    desc: Build the web app.
+    cmds:
+      - pnpm --filter {{.WEB_PACKAGE}} build

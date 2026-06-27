@@ -1,0 +1,55 @@
+minimum_pre_commit_version: "4.0.0"
+default_stages:
+  - pre-commit
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args:
+          - --maxkb=1024
+
+  - repo: local
+    hooks:
+      - id: ruff
+        name: Ruff
+        entry: uv run ruff check --fix
+        language: system
+        types_or:
+          - python
+          - pyi
+
+      - id: black
+        name: Black
+        entry: uv run black
+        language: system
+        types_or:
+          - python
+          - pyi
+
+      - id: mypy
+        name: MyPy
+        entry: uv run mypy
+        language: system
+        types_or:
+          - python
+          - pyi
+
+      - id: eslint
+        name: ESLint
+        entry: corepack pnpm --filter @memovi/web lint
+        language: system
+        pass_filenames: false
+        files: ^apps/web/
+
+      - id: prettier
+        name: Prettier
+        entry: corepack pnpm --filter @memovi/web format
+        language: system
+        pass_filenames: false
+        files: ^apps/web/
