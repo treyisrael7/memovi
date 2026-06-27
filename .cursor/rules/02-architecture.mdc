@@ -1,0 +1,90 @@
+---
+description: Memovi architectural constraints and dependency boundaries
+alwaysApply: true
+---
+
+# Memovi Architecture
+
+This rule defines how Memovi is structured as a system. Apply it when deciding where code belongs, how modules communicate, and whether a dependency or boundary is acceptable.
+
+## Modular Monolith
+
+Memovi begins as a modular monolith. Keep independently meaningful domains inside one deployable application until there is a demonstrated operational need to extract them.
+
+Why: distributed systems add deployment, networking, observability, data consistency, and operational cost. Strong in-process boundaries give Memovi most of the design benefits of services while preserving simplicity during early platform development.
+
+## Domain-Driven Boundaries
+
+Organize architecture around business domains such as auth, memory, documents, search, connectors, AI, and workers. Do not organize core behavior primarily around frameworks, routes, database tables, or UI screens.
+
+Why: Memovi's long-term value is the knowledge platform, not the technology used to implement it. Domain ownership keeps business rules stable as frameworks, providers, storage choices, and clients evolve.
+
+## Layer Boundaries
+
+Within each domain, keep the conceptual layers separate:
+
+- `domain` owns business concepts, invariants, and domain events.
+- `application` owns use cases and orchestration inside the domain.
+- `infrastructure` owns databases, queues, object storage, provider SDKs, and external systems.
+- `api` owns transport-specific entry points.
+
+Why: business rules should remain understandable without knowing the database, HTTP framework, queue, or AI provider. This keeps the platform adaptable and prevents infrastructure concerns from leaking into the model.
+
+## Dependency Direction
+
+Dependencies must point inward toward stable domain concepts:
+
+- `api` may depend on `application`.
+- `application` may depend on `domain`.
+- `infrastructure` may implement contracts needed by `application` or `domain`.
+- `domain` must not depend on `api`, `infrastructure`, framework code, provider SDKs, or storage details.
+
+Why: inward dependency flow keeps the core knowledge model portable, testable by design, and resistant to vendor or framework lock-in.
+
+## Allowed Cross-Domain Dependencies
+
+Prefer communication across domains through public application interfaces, shared contracts, or domain events. Do not reach into another domain's internals, persistence models, private helpers, or infrastructure adapters.
+
+Why: direct internal access creates hidden coupling and makes future service extraction expensive. Public boundaries make ownership clear and allow domains to evolve independently.
+
+## Domain Ownership
+
+Each domain owns its API surface, business rules, persistence model, events, background jobs related to its responsibilities, and integration contracts. Shared packages should contain only genuinely cross-cutting capabilities, not misplaced domain behavior.
+
+Why: ownership prevents duplicate sources of truth and avoids "shared" becoming a dumping ground that erodes boundaries.
+
+## Event-Driven Communication
+
+Use events when one domain needs to notify others that something meaningful happened, especially for long-running or fan-out workflows. Events should describe domain facts, not implementation steps.
+
+Why: events reduce coupling between modules and allow ingestion, indexing, enrichment, and retrieval capabilities to evolve independently. They should simplify the architecture; if a direct synchronous call is clearer and does not create harmful coupling, use it.
+
+## Background Workers
+
+Run expensive or slow knowledge-pipeline work in background workers: ingestion, OCR, chunking, metadata extraction, embedding creation, summarization, indexing, and similar processing.
+
+Why: users should not wait for heavy processing after actions such as upload or connector sync. Workers preserve responsiveness and make the pipeline resilient to retries, partial failures, and future scaling.
+
+## Package Organization
+
+Use `apps/` for deployable entry points and `packages/` for reusable platform capabilities. Expected top-level package responsibilities include core primitives, events, database access, config, logging, connectors, AI integrations, and shared contracts.
+
+Why: deployable applications should assemble platform capabilities; packages should provide bounded, reusable building blocks. This prevents clients, APIs, and workers from growing separate versions of the same platform logic.
+
+## Folder Conventions
+
+Domain folders should make placement obvious. A typical backend domain should expose `domain`, `application`, `infrastructure`, and `api` areas when those responsibilities exist. Avoid creating layers with no responsibility yet.
+
+Why: consistent folders help engineers understand boundaries quickly, while avoiding empty ceremony keeps the modular monolith simple.
+
+## Service Boundaries
+
+Treat current module boundaries as future service boundaries. Keep contracts explicit, persistence ownership clear, and cross-domain communication narrow.
+
+Why: extraction should be possible because boundaries were respected from the start, not because the codebase is rewritten later. A module should be extractable when independent deployment, scaling, ownership, or reliability requirements justify the cost.
+
+## Future Microservice Extraction
+
+Do not create microservices preemptively. Extract a module only after the modular monolith proves that the domain has a stable boundary and a real need for independent deployment, scaling, failure isolation, or team ownership.
+
+Why: premature services make the system harder to operate before the domain model is mature. Well-factored modules are easy to extract later; unnecessary services are hard to recombine.

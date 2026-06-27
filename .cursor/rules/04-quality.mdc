@@ -1,0 +1,86 @@
+---
+description: Memovi production-quality expectations for generated code
+alwaysApply: true
+---
+
+# Memovi Quality Expectations
+
+Generated code should be production-quality by default. Treat correctness, reliability, security, and maintainability as part of the feature, not cleanup work for later.
+
+## Testing Philosophy
+
+- Add tests where behavior, risk, or regression cost justifies them.
+- Favor focused tests that prove important outcomes over broad tests that only exercise wiring.
+- Cover edge cases that affect user data, permissions, ingestion state, retrieval quality, provider failures, and background processing.
+- Do not add brittle tests that mirror implementation details instead of observable behavior.
+
+## Unit Testing
+
+- Unit tests should validate domain behavior, application service decisions, validation rules, exception paths, and deterministic transformations.
+- Use fakes or stubs for repositories, provider clients, clocks, event publishers, and external dependencies.
+- Keep unit tests fast, isolated, and explicit about the behavior being protected.
+- Avoid real databases, queues, network calls, object storage, or AI providers in unit tests.
+
+## Integration Testing
+
+- Integration tests should verify boundaries that can fail in production: API routes, database persistence, migrations, repository queries, authentication flows, worker execution, and provider adapters.
+- Use realistic dependencies when the integration itself is the risk.
+- Verify transaction behavior, error translation, retry behavior, and persisted side effects where relevant.
+- Keep integration coverage purposeful; do not duplicate every unit test through a slower path.
+
+## Error Handling
+
+- Handle expected failures deliberately and let unexpected failures surface to the correct boundary.
+- Preserve useful context when raising or translating errors, but never expose secrets, credentials, raw private content, or provider internals to users.
+- Make retryable and non-retryable failures distinguishable in worker and provider code.
+- Do not hide partial failures in ingestion, indexing, or AI workflows; record enough state for the system to recover or report accurately.
+
+## Performance
+
+- Consider performance when code touches ingestion, search, retrieval, embeddings, summarization, database queries, API latency, or background queues.
+- Prefer measured optimization over speculation.
+- Avoid unbounded queries, unbounded concurrency, repeated provider calls, N+1 database access, unnecessary payload expansion, and blocking work in request paths.
+- Preserve responsiveness by moving expensive work out of synchronous user flows.
+
+## Security
+
+- Treat all external input, connector data, uploaded files, prompts, and provider responses as untrusted.
+- Enforce authorization on every user-owned resource access.
+- Keep secrets in configuration and secret stores; never commit, log, echo, serialize, or return them.
+- Validate file handling, path usage, redirects, webhook payloads, and external callbacks carefully.
+- Minimize sensitive data exposure in logs, errors, traces, metrics, and AI prompts.
+
+## Code Review Expectations
+
+- Review generated code for behavioral correctness, failure modes, data ownership, security impact, and operational risk.
+- Check that changes are scoped to the requested behavior and do not introduce unrelated churn.
+- Question new dependencies, abstractions, persistent fields, public APIs, and background behavior unless their purpose is clear.
+- Prefer small, reviewable changes that make risk easy to understand.
+
+## Refactoring
+
+- Refactor when it reduces real complexity, removes duplication with shared meaning, clarifies behavior, or makes a change safer.
+- Keep refactors behavior-preserving unless the requested change explicitly includes behavior changes.
+- Avoid opportunistic rewrites unrelated to the task.
+- When touching fragile code, improve the local structure enough to make the intended change maintainable.
+
+## Backwards Compatibility
+
+- Preserve compatibility for public APIs, persisted data, migrations, configuration names, events, user-owned content, and stable integration contracts.
+- Avoid breaking existing data or workflows without an explicit migration or transition path.
+- Do not preserve compatibility with unshipped experiments when replacing them makes the system simpler.
+- Treat data migrations and event shape changes as high-risk changes.
+
+## Technical Debt
+
+- Do not introduce debt casually to save time.
+- Temporary shortcuts must be narrow, visible in code structure, and easy to remove.
+- Prefer fixing nearby debt when it directly blocks a clean implementation.
+- Do not expand vague shared utilities, duplicate business rules, or add hidden coupling as a workaround.
+
+## CI Expectations
+
+- Generated code should be compatible with automated linting, type checks, formatting, unit tests, and integration tests.
+- Do not rely on local-only state, unchecked environment variables, external services, or non-deterministic timing for CI success.
+- Keep test suites deterministic and suitable for repeated execution.
+- When a change cannot be fully verified locally, state the remaining verification gap clearly.

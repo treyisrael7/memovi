@@ -1,0 +1,115 @@
+---
+description: Memovi implementation practices for maintainable application code
+alwaysApply: true
+---
+
+# Memovi Implementation Practices
+
+Use this rule when writing application code. Assume the architecture is already understood; focus on consistent implementation choices that keep the codebase maintainable as Memovi grows.
+
+## FastAPI
+
+- Keep route handlers thin: parse transport input, call an application service, and return a response schema.
+- Do not put business rules, database queries, provider calls, or orchestration directly in routes.
+- Use FastAPI dependencies for request-scoped concerns such as auth context, database sessions, configuration access, and service construction.
+- Return explicit response models so API contracts stay stable as internals change.
+- Map application and domain exceptions to HTTP errors at the API boundary, not inside core logic.
+
+## Next.js
+
+- Keep UI code focused on presentation, user interaction, and calling typed API clients.
+- Keep server-only behavior out of client components.
+- Centralize API access behind small client functions instead of scattering raw fetch calls across components.
+- Treat loading, empty, and error states as part of the feature implementation.
+- Avoid duplicating backend business rules in the frontend; the frontend may validate user input, but backend services own decisions.
+
+## SQLAlchemy
+
+- Keep ORM models in infrastructure or persistence-focused modules.
+- Do not expose ORM objects as domain models or API response objects.
+- Prefer explicit queries and relationships over implicit lazy behavior that hides database access.
+- Keep schema concerns, persistence mapping, and query optimization close to repository implementations.
+- Avoid database-specific behavior leaking above the repository/application boundary unless it is a deliberate platform capability.
+
+## Pydantic
+
+- Use Pydantic models for API input/output, configuration, and validated integration payloads.
+- Keep Pydantic schemas separate from domain objects unless the object is purely a boundary DTO.
+- Validate at system boundaries, then pass clean values into application services.
+- Prefer explicit field names and constrained types when they communicate domain expectations.
+- Do not rely on Pydantic models as a substitute for domain invariants.
+
+## Dependency Injection
+
+- Inject dependencies at boundaries and compose them near application entry points.
+- Application services should receive repositories, event publishers, provider clients, clocks, and configuration through constructors or explicit parameters.
+- Avoid importing concrete infrastructure from domain or application logic when an interface or protocol expresses the needed capability.
+- Keep dependency wiring visible; hidden global state makes behavior harder to reason about.
+
+## Repositories
+
+- Repositories own persistence operations for aggregate or domain concepts.
+- Keep repositories focused on loading, saving, querying, and deleting persisted state.
+- Do not put business workflows in repositories.
+- Return domain objects or explicit data records, not ORM sessions, query builders, or provider-specific objects.
+- Name repository methods after domain intent when possible, not storage mechanics.
+
+## Application Services
+
+- Application services coordinate use cases.
+- They may load domain objects, call domain behavior, interact with repositories, publish events, and call provider abstractions.
+- Keep them explicit about inputs, outputs, side effects, and transaction boundaries.
+- Do not let application services become god objects; split by use case or cohesive capability when responsibilities diverge.
+
+## Domain Models
+
+- Domain models should express business meaning and enforce invariants.
+- Keep them independent from FastAPI, Next.js, SQLAlchemy, Pydantic, queues, and provider SDKs.
+- Prefer meaningful value objects and explicit state transitions where they clarify knowledge, document, search, connector, or AI behavior.
+- Domain events should describe facts that occurred, not commands another module must perform.
+
+## Exceptions
+
+- Use specific exception types for domain and application failures.
+- Exceptions should carry enough context for callers and logs to understand the failure without exposing secrets.
+- Translate exceptions at boundaries: HTTP in API code, retry behavior in workers, user-facing messages in UI code.
+- Do not swallow exceptions silently; either handle them deliberately or let the correct boundary translate them.
+
+## Transactions
+
+- Keep transaction scope explicit and as small as the use case allows.
+- Application services should define when a unit of work begins and commits.
+- Repositories should participate in the current unit of work rather than committing independently.
+- Publish durable events only in a way that is consistent with the committed state.
+- Avoid long transactions around external network calls, AI provider calls, object storage operations, or worker execution.
+
+## Configuration
+
+- Load configuration through typed settings objects.
+- Keep environment parsing at application startup or infrastructure boundaries.
+- Do not read environment variables throughout business logic.
+- Configuration values should be explicit dependencies for code that needs them.
+- Secrets must never be logged, embedded in responses, or copied into domain objects unnecessarily.
+
+## Async Programming
+
+- Use async for I/O-bound work: HTTP calls, database calls, queues, object storage, and provider APIs.
+- Do not block the event loop with CPU-heavy work, synchronous network calls, or file processing in request paths.
+- Move expensive processing to workers when it affects responsiveness.
+- Keep concurrency explicit and bounded; uncontrolled fan-out makes failures and resource usage unpredictable.
+- Preserve cancellation and timeout behavior around external calls.
+
+## Logging
+
+- Log meaningful events at boundaries and important workflow transitions.
+- Include stable identifiers such as request IDs, user IDs, document IDs, connector IDs, job IDs, and provider names when available.
+- Do not log raw document contents, prompts, credentials, tokens, or sensitive user data unless a deliberate redaction strategy exists.
+- Prefer structured logs over interpolated strings when adding operational context.
+- Log failures once at the boundary that has enough context to explain them.
+
+## Observability
+
+- Add traces and metrics around ingestion, connector sync, background jobs, search, retrieval, embedding, summarization, provider calls, and API latency.
+- Record duration, success/failure, retry counts, queue latency, and external provider behavior where relevant.
+- Keep instrumentation close to boundaries and workflows so it explains user-visible behavior.
+- Observability should help answer what happened, where it slowed down, and which dependency failed without requiring code inspection.

@@ -1,0 +1,71 @@
+---
+description: Memovi project identity and architectural decision guidance
+alwaysApply: true
+---
+
+# Memovi Project Identity
+
+Memovi is a self-hosted knowledge platform. Its core product is not a chatbot, an AI wrapper, or a document viewer. Its core product is durable, organized, retrievable knowledge assembled from many fragmented sources.
+
+Cursor should treat every implementation as part of a long-lived platform whose job is to connect raw information, normalize it, preserve it, index it, retrieve it, reason over it, and present it clearly.
+
+## Mission
+
+Build an extensible platform that turns scattered documents, conversations, notes, code, and external services into connected knowledge the user controls.
+
+When choosing what to build or how to build it, prefer work that improves how knowledge is collected, structured, stored, searched, understood, or extended. If a feature does not strengthen that mission, question whether it belongs in the core platform.
+
+## Engineering Philosophy
+
+Memovi starts as a modular monolith with strong domain boundaries. Keep domains understandable on their own, with clear ownership of their behavior, persistence, events, APIs, and tests.
+
+Organize decisions around business concepts, not around frameworks or technical layers. Frameworks, databases, AI providers, queues, and clients are implementation details that support the domain; they should not define the architecture.
+
+Simplicity comes before scale. Add complexity only when it solves a real, current problem. The right design should make future evolution easier without pretending to know every future requirement.
+
+## What To Optimize For
+
+Prioritize clarity, maintainability, extensibility, developer experience, performance, and operational simplicity, in that order unless the current problem proves otherwise.
+
+Readable code with explicit data flow is usually better than clever abstraction. Prefer boring, observable, testable systems that another senior engineer can understand quickly.
+
+Maintainability is a product feature. Every implementation should leave the project easier to extend, debug, and operate than it was before.
+
+## What To Avoid
+
+Avoid framework-driven architecture, premature microservices, unnecessary abstractions, hidden business logic, duplicate sources of truth, vendor lock-in, large god objects, and tightly coupled domains.
+
+Avoid isolated features that bypass the knowledge pipeline. A connector, retrieval capability, event, or memory feature should compose with the platform rather than create a parallel workflow.
+
+Avoid optimizing for demos. Memovi is early, but it is not disposable. Build as if the code will be maintained in production.
+
+## AI's Role
+
+AI is an interface to knowledge, not the foundation of knowledge. Memory should remain useful when no language model is available.
+
+Keep the relationship one directional: AI consumes memory; memory does not depend on AI. Design provider integrations so models can change without rewriting the knowledge platform.
+
+Use AI capabilities to summarize, retrieve, reason, rank, and assist, but keep durable knowledge, metadata, provenance, and indexing independent from any single model or provider.
+
+## The Knowledge Pipeline
+
+The shared pipeline is the architectural center of Memovi: connect, normalize, store, index, retrieve, reason, and present.
+
+New features should enter this pipeline at the correct stage and strengthen downstream stages. Connectors should normalize source-specific data into consistent knowledge objects. Retrieval and AI features should consume the indexed knowledge model instead of depending on source-specific behavior.
+
+Long-running work such as ingestion, OCR, chunking, embedding, summarization, and indexing should be asynchronous when it protects user experience or reduces coupling. Use events to decouple domains when doing so simplifies the system; use synchronous flow when it is clearer.
+
+## Architectural Decision Making
+
+Before introducing a feature, dependency, boundary, or pattern, ask:
+
+- Does this strengthen the knowledge platform?
+- Does this integrate with the shared pipeline?
+- Is the domain model still clear without knowing the framework?
+- Can this evolve without a major rewrite?
+- Will another experienced engineer understand why this exists?
+- Is this solving today's problem rather than an imagined future one?
+
+Document significant architectural decisions. Favor decisions that make good implementation obvious, keep dependencies visible, and preserve clear ownership boundaries.
+
+Production-quality code in Memovi is simple, explicit, tested where behavior matters, observable where failures matter, and designed to be extended without replacing the core platform.

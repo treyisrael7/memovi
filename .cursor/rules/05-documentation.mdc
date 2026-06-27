@@ -1,0 +1,71 @@
+---
+description: Memovi documentation maintenance expectations
+alwaysApply: true
+---
+
+# Memovi Documentation Expectations
+
+Documentation should evolve with the codebase. When implementation changes what a developer, operator, or contributor needs to know, update the relevant documentation in the same change.
+
+## README
+
+- Update `README.md` when the project purpose, user-facing capabilities, setup flow, required services, environment variables, commands, or high-level usage changes.
+- Keep it oriented toward someone evaluating, installing, or running Memovi.
+- Do not add internal design notes, temporary plans, or low-level implementation details to the README.
+- If a change makes the README misleading, stale, or incomplete, treat the documentation update as part of the feature.
+
+## ARCHITECTURE.md
+
+- Update `ARCHITECTURE.md` when a change affects system structure, major components, boundaries, data flow, external dependencies, runtime topology, or cross-cutting platform behavior.
+- Keep the file current enough that a new engineer can understand how the running system is shaped.
+- Prefer explaining the current state of the system over preserving historical commentary.
+- Do not duplicate detailed API, setup, or roadmap content there.
+
+## ROADMAP.md
+
+- Update `ROADMAP.md` when scope, priority, phase sequencing, planned milestones, or delivered roadmap items change.
+- Remove or revise roadmap entries once implementation makes them obsolete.
+- Keep roadmap language outcome-focused rather than task-list focused.
+- Do not use the roadmap as a dumping ground for bugs, speculative ideas, or implementation notes.
+
+## ADRs
+
+- Create an ADR when a decision is significant, hard to reverse, likely to be questioned later, or involves meaningful tradeoffs.
+- ADRs should capture the context, decision, alternatives considered, consequences, and status.
+- Use ADRs for major dependency choices, persistence decisions, provider strategy, deployment decisions, long-lived contracts, and cross-cutting platform policies.
+- Do not create ADRs for routine implementation details or decisions already clearly covered by existing rules.
+
+## Code Comments
+
+- Add comments only when they explain intent, constraints, non-obvious behavior, or a decision that code alone cannot make clear.
+- Do not narrate straightforward code.
+- Keep comments close to the behavior they explain and update them when the behavior changes.
+- Remove comments that describe an old implementation or no longer add useful context.
+
+## API Documentation
+
+- Keep API documentation aligned with actual request schemas, response schemas, authentication requirements, error responses, and pagination or filtering behavior.
+- Public or stable endpoints should have clear descriptions of inputs, outputs, permissions, and failure modes.
+- Do not document behavior that the implementation does not guarantee.
+- When changing an API contract, update the corresponding generated or hand-written API docs in the same change.
+
+## Diagrams
+
+- Update diagrams when data flow, runtime components, dependencies, or major user flows change enough that the old diagram would mislead someone.
+- Prefer simple diagrams that explain relationships and flow over decorative detail.
+- Diagrams should reflect the current system or clearly state that they describe a future state.
+- Remove obsolete diagrams rather than letting conflicting pictures accumulate.
+
+## Naming Conventions
+
+- Use names in documentation that match the codebase, API, configuration, package names, and product language exactly.
+- Avoid introducing synonyms for the same concept unless the distinction is intentional.
+- When a concept is renamed in code, update documentation references in the same change.
+- Prefer stable domain terms over temporary implementation labels.
+
+## Commit Expectations
+
+- Commits should include documentation updates when code changes affect how the project is understood, run, configured, integrated with, or extended.
+- Commit messages should describe the reason for meaningful documentation changes when the docs are part of the user-visible or contributor-facing outcome.
+- Do not commit stale generated docs, screenshots, diagrams, or examples that no longer match the code.
+- Keep documentation changes scoped to the same intent as the code change unless the user explicitly asks for a broader cleanup.
