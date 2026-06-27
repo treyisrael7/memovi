@@ -1,0 +1,13 @@
+[project]
+name = "memovi-documents"
+version = "0.1.0"
+description = "Document ingestion and document lifecycle domain boundary. This package will own document-specific domain, application, infrastructure, API, and event contracts."
+requires-python = ">=3.14"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true

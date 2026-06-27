@@ -61,7 +61,36 @@ Establish the engineering foundation that every future feature depends on.
 
 ---
 
-# Milestone 1 — Identity & Access
+# Milestone 1 — Platform Skeleton
+
+**Objective**
+
+Establish the backend platform that future business domains build upon.
+
+**Deliverables**
+
+* Backend composition root
+* FastAPI application bootstrap
+* Domain package scaffolding
+* Configuration system
+* Dependency injection
+* Structured logging
+* Observability foundation
+* Router registration
+* Health endpoint
+* Architecture tests
+
+**Success Criteria**
+
+* The backend boots successfully.
+* All domain packages follow a consistent architecture.
+* Cross-cutting concerns are centralized.
+* Every future business domain can plug into the platform without modifying its core.
+* The architecture is validated through automated architecture tests.
+
+---
+
+# Milestone 2 — Identity & Access
 
 **Objective**
 
@@ -86,7 +115,7 @@ Build the authentication and authorization layer.
 
 ---
 
-# Milestone 2 — Knowledge Ingestion
+# Milestone 3 — Knowledge Ingestion
 
 **Objective**
 
@@ -111,7 +140,7 @@ Allow information to enter the platform through a unified ingestion pipeline.
 
 ---
 
-# Milestone 3 — Knowledge Platform
+# Milestone 4 — Knowledge Platform
 
 **Objective**
 
@@ -134,7 +163,7 @@ Transform processed documents into structured knowledge.
 
 ---
 
-# Milestone 4 — Search & Retrieval
+# Milestone 5 — Search & Retrieval
 
 **Objective**
 
@@ -157,7 +186,7 @@ Provide fast, accurate retrieval across the knowledge platform.
 
 ---
 
-# Milestone 5 — Intelligence
+# Milestone 6 — Intelligence
 
 **Objective**
 
@@ -180,7 +209,7 @@ Enable intelligent interaction with stored knowledge.
 
 ---
 
-# Milestone 6 — Connector Ecosystem
+# Milestone 7 — Connector Ecosystem
 
 **Objective**
 
@@ -204,7 +233,7 @@ Expand the platform beyond local documents.
 
 ---
 
-# Milestone 7 — Platform Maturity
+# Milestone 8 — Platform Maturity
 
 **Objective**
 
@@ -228,7 +257,7 @@ Strengthen the platform through operational and architectural improvements.
 
 ---
 
-# Milestone 8 — Multi-Client Platform
+# Milestone 9 — Multi-Client Platform
 
 **Objective**
 

@@ -1,0 +1,13 @@
+[project]
+name = "memovi-observability"
+version = "0.1.0"
+description = "Observability package for cross-cutting logging, tracing, and metrics boundaries. Instrumentation should be centralized here when runtime code is introduced."
+requires-python = ">=3.14"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true
