@@ -42,7 +42,7 @@ If you are not using Task, the equivalent commands are documented in
 ```text
 .
 |-- apps/
-|   |-- api/                  # Future FastAPI application
+|   |-- api/                  # FastAPI composition root
 |   `-- web/                  # Next.js frontend workspace
 |-- packages/
 |   |-- auth/
@@ -74,8 +74,9 @@ If you are not using Task, the equivalent commands are documented in
 `-- Taskfile.yml              # Repository task runner
 ```
 
-Backend, package, database, script, and test directories are placeholders only.
-No backend application modules, API endpoints, models, migrations, or business
+The API app currently contains only the backend composition root and health
+endpoint. Package, database, script, and test directories are placeholders. No
+authentication, repositories, database models, application services, or domain
 logic have been created yet.
 
 ## Development Workflow

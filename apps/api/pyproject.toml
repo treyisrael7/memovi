@@ -1,0 +1,15 @@
+[project]
+name = "memovi-api"
+version = "0.1.0"
+description = "Backend composition root for the Memovi platform."
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true

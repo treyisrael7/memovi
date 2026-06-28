@@ -51,6 +51,7 @@ default-groups = [
 
 [tool.uv.workspace]
 members = [
+    "apps/api",
     "packages/*",
 ]
 
