@@ -28,6 +28,7 @@ runtime = [
     "psycopg",
     "pydantic>=2",
     "sqlalchemy>=2",
+    "uvicorn[standard]>=0.49.0",
 ]
 dev = [
     "black",
@@ -100,6 +101,19 @@ show_error_codes = true
 warn_unused_configs = true
 namespace_packages = true
 explicit_package_bases = true
+mypy_path = [
+    "$MYPY_CONFIG_FILE_DIR/apps/api/src",
+    "$MYPY_CONFIG_FILE_DIR/packages/auth/src",
+    "$MYPY_CONFIG_FILE_DIR/packages/config/src",
+    "$MYPY_CONFIG_FILE_DIR/packages/connectors/src",
+    "$MYPY_CONFIG_FILE_DIR/packages/contracts/src",
+    "$MYPY_CONFIG_FILE_DIR/packages/documents/src",
+    "$MYPY_CONFIG_FILE_DIR/packages/intelligence/src",
+    "$MYPY_CONFIG_FILE_DIR/packages/memory/src",
+    "$MYPY_CONFIG_FILE_DIR/packages/observability/src",
+    "$MYPY_CONFIG_FILE_DIR/packages/search/src",
+    "$MYPY_CONFIG_FILE_DIR/packages/shared/src",
+]
 exclude = [
     "^\\.venv/",
     "^build/",

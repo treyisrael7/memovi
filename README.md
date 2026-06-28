@@ -93,6 +93,14 @@ Start local infrastructure and the frontend development server:
 task dev
 ```
 
+Start local infrastructure and the backend API development server:
+
+```bash
+task backend:dev
+```
+
+The API health endpoint is available at `http://localhost:8000/health`.
+
 Run validation before opening a pull request:
 
 ```bash
@@ -109,6 +117,7 @@ commits. CI runs backend and frontend validation through GitHub Actions.
 
 - `task setup` installs dependencies and Git hooks.
 - `task backend` runs backend lint, format check, typecheck, and tests.
+- `task backend:dev` starts Docker infrastructure and the backend API dev server.
 - `task frontend` runs frontend lint, format check, typecheck, and build.
 - `task docker-up` starts local infrastructure.
 - `task docker-down` stops local infrastructure.

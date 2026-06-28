@@ -22,6 +22,13 @@ tasks:
       - backend:typecheck
       - backend:test
 
+  backend:dev:
+    desc: Start local infrastructure and the backend API development server.
+    deps:
+      - docker-up
+    cmds:
+      - uv run uvicorn api.main:app --app-dir apps/api/src --host 127.0.0.1 --port 8000 --reload
+
   frontend:
     desc: Run all frontend validation tasks.
     deps:
@@ -91,7 +98,7 @@ tasks:
     cmds:
       - >-
         python -c "from pathlib import Path; import subprocess, sys;
-        files = [path for path in subprocess.check_output(['git', 'ls-files', '*.py', '*.pyi'], text=True).splitlines() if not Path(path).parts[0].startswith('.')];
+        files = [path for path in subprocess.check_output(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '*.py', '*.pyi'], text=True).splitlines() if Path(path).exists() and not Path(path).parts[0].startswith('.')];
         print('No Python files found; skipping MyPy.') if not files else None;
         sys.exit(0 if not files else subprocess.call(['uv', 'run', 'mypy', *files]))"
 
