@@ -82,7 +82,6 @@ networks:
   memovi_internal:
     name: memovi_internal
     driver: bridge
-    internal: true
 
 volumes:
   memovi_postgres_data:

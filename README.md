@@ -74,10 +74,9 @@ If you are not using Task, the equivalent commands are documented in
 `-- Taskfile.yml              # Repository task runner
 ```
 
-The API app currently contains only the backend composition root and health
-endpoint. Package, database, script, and test directories are placeholders. No
-authentication, repositories, database models, application services, or domain
-logic have been created yet.
+The API app currently contains the backend composition root, health endpoint,
+and local authentication endpoints. Auth owns its domain model, use cases,
+SQLAlchemy repositories, Alembic migration, and tests inside `packages/auth`.
 
 ## Development Workflow
 
@@ -100,6 +99,7 @@ task backend:dev
 ```
 
 The API health endpoint is available at `http://localhost:8000/health`.
+Local authentication endpoints are available under `http://localhost:8000/auth`.
 
 Run validation before opening a pull request:
 
@@ -155,8 +155,14 @@ Service credentials, health checks, volumes, and configuration are documented in
 [`docs/development/local-infrastructure.md`](docs/development/local-infrastructure.md). Copy
 `.env.example` to `.env` when you need local overrides.
 
+Run database migrations before using persisted API features:
+
+```bash
+uv run alembic upgrade head
+```
+
 ## Status
 
 Memovi is in early development. The repository currently provides the Python
-workspace, frontend workspace, local infrastructure, developer tooling, CI, and
-Dev Container foundation.
+workspace, frontend workspace, local infrastructure, developer tooling, CI, Dev
+Container foundation, and local session-based authentication foundation.

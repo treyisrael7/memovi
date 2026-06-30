@@ -3,9 +3,13 @@
 Authentication and authorization domain boundary. This package owns the identity-related
 domain, application, infrastructure, API, and event contracts for Memovi.
 
-This package currently defines the architectural foundation only. It intentionally contains
-no authentication flow, login behavior, JWT handling, OAuth integration, password hashing,
-persistence models, repository implementations, or auth endpoints.
+This package implements Memovi's local authentication foundation. Authentication exists
+to establish ownership of knowledge in a self-hosted instance; it is not a generic SaaS
+identity system.
+
+The package uses secure HTTP-only session cookies, Argon2id password hashes, SQLAlchemy
+repositories, and Alembic-managed PostgreSQL tables. It intentionally does not implement
+JWT, OAuth, RBAC, or API keys.
 
 ## Layers
 

@@ -1,0 +1,43 @@
+import os
+from collections.abc import Iterator
+from functools import lru_cache
+
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
+
+def database_url() -> str:
+    explicit_url = os.getenv("DATABASE_URL")
+    if explicit_url:
+        return explicit_url
+
+    user = os.getenv("POSTGRES_USER", "memovi_app")
+    password = os.getenv("POSTGRES_PASSWORD", "memovi_local_pg_9f4c8e2d7a6b41c3")
+    host = os.getenv("POSTGRES_HOST", "127.0.0.1")
+    port = os.getenv("POSTGRES_PORT", "5432")
+    database = os.getenv("POSTGRES_DB", "memovi")
+    return f"postgresql+psycopg://{user}:{password}@{host}:{port}/{database}"
+
+
+@lru_cache(maxsize=1)
+def engine() -> Engine:
+    url = database_url()
+    connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
+    return create_engine(url, connect_args=connect_args, pool_pre_ping=True)
+
+
+@lru_cache(maxsize=1)
+def session_factory() -> sessionmaker[Session]:
+    return sessionmaker(bind=engine(), expire_on_commit=False)
+
+
+def database_session() -> Iterator[Session]:
+    session = session_factory()()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()

@@ -26,8 +26,10 @@ tasks:
     desc: Start local infrastructure and the backend API development server.
     deps:
       - docker-up
+    env:
+      PYTHONPATH: "apps/api/src;packages/auth/src"
     cmds:
-      - uv run uvicorn api.main:app --app-dir apps/api/src --host 127.0.0.1 --port 8000 --reload
+      - uv run uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
 
   frontend:
     desc: Run all frontend validation tasks.

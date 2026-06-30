@@ -90,28 +90,29 @@ Establish the backend platform that future business domains build upon.
 
 ---
 
-# Milestone 2 — Identity & Access
+# Milestone 2 — Local Identity & Ownership
 
 **Objective**
 
-Build the authentication and authorization layer.
+Build the local authentication layer that establishes ownership of knowledge in a
+self-hosted Memovi instance.
 
 **Deliverables**
 
 * User registration
-* Secure authentication
-* OAuth providers
-* Session management
-* API keys
-* Role-based access control
-* User profiles
-* Audit logging
+* Secure local login
+* HTTP-only session cookies
+* Session persistence and logout
+* Current-user API boundary
+* Ownership-aware request context
+* Audit logging for ownership-sensitive actions
 
 **Success Criteria**
 
-* Users can securely authenticate.
-* Every request is identity-aware.
-* Authentication is isolated from business domains.
+* Users can securely authenticate with local credentials.
+* Every ownership-sensitive request can identify the current user.
+* Authentication is isolated from knowledge domains.
+* Memovi does not depend on JWT, OAuth, RBAC, or API keys for the local foundation.
 
 ---
 

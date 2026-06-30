@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Authentication and authorization domain boundary. This package will own identity-related domain, application, infrastructure, API, and event contracts when Milestone 2 begins."
 requires-python = ">=3.14"
 dependencies = [
+    "argon2-cffi",
     "fastapi",
+    "sqlalchemy>=2",
 ]
 
 [build-system]
