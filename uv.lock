@@ -683,6 +683,16 @@ source = { editable = "packages/contracts" }
 name = "memovi-documents"
 version = "0.1.0"
 source = { editable = "packages/documents" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "sqlalchemy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi" },
+    { name = "sqlalchemy", specifier = ">=2" },
+]
 
 [[package]]
 name = "memovi-intelligence"
