@@ -21,6 +21,8 @@ task setup
 Common development commands:
 
 ```bash
+task backend
+task backend:check
 task lint
 task format
 task typecheck

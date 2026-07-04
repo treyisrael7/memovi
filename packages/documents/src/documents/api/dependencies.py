@@ -7,9 +7,16 @@ from documents.application.commands import (
     CompleteProcessing,
     CreateDocument,
     FailProcessing,
+    IngestLocalDocument,
     StartProcessing,
 )
+from documents.application.ports import ObjectStorage
 from documents.application.queries import GetDocument, ListDocuments
+from documents.infrastructure.repositories import (
+    SqlAlchemyDocumentRepository,
+    SqlAlchemyProcessingJobRepository,
+)
+from documents.infrastructure.storage import MinioObjectStorage
 
 
 def get_database_session() -> OrmSession:
@@ -19,25 +26,56 @@ def get_database_session() -> OrmSession:
 DatabaseSession = Annotated[OrmSession, Depends(get_database_session)]
 
 
-def get_create_document(_session: DatabaseSession) -> CreateDocument:
-    raise RuntimeError("CreateDocument dependency was not configured.")
+def get_object_storage() -> ObjectStorage:
+    return MinioObjectStorage.from_env()
 
 
-def get_start_processing(_session: DatabaseSession) -> StartProcessing:
-    raise RuntimeError("StartProcessing dependency was not configured.")
+ObjectStorageDependency = Annotated[ObjectStorage, Depends(get_object_storage)]
 
 
-def get_complete_processing(_session: DatabaseSession) -> CompleteProcessing:
-    raise RuntimeError("CompleteProcessing dependency was not configured.")
+def get_ingest_local_document(
+    session: DatabaseSession,
+    object_storage: ObjectStorageDependency,
+) -> IngestLocalDocument:
+    return IngestLocalDocument(
+        documents=SqlAlchemyDocumentRepository(session),
+        processing_jobs=SqlAlchemyProcessingJobRepository(session),
+        object_storage=object_storage,
+    )
 
 
-def get_fail_processing(_session: DatabaseSession) -> FailProcessing:
-    raise RuntimeError("FailProcessing dependency was not configured.")
+def get_create_document(session: DatabaseSession) -> CreateDocument:
+    return CreateDocument(
+        documents=SqlAlchemyDocumentRepository(session),
+        processing_jobs=SqlAlchemyProcessingJobRepository(session),
+    )
 
 
-def get_document_query(_session: DatabaseSession) -> GetDocument:
-    raise RuntimeError("GetDocument dependency was not configured.")
+def get_start_processing(session: DatabaseSession) -> StartProcessing:
+    return StartProcessing(
+        processing_jobs=SqlAlchemyProcessingJobRepository(session),
+    )
 
 
-def get_list_documents_query(_session: DatabaseSession) -> ListDocuments:
-    raise RuntimeError("ListDocuments dependency was not configured.")
+def get_complete_processing(session: DatabaseSession) -> CompleteProcessing:
+    return CompleteProcessing(
+        processing_jobs=SqlAlchemyProcessingJobRepository(session),
+    )
+
+
+def get_fail_processing(session: DatabaseSession) -> FailProcessing:
+    return FailProcessing(
+        processing_jobs=SqlAlchemyProcessingJobRepository(session),
+    )
+
+
+def get_document_query(session: DatabaseSession) -> GetDocument:
+    return GetDocument(
+        documents=SqlAlchemyDocumentRepository(session),
+    )
+
+
+def get_list_documents_query(session: DatabaseSession) -> ListDocuments:
+    return ListDocuments(
+        documents=SqlAlchemyDocumentRepository(session),
+    )

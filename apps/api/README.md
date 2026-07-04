@@ -13,7 +13,7 @@ dependency into the running API.
 Run the local API development server from the repository root:
 
 ```bash
-task backend:dev
+task backend
 ```
 
 The health endpoint is available at `http://localhost:8000/health`.

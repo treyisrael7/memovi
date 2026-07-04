@@ -3,6 +3,7 @@ version: "3"
 vars:
   WEB_PACKAGE: "@memovi/web"
   PNPM_VERSION: "10.33.4"
+  BACKEND_PYTHONPATH: "apps/api/src;packages/auth/src;packages/config/src;packages/connectors/src;packages/contracts/src;packages/documents/src;packages/intelligence/src;packages/memory/src;packages/observability/src;packages/search/src;packages/shared/src"
 
 tasks:
   setup:
@@ -10,26 +11,31 @@ tasks:
     cmds:
       - corepack enable
       - corepack prepare pnpm@{{.PNPM_VERSION}} --activate
-      - uv sync --all-groups
+      - uv sync --all-groups --package memovi-api
       - pnpm install --frozen-lockfile
       - uv run pre-commit install
 
   backend:
+    desc: Start local infrastructure and the backend API development server.
+    deps:
+      - docker-up
+    env:
+      PYTHONPATH: "{{.BACKEND_PYTHONPATH}}"
+    cmds:
+      - uv run uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload --app-dir apps/api/src
+
+  backend:dev:
+    desc: Alias for `task backend`.
+    cmds:
+      - task: backend
+
+  backend:check:
     desc: Run all backend validation tasks.
     deps:
       - backend:lint
       - backend:format-check
       - backend:typecheck
       - backend:test
-
-  backend:dev:
-    desc: Start local infrastructure and the backend API development server.
-    deps:
-      - docker-up
-    env:
-      PYTHONPATH: "apps/api/src;packages/auth/src"
-    cmds:
-      - uv run uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
 
   frontend:
     desc: Run all frontend validation tasks.
@@ -48,6 +54,14 @@ tasks:
     desc: Stop local infrastructure services.
     cmds:
       - docker compose down
+
+  db:migrate:
+    desc: Apply database migrations (starts Docker if needed).
+    deps:
+      - docker-up
+    cmds:
+      - docker compose up -d --wait postgres
+      - uv run alembic upgrade head
 
   lint:
     desc: Run backend and frontend linters.

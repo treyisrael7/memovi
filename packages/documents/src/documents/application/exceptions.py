@@ -12,3 +12,11 @@ class ProcessingJobNotFoundError(DocumentsApplicationError):
 
 class InvalidProcessingStateError(DocumentsApplicationError):
     """Raised when a processing command cannot run in the current job state."""
+
+
+class UnsupportedMimeTypeError(DocumentsApplicationError):
+    """Raised when an uploaded file has a MIME type that ingestion does not support."""
+
+
+class EmptyUploadError(DocumentsApplicationError):
+    """Raised when an upload contains no file content."""

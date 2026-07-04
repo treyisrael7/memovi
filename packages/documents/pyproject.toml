@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Document ingestion and document lifecycle domain boundary."
 requires-python = ">=3.14"
 dependencies = [
+    "boto3",
     "fastapi",
+    "python-multipart",
     "sqlalchemy>=2",
 ]
 

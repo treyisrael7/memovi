@@ -95,7 +95,7 @@ task dev
 Start local infrastructure and the backend API development server:
 
 ```bash
-task backend:dev
+task backend
 ```
 
 The API health endpoint is available at `http://localhost:8000/health`.
@@ -104,6 +104,7 @@ Local authentication endpoints are available under `http://localhost:8000/auth`.
 Run validation before opening a pull request:
 
 ```bash
+task backend:check
 task lint
 task format
 task typecheck
@@ -116,11 +117,13 @@ commits. CI runs backend and frontend validation through GitHub Actions.
 ## Task Commands
 
 - `task setup` installs dependencies and Git hooks.
-- `task backend` runs backend lint, format check, typecheck, and tests.
-- `task backend:dev` starts Docker infrastructure and the backend API dev server.
+- `task backend` starts Docker infrastructure and the backend API dev server.
+- `task backend:check` runs backend lint, format check, typecheck, and tests.
+- `task backend:dev` is an alias for `task backend`.
 - `task frontend` runs frontend lint, format check, typecheck, and build.
 - `task docker-up` starts local infrastructure.
 - `task docker-down` stops local infrastructure.
+- `task db:migrate` starts PostgreSQL and applies Alembic migrations.
 - `task lint` runs backend and frontend linters.
 - `task format` formats backend and frontend files.
 - `task typecheck` runs backend and frontend type checks.
@@ -155,9 +158,16 @@ Service credentials, health checks, volumes, and configuration are documented in
 [`docs/development/local-infrastructure.md`](docs/development/local-infrastructure.md). Copy
 `.env.example` to `.env` when you need local overrides.
 
-Run database migrations before using persisted API features:
+Run database migrations before using persisted API features. PostgreSQL must be running:
 
 ```bash
+task db:migrate
+```
+
+Or start infrastructure first, then migrate manually:
+
+```bash
+task docker-up
 uv run alembic upgrade head
 ```
 

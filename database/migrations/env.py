@@ -8,15 +8,17 @@ from sqlalchemy import engine_from_config, pool
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT_DIR / "packages" / "auth" / "src"))
+sys.path.insert(0, str(ROOT_DIR / "packages" / "documents" / "src"))
 
-from auth.infrastructure.persistence import Base  # noqa: E402
+from auth.infrastructure.persistence import Base as AuthBase  # noqa: E402
+from documents.infrastructure.persistence import Base as DocumentsBase  # noqa: E402
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = Base.metadata
+target_metadata = [AuthBase.metadata, DocumentsBase.metadata]
 
 
 def database_url() -> str:

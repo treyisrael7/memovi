@@ -13,6 +13,11 @@ from documents.application.commands.fail_processing import (
     FailProcessingCommand,
     FailProcessingResult,
 )
+from documents.application.commands.ingest_local_document import (
+    IngestLocalDocument,
+    IngestLocalDocumentCommand,
+    IngestLocalDocumentResult,
+)
 from documents.application.commands.start_processing import (
     StartProcessing,
     StartProcessingCommand,
@@ -29,6 +34,9 @@ __all__ = [
     "FailProcessing",
     "FailProcessingCommand",
     "FailProcessingResult",
+    "IngestLocalDocument",
+    "IngestLocalDocumentCommand",
+    "IngestLocalDocumentResult",
     "StartProcessing",
     "StartProcessingCommand",
     "StartProcessingResult",

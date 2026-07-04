@@ -23,11 +23,13 @@ runtime = [
     "alembic",
     "argon2-cffi",
     "asyncpg",
+    "boto3",
     "fastapi",
     "httpx",
     "pgvector",
     "psycopg[binary]",
     "pydantic>=2",
+    "python-multipart",
     "sqlalchemy>=2",
     "uvicorn[standard]>=0.49.0",
 ]
@@ -121,6 +123,10 @@ exclude = [
     "^build/",
     "^dist/",
 ]
+
+[[tool.mypy.overrides]]
+module = ["boto3", "botocore.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"

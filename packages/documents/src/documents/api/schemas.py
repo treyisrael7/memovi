@@ -21,3 +21,9 @@ class DocumentResponse(BaseModel):
 
 class DocumentListResponse(BaseModel):
     items: list[DocumentResponse]
+
+
+class IngestDocumentResponse(BaseModel):
+    document_id: str
+    processing_job_id: str
+    processing_status: str
