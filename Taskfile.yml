@@ -61,7 +61,7 @@ tasks:
       - docker-up
     cmds:
       - docker compose up -d --wait postgres
-      - uv run alembic upgrade head
+      - uv run --group runtime alembic upgrade head
 
   lint:
     desc: Run backend and frontend linters.

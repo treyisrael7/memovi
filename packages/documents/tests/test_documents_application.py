@@ -37,6 +37,12 @@ class InMemoryDocumentRepository(DocumentRepository):
             return None
         return max(versions, key=lambda version: version.version_number)
 
+    def get_version_by_id(self, version_id: str) -> DocumentVersion | None:
+        return self.versions.get(version_id)
+
+    def save_version(self, version: DocumentVersion) -> None:
+        self.versions[version.id] = version
+
 
 class InMemoryProcessingJobRepository(ProcessingJobRepository):
     def __init__(self) -> None:

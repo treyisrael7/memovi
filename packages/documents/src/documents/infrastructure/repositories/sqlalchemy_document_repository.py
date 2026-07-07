@@ -41,9 +41,23 @@ class SqlAlchemyDocumentRepository:
                 document_id=version.document_id.value,
                 version_number=version.version_number,
                 storage_key=version.storage_key,
+                normalized_content=version.normalized_content,
                 created_at=version.created_at,
             )
         )
+
+    def get_version_by_id(self, version_id: str) -> DocumentVersion | None:
+        record = self._session.get(DocumentVersionRecord, version_id)
+        if record is None:
+            return None
+        return self._version_to_domain(record)
+
+    def save_version(self, version: DocumentVersion) -> None:
+        record = self._session.get(DocumentVersionRecord, version.id)
+        if record is None:
+            raise ValueError(f"Document version '{version.id}' was not found.")
+
+        record.normalized_content = version.normalized_content
 
     def get_latest_version(self, document_id: DocumentId) -> DocumentVersion | None:
         record = (
@@ -71,6 +85,7 @@ class SqlAlchemyDocumentRepository:
             document_id=DocumentId(record.document_id),
             version_number=record.version_number,
             storage_key=record.storage_key,
+            normalized_content=record.normalized_content,
             created_at=_as_utc(record.created_at),
         )
 

@@ -1,5 +1,5 @@
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
 from documents.domain.exceptions import InvalidDocumentVersionError
@@ -15,6 +15,7 @@ class DocumentVersion:
     version_number: int
     storage_key: str
     created_at: datetime
+    normalized_content: str | None = None
 
     def __post_init__(self) -> None:
         if not self.id:
@@ -23,6 +24,9 @@ class DocumentVersion:
             raise InvalidDocumentVersionError("Document version number must be at least 1.")
         if not self.storage_key.strip():
             raise InvalidDocumentVersionError("Document version storage key is required.")
+
+    def with_normalized_content(self, content: str) -> DocumentVersion:
+        return replace(self, normalized_content=content)
 
     @classmethod
     def initial(

@@ -20,3 +20,15 @@ class UnsupportedMimeTypeError(DocumentsApplicationError):
 
 class EmptyUploadError(DocumentsApplicationError):
     """Raised when an upload contains no file content."""
+
+
+class UnsupportedProcessorError(DocumentsApplicationError):
+    """Raised when no processor is registered for a document MIME type."""
+
+
+class DocumentVersionNotFoundError(DocumentsApplicationError):
+    """Raised when a requested document version does not exist."""
+
+
+class DocumentProcessingError(DocumentsApplicationError):
+    """Raised when document content cannot be extracted or normalized."""

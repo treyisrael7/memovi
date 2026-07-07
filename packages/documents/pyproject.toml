@@ -6,6 +6,7 @@ requires-python = ">=3.14"
 dependencies = [
     "boto3",
     "fastapi",
+    "pypdf",
     "python-multipart",
     "sqlalchemy>=2",
 ]

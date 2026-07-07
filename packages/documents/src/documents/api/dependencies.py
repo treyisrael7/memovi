@@ -8,10 +8,13 @@ from documents.application.commands import (
     CreateDocument,
     FailProcessing,
     IngestLocalDocument,
+    ProcessDocument,
     StartProcessing,
 )
 from documents.application.ports import ObjectStorage
 from documents.application.queries import GetDocument, ListDocuments
+from documents.infrastructure.events.noop_event_publisher import NoOpEventPublisher
+from documents.infrastructure.processors import DefaultProcessorRegistry
 from documents.infrastructure.repositories import (
     SqlAlchemyDocumentRepository,
     SqlAlchemyProcessingJobRepository,
@@ -78,4 +81,17 @@ def get_document_query(session: DatabaseSession) -> GetDocument:
 def get_list_documents_query(session: DatabaseSession) -> ListDocuments:
     return ListDocuments(
         documents=SqlAlchemyDocumentRepository(session),
+    )
+
+
+def get_process_document(
+    session: DatabaseSession,
+    object_storage: ObjectStorageDependency,
+) -> ProcessDocument:
+    return ProcessDocument(
+        documents=SqlAlchemyDocumentRepository(session),
+        processing_jobs=SqlAlchemyProcessingJobRepository(session),
+        object_storage=object_storage,
+        processor_registry=DefaultProcessorRegistry(),
+        event_publisher=NoOpEventPublisher(),
     )

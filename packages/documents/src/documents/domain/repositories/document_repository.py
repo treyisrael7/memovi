@@ -21,3 +21,9 @@ class DocumentRepository(Protocol):
 
     def get_latest_version(self, document_id: DocumentId) -> DocumentVersion | None:
         raise NotImplementedError
+
+    def get_version_by_id(self, version_id: str) -> DocumentVersion | None:
+        raise NotImplementedError
+
+    def save_version(self, version: DocumentVersion) -> None:
+        raise NotImplementedError

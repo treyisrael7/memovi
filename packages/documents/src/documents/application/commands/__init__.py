@@ -18,6 +18,11 @@ from documents.application.commands.ingest_local_document import (
     IngestLocalDocumentCommand,
     IngestLocalDocumentResult,
 )
+from documents.application.commands.process_document import (
+    ProcessDocument,
+    ProcessDocumentCommand,
+    ProcessDocumentResult,
+)
 from documents.application.commands.start_processing import (
     StartProcessing,
     StartProcessingCommand,
@@ -37,6 +42,9 @@ __all__ = [
     "IngestLocalDocument",
     "IngestLocalDocumentCommand",
     "IngestLocalDocumentResult",
+    "ProcessDocument",
+    "ProcessDocumentCommand",
+    "ProcessDocumentResult",
     "StartProcessing",
     "StartProcessingCommand",
     "StartProcessingResult",

@@ -9,3 +9,24 @@ class ObjectStorage(Protocol):
 
     def get_object(self, key: str) -> bytes:
         raise NotImplementedError
+
+
+class DocumentProcessor(Protocol):
+    """Extracts textual content from an immutable document artifact."""
+
+    def extract_text(self, content: bytes) -> str:
+        raise NotImplementedError
+
+
+class ProcessorRegistry(Protocol):
+    """Resolves MIME-specific document processors."""
+
+    def processor_for(self, mime_type: str) -> DocumentProcessor:
+        raise NotImplementedError
+
+
+class EventPublisher(Protocol):
+    """Publishes domain events to downstream consumers."""
+
+    def publish(self, event: object) -> None:
+        raise NotImplementedError
