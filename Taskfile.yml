@@ -37,6 +37,17 @@ tasks:
       - backend:typecheck
       - backend:test
 
+  backend:process:
+    desc: Process a pending document job by processing_job_id (local dev).
+    deps:
+      - docker-up
+    env:
+      PYTHONPATH: "{{.BACKEND_PYTHONPATH}}"
+    cmds:
+      - uv run --group runtime python scripts/process_document.py {{.CLI_ARGS}}
+    requires:
+      vars: [CLI_ARGS]
+
   frontend:
     desc: Run all frontend validation tasks.
     deps:

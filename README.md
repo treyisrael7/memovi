@@ -124,6 +124,7 @@ commits. CI runs backend and frontend validation through GitHub Actions.
 - `task docker-up` starts local infrastructure.
 - `task docker-down` stops local infrastructure.
 - `task db:migrate` starts PostgreSQL and applies Alembic migrations.
+- `task backend:process -- <processing_job_id>` runs document processing locally.
 - `task lint` runs backend and frontend linters.
 - `task format` formats backend and frontend files.
 - `task typecheck` runs backend and frontend type checks.
