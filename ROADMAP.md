@@ -63,34 +63,42 @@ Establish the engineering foundation that every future feature depends on.
 
 # Milestone 1 — Platform Skeleton
 
+**Status**
+
+In progress — core platform operational; architecture validation and observability remain.
+
 **Objective**
 
 Establish the backend platform that future business domains build upon.
 
 **Deliverables**
 
-* Backend composition root
-* FastAPI application bootstrap
-* Domain package scaffolding
-* Configuration system
-* Dependency injection
-* Structured logging
-* Observability foundation
-* Router registration
-* Health endpoint
-* Architecture tests
+* Backend composition root — **done**
+* FastAPI application bootstrap — **done**
+* Domain package scaffolding — **partial** (`auth` and `documents` implemented; other domains scaffolded)
+* Configuration system — **partial** (environment-based settings; typed `memovi_config` package not yet wired)
+* Dependency injection — **done**
+* Structured logging — **partial** (application logging; structured/JSON logging not yet implemented)
+* Observability foundation — **partial** (`packages/observability` scaffolded; tracing and metrics not yet implemented)
+* Router registration — **done**
+* Health endpoint — **done**
+* Architecture tests — **not started**
 
 **Success Criteria**
 
-* The backend boots successfully.
-* All domain packages follow a consistent architecture.
-* Cross-cutting concerns are centralized.
-* Every future business domain can plug into the platform without modifying its core.
-* The architecture is validated through automated architecture tests.
+* The backend boots successfully. — **met**
+* All domain packages follow a consistent architecture. — **partial** (implemented domains follow boundaries; others are scaffolds)
+* Cross-cutting concerns are centralized. — **met**
+* Every future business domain can plug into the platform without modifying its core. — **met**
+* The architecture is validated through automated architecture tests. — **not met**
 
 ---
 
 # Milestone 2 — Local Identity & Ownership
+
+**Status**
+
+In progress — local authentication works; ownership is not yet enforced on knowledge domains.
 
 **Objective**
 
@@ -99,24 +107,28 @@ self-hosted Memovi instance.
 
 **Deliverables**
 
-* User registration
-* Secure local login
-* HTTP-only session cookies
-* Session persistence and logout
-* Current-user API boundary
-* Ownership-aware request context
-* Audit logging for ownership-sensitive actions
+* User registration — **done**
+* Secure local login — **done**
+* HTTP-only session cookies — **done**
+* Session persistence and logout — **done**
+* Current-user API boundary — **done**
+* Ownership-aware request context — **not started** (documents ingestion is not yet user-scoped)
+* Audit logging for ownership-sensitive actions — **not started**
 
 **Success Criteria**
 
-* Users can securely authenticate with local credentials.
-* Every ownership-sensitive request can identify the current user.
-* Authentication is isolated from knowledge domains.
-* Memovi does not depend on JWT, OAuth, RBAC, or API keys for the local foundation.
+* Users can securely authenticate with local credentials. — **met**
+* Every ownership-sensitive request can identify the current user. — **partial** (auth boundary exists; knowledge APIs do not yet require it)
+* Authentication is isolated from knowledge domains. — **met**
+* Memovi does not depend on JWT, OAuth, RBAC, or API keys for the local foundation. — **met**
 
 ---
 
 # Milestone 3 — Knowledge Ingestion
+
+**Status**
+
+In progress — upload-to-processing pipeline is operational locally; enrichment stages remain.
 
 **Objective**
 
@@ -124,20 +136,22 @@ Allow information to enter the platform through a unified ingestion pipeline.
 
 **Deliverables**
 
-* Document uploads
-* Local file connector
-* Object storage
-* Metadata extraction
-* Document versioning
-* Processing queue
-* OCR pipeline
-* Chunk generation
+* Document uploads — **done** (`POST /documents`, 202 Accepted)
+* Local file connector — **partial** (upload ingest path via `IngestLocalDocument`; connector framework not yet built)
+* Object storage — **done** (MinIO-backed immutable artifact storage)
+* Metadata extraction — **partial** (filename, MIME type, source type at ingest; text extraction and normalization during processing)
+* Document versioning — **partial** (version model and initial version on upload; no re-upload or new-version workflow yet)
+* Document processing engine — **done** (synchronous `ProcessDocument` pipeline for PDF, Markdown, and plain text)
+* Processing queue — **done** (application-layer queue abstraction with in-memory implementation for local development)
+* Background document processing — **done** (worker polls queue, executes processing engine, updates job status, publishes events, retries transient failures)
+* OCR pipeline — **not started**
+* Chunk generation — **not started**
 
 **Success Criteria**
 
-* Documents are stored reliably.
-* Every uploaded document enters the knowledge pipeline.
-* Processing occurs asynchronously.
+* Documents are stored reliably. — **met**
+* Every uploaded document enters the knowledge pipeline. — **met**
+* Processing occurs asynchronously. — **met**
 
 ---
 

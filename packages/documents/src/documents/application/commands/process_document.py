@@ -7,6 +7,7 @@ from documents.application.exceptions import (
     DocumentVersionNotFoundError,
     InvalidProcessingStateError,
     ProcessingJobNotFoundError,
+    TransientDocumentProcessingError,
 )
 from documents.application.ports import EventPublisher, ObjectStorage, ProcessorRegistry
 from documents.domain.entities import ProcessingJob
@@ -15,6 +16,8 @@ from documents.domain.events import ProcessingCompleted, ProcessingFailed, Proce
 from documents.domain.exceptions import InvalidProcessingTransitionError
 from documents.domain.repositories import DocumentRepository, ProcessingJobRepository
 from documents.domain.services import normalize_text
+
+_TRANSIENT_EXCEPTIONS = (ConnectionError, TimeoutError, OSError)
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,6 +98,8 @@ class ProcessDocument:
                 events=tuple(events),
             )
         except Exception as exc:
+            if isinstance(exc, _TRANSIENT_EXCEPTIONS):
+                raise TransientDocumentProcessingError(str(exc)) from exc
             return self._fail(job, reason=str(exc), prior_events=events)
 
     def _load_pending_job(self, processing_job_id: str) -> ProcessingJob:

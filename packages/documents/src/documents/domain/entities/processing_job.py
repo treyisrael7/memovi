@@ -80,6 +80,22 @@ class ProcessingJob:
             failure_reason=reason,
         )
 
+    def reset_to_pending(self, now: datetime | None = None) -> ProcessingJob:
+        if self.status == ProcessingStatus.COMPLETED:
+            raise InvalidProcessingTransitionError(
+                "Completed processing jobs cannot be reset to pending.",
+            )
+        if self.status == ProcessingStatus.PENDING:
+            return self
+
+        timestamp = now or datetime.now(UTC)
+        return replace(
+            self,
+            status=ProcessingStatus.PENDING,
+            updated_at=timestamp,
+            failure_reason=None,
+        )
+
     def _transition(
         self,
         *,

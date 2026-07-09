@@ -1,8 +1,10 @@
+import pytest
 from documents.application.commands.ingest_local_document import (
     IngestLocalDocument,
     IngestLocalDocumentCommand,
 )
 from documents.application.commands.process_document import ProcessDocument, ProcessDocumentCommand
+from documents.application.exceptions import TransientDocumentProcessingError
 from documents.domain.entities import DocumentVersion, ProcessingJob
 from documents.domain.enums import ProcessingStatus
 from documents.domain.events import ProcessingCompleted, ProcessingFailed, ProcessingStarted
@@ -154,6 +156,31 @@ def test_process_document_marks_failed_jobs_and_publishes_event() -> None:
     assert job.failure_reason is not None
     assert isinstance(publisher.events[0], ProcessingStarted)
     assert isinstance(publisher.events[1], ProcessingFailed)
+
+
+def test_process_document_raises_transient_errors_for_infrastructure_failures() -> None:
+    class FailingObjectStorage(InMemoryObjectStorage):
+        def get_object(self, key: str) -> bytes:
+            raise ConnectionError("storage unavailable")
+
+    processor, documents, processing_jobs, object_storage, _ = build_processing_engine(
+        object_storage=FailingObjectStorage(),
+    )
+    job_id, _, _ = seed_pending_job(
+        documents=documents,
+        processing_jobs=processing_jobs,
+        object_storage=object_storage,
+        filename="notes.md",
+        mime_type="text/markdown",
+        content=b"hello",
+    )
+
+    with pytest.raises(TransientDocumentProcessingError):
+        processor.execute(ProcessDocumentCommand(processing_job_id=job_id))
+
+    job = processing_jobs.get_by_id(job_id)
+    assert job is not None
+    assert job.status is ProcessingStatus.EXTRACTING
 
 
 def test_process_document_transitions_through_expected_statuses() -> None:

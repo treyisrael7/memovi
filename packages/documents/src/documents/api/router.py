@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 
 from documents.api.dependencies import get_ingest_local_document
 from documents.api.schemas import IngestDocumentResponse
@@ -20,6 +20,7 @@ router = APIRouter(prefix="/documents", tags=["documents"])
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def ingest_document(
+    request: Request,
     file: Annotated[UploadFile, File()],
     use_case: Annotated[IngestLocalDocument, Depends(get_ingest_local_document)],
 ) -> IngestDocumentResponse:
@@ -50,6 +51,8 @@ async def ingest_document(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
         ) from exc
+
+    request.state.pending_processing_job_ids.append(result.processing_job_id)
 
     return IngestDocumentResponse(
         document_id=result.document_id,

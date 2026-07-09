@@ -32,3 +32,7 @@ class DocumentVersionNotFoundError(DocumentsApplicationError):
 
 class DocumentProcessingError(DocumentsApplicationError):
     """Raised when document content cannot be extracted or normalized."""
+
+
+class TransientDocumentProcessingError(DocumentsApplicationError):
+    """Raised when processing fails due to a temporary infrastructure fault."""

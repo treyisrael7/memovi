@@ -8,6 +8,10 @@ from documents.application.commands.create_document import (
     CreateDocumentCommand,
     CreateDocumentResult,
 )
+from documents.application.commands.enqueue_document_processing import (
+    EnqueueDocumentProcessing,
+    EnqueueDocumentProcessingCommand,
+)
 from documents.application.commands.fail_processing import (
     FailProcessing,
     FailProcessingCommand,
@@ -36,6 +40,8 @@ __all__ = [
     "CreateDocument",
     "CreateDocumentCommand",
     "CreateDocumentResult",
+    "EnqueueDocumentProcessing",
+    "EnqueueDocumentProcessingCommand",
     "FailProcessing",
     "FailProcessingCommand",
     "FailProcessingResult",

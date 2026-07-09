@@ -1,17 +1,18 @@
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.orm import Session as OrmSession
 
 from documents.application.commands import (
     CompleteProcessing,
     CreateDocument,
+    EnqueueDocumentProcessing,
     FailProcessing,
     IngestLocalDocument,
     ProcessDocument,
     StartProcessing,
 )
-from documents.application.ports import ObjectStorage
+from documents.application.ports import ObjectStorage, ProcessingJobQueue
 from documents.application.queries import GetDocument, ListDocuments
 from documents.infrastructure.events.noop_event_publisher import NoOpEventPublisher
 from documents.infrastructure.processors import DefaultProcessorRegistry
@@ -27,6 +28,16 @@ def get_database_session() -> OrmSession:
 
 
 DatabaseSession = Annotated[OrmSession, Depends(get_database_session)]
+
+
+def get_processing_job_queue(request: Request) -> ProcessingJobQueue:
+    queue = getattr(request.app.state, "processing_job_queue", None)
+    if queue is None:
+        raise RuntimeError("Processing job queue was not configured.")
+    return queue
+
+
+ProcessingJobQueueDependency = Annotated[ProcessingJobQueue, Depends(get_processing_job_queue)]
 
 
 def get_object_storage() -> ObjectStorage:
@@ -45,6 +56,12 @@ def get_ingest_local_document(
         processing_jobs=SqlAlchemyProcessingJobRepository(session),
         object_storage=object_storage,
     )
+
+
+def get_enqueue_document_processing(
+    processing_job_queue: ProcessingJobQueueDependency,
+) -> EnqueueDocumentProcessing:
+    return EnqueueDocumentProcessing(processing_job_queue=processing_job_queue)
 
 
 def get_create_document(session: DatabaseSession) -> CreateDocument:

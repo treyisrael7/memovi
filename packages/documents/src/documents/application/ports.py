@@ -1,4 +1,26 @@
+from dataclasses import dataclass
 from typing import Protocol
+
+
+@dataclass(frozen=True, slots=True)
+class QueuedProcessingJob:
+    processing_job_id: str
+    attempt: int = 1
+
+
+class ProcessingJobQueue(Protocol):
+    """Queues document processing jobs for asynchronous execution."""
+
+    def enqueue(self, processing_job_id: str, *, attempt: int = 1) -> None:
+        raise NotImplementedError
+
+    async def dequeue(self) -> QueuedProcessingJob | None:
+        """Return the next queued job, or ``None`` when the queue is closed."""
+        raise NotImplementedError
+
+    async def close(self) -> None:
+        """Stop accepting work and unblock waiting consumers."""
+        raise NotImplementedError
 
 
 class ObjectStorage(Protocol):

@@ -2,6 +2,8 @@ from collections.abc import Iterator
 
 import pytest
 from api.app import create_app
+from api.document_processing import configure_document_processing
+from api.documents_session import build_documents_database_session
 from auth.api.dependencies import get_database_session as get_auth_database_session
 from auth.infrastructure.persistence import Base as AuthBase
 from documents.api.dependencies import (
@@ -17,6 +19,7 @@ from documents.infrastructure.persistence.models import (
     DocumentVersionRecord,
     ProcessingJobRecord,
 )
+from documents.infrastructure.queue import NoOpProcessingJobQueue
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -61,9 +64,20 @@ def test_client(object_storage: InMemoryObjectStorage) -> Iterator[tuple[TestCli
         finally:
             session.close()
 
+    def worker_session_factory() -> Session:
+        return session_factory()
+
     app = create_app()
+    configure_document_processing(
+        app,
+        session_factory=worker_session_factory,
+        queue=NoOpProcessingJobQueue(),
+        object_storage=object_storage,
+    )
     app.dependency_overrides[get_auth_database_session] = database_session
-    app.dependency_overrides[get_documents_database_session] = database_session
+    app.dependency_overrides[get_documents_database_session] = build_documents_database_session(
+        database_session
+    )
     app.dependency_overrides[get_object_storage] = lambda: object_storage
 
     client = TestClient(app, base_url="https://testserver")

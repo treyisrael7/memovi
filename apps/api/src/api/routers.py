@@ -5,12 +5,15 @@ from documents.api.router import router as documents_router
 from fastapi import FastAPI
 
 from api.database import database_session
+from api.documents_session import build_documents_database_session
 from api.health import router as health_router
 
 
 def register_routers(app: FastAPI) -> None:
     app.dependency_overrides[get_auth_database_session] = database_session
-    app.dependency_overrides[get_documents_database_session] = database_session
+    app.dependency_overrides[get_documents_database_session] = build_documents_database_session(
+        database_session
+    )
     app.include_router(auth_router)
     app.include_router(documents_router)
     app.include_router(health_router)

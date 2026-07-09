@@ -31,8 +31,13 @@ def session_factory() -> sessionmaker[Session]:
     return sessionmaker(bind=engine(), expire_on_commit=False)
 
 
+def create_session() -> Session:
+    """Create a new database session for background workers and scripts."""
+    return session_factory()()
+
+
 def database_session() -> Iterator[Session]:
-    session = session_factory()()
+    session = create_session()
     try:
         yield session
         session.commit()
