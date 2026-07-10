@@ -6,11 +6,13 @@ retrieval capabilities will consume.
 
 ## Current scope
 
-This package establishes the search domain model:
+This package establishes the search domain model and first materialization use case:
 
 - Domain entities: `SearchDocument` and `Embedding` with enforced invariants
 - Value objects: `SearchDocumentId` and `EmbeddingId`
 - Repository contract: `SearchRepository`
+- Domain service: `SearchMaterializer` for deterministic search document creation
+- Application command: `MaterializeSearchDocument` for persistence orchestration
 - Domain events: `SearchDocumentRegistered` and `EmbeddingRecorded`
 - Application DTOs, ports, and layer scaffolds for future use cases
 - SQLAlchemy persistence models and repository implementation

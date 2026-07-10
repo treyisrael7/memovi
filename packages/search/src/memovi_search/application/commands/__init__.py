@@ -1,1 +1,11 @@
-"""Write-side use cases for search indexing workflows."""
+from memovi_search.application.commands.materialize_search_document import (
+    MaterializeSearchDocument,
+    MaterializeSearchDocumentCommand,
+    MaterializeSearchDocumentResult,
+)
+
+__all__ = [
+    "MaterializeSearchDocument",
+    "MaterializeSearchDocumentCommand",
+    "MaterializeSearchDocumentResult",
+]

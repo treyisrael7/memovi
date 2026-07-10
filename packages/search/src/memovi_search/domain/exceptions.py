@@ -24,3 +24,7 @@ class InvalidDocumentReferenceError(SearchDomainError):
 
 class InvalidKnowledgeItemReferenceError(SearchDomainError):
     """Raised when a knowledge item reference on a search document is invalid."""
+
+
+class InvalidSearchMaterializationError(SearchDomainError):
+    """Raised when search materialization input violates domain constraints."""
