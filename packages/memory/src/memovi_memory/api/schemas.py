@@ -17,9 +17,11 @@ class ChunkResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
-    knowledge_item_id: str
-    index: int = Field(ge=0)
-    content: str
+    knowledge_item_id: str | None = None
+    document_id: str
+    document_version_id: str
+    chunk_index: int = Field(ge=0)
+    text: str
     created_at: datetime
 
 

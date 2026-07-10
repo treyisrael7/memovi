@@ -1,5 +1,5 @@
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
 from memovi_memory.domain.exceptions import InvalidDocumentReferenceError, InvalidKnowledgeItemError
@@ -23,6 +23,8 @@ class KnowledgeItem:
             raise InvalidKnowledgeItemError("Document version ID is required.")
         _validate_document_reference(self.document_id)
         _validate_document_reference(self.document_version_id)
+        if self.updated_at < self.created_at:
+            raise InvalidKnowledgeItemError("Updated timestamp cannot precede created timestamp.")
 
     @classmethod
     def create(
@@ -40,6 +42,10 @@ class KnowledgeItem:
             created_at=timestamp,
             updated_at=timestamp,
         )
+
+    def touch(self, now: datetime | None = None) -> KnowledgeItem:
+        """Return a copy with a refreshed ``updated_at`` timestamp."""
+        return replace(self, updated_at=now or datetime.now(UTC))
 
 
 def _validate_document_reference(value: str) -> None:

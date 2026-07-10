@@ -11,50 +11,78 @@ class SqlAlchemyChunkRepository:
     def __init__(self, session: OrmSession) -> None:
         self._session = session
 
-    def get_by_id(self, chunk_id: ChunkId) -> Chunk | None:
-        record = self._session.get(ChunkRecord, chunk_id.value)
-        if record is None:
-            return None
-        return self._to_domain(record)
+    def save_many(self, chunks: list[Chunk]) -> None:
+        for chunk in chunks:
+            record = self._session.get(ChunkRecord, chunk.id.value)
+            if record is None:
+                self._session.add(self._to_record(chunk))
+                continue
 
-    def list_by_knowledge_item_id(self, knowledge_item_id: KnowledgeItemId) -> list[Chunk]:
+            record.knowledge_item_id = (
+                chunk.knowledge_item_id.value if chunk.knowledge_item_id is not None else None
+            )
+            record.document_id = chunk.document_id
+            record.document_version_id = chunk.document_version_id
+            record.chunk_index = chunk.chunk_index.value
+            record.text = chunk.text
+
+    def list_by_document_version(
+        self,
+        *,
+        document_id: str,
+        document_version_id: str,
+    ) -> list[Chunk]:
         records = (
             self._session.query(ChunkRecord)
-            .filter(ChunkRecord.knowledge_item_id == knowledge_item_id.value)
+            .filter(
+                ChunkRecord.document_id == document_id,
+                ChunkRecord.document_version_id == document_version_id,
+            )
             .order_by(ChunkRecord.chunk_index.asc())
             .all()
         )
         return [self._to_domain(record) for record in records]
 
-    def add(self, chunk: Chunk) -> None:
-        self._session.add(self._to_record(chunk))
-
-    def add_many(self, chunks: list[Chunk]) -> None:
-        for chunk in chunks:
-            self._session.add(self._to_record(chunk))
-
-    def delete_by_knowledge_item_id(self, knowledge_item_id: KnowledgeItemId) -> None:
+    def delete_by_document_version(
+        self,
+        *,
+        document_id: str,
+        document_version_id: str,
+    ) -> None:
         (
             self._session.query(ChunkRecord)
-            .filter(ChunkRecord.knowledge_item_id == knowledge_item_id.value)
+            .filter(
+                ChunkRecord.document_id == document_id,
+                ChunkRecord.document_version_id == document_version_id,
+            )
             .delete()
         )
 
     def _to_domain(self, record: ChunkRecord) -> Chunk:
         return Chunk(
             id=ChunkId(record.id),
-            knowledge_item_id=KnowledgeItemId(record.knowledge_item_id),
-            index=ChunkIndex(record.chunk_index),
-            content=record.content,
+            knowledge_item_id=(
+                KnowledgeItemId(record.knowledge_item_id)
+                if record.knowledge_item_id is not None
+                else None
+            ),
+            document_id=record.document_id,
+            document_version_id=record.document_version_id,
+            chunk_index=ChunkIndex(record.chunk_index),
+            text=record.text,
             created_at=_as_utc(record.created_at),
         )
 
     def _to_record(self, chunk: Chunk) -> ChunkRecord:
         return ChunkRecord(
             id=chunk.id.value,
-            knowledge_item_id=chunk.knowledge_item_id.value,
-            chunk_index=chunk.index.value,
-            content=chunk.content,
+            knowledge_item_id=(
+                chunk.knowledge_item_id.value if chunk.knowledge_item_id is not None else None
+            ),
+            document_id=chunk.document_id,
+            document_version_id=chunk.document_version_id,
+            chunk_index=chunk.chunk_index.value,
+            text=chunk.text,
             created_at=chunk.created_at,
         )
 

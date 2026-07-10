@@ -24,3 +24,7 @@ class InvalidChunkError(MemoryDomainError):
 
 class InvalidDocumentReferenceError(MemoryDomainError):
     """Raised when a document reference on a knowledge item is invalid."""
+
+
+class InvalidChunkGeneratorError(MemoryDomainError):
+    """Raised when chunk generator configuration violates domain constraints."""

@@ -11,49 +11,43 @@ class SqlAlchemyKnowledgeRepository:
     def __init__(self, session: OrmSession) -> None:
         self._session = session
 
+    def save(self, knowledge_item: KnowledgeItem) -> None:
+        record = self._session.get(KnowledgeItemRecord, knowledge_item.id.value)
+        if record is None:
+            self._session.add(self._to_record(knowledge_item))
+            return
+
+        record.document_id = knowledge_item.document_id
+        record.document_version_id = knowledge_item.document_version_id
+        record.updated_at = knowledge_item.updated_at
+
     def get_by_id(self, knowledge_item_id: KnowledgeItemId) -> KnowledgeItem | None:
         record = self._session.get(KnowledgeItemRecord, knowledge_item_id.value)
         if record is None:
             return None
         return self._to_domain(record)
 
-    def get_by_document_version(
+    def list_by_document_version(
         self,
         *,
         document_id: str,
         document_version_id: str,
-    ) -> KnowledgeItem | None:
-        record = (
+    ) -> list[KnowledgeItem]:
+        records = (
             self._session.query(KnowledgeItemRecord)
             .filter(
                 KnowledgeItemRecord.document_id == document_id,
                 KnowledgeItemRecord.document_version_id == document_version_id,
             )
-            .first()
+            .order_by(KnowledgeItemRecord.created_at.asc())
+            .all()
         )
-        if record is None:
-            return None
-        return self._to_domain(record)
+        return [self._to_domain(record) for record in records]
 
-    def add(self, knowledge_item: KnowledgeItem) -> None:
-        self._session.add(
-            KnowledgeItemRecord(
-                id=knowledge_item.id.value,
-                document_id=knowledge_item.document_id,
-                document_version_id=knowledge_item.document_version_id,
-                created_at=knowledge_item.created_at,
-                updated_at=knowledge_item.updated_at,
-            )
-        )
-
-    def save(self, knowledge_item: KnowledgeItem) -> None:
-        record = self._session.get(KnowledgeItemRecord, knowledge_item.id.value)
-        if record is None:
-            raise ValueError(f"Knowledge item '{knowledge_item.id.value}' was not found.")
-
-        record.document_id = knowledge_item.document_id
-        record.document_version_id = knowledge_item.document_version_id
-        record.updated_at = knowledge_item.updated_at
+    def delete(self, knowledge_item_id: KnowledgeItemId) -> None:
+        record = self._session.get(KnowledgeItemRecord, knowledge_item_id.value)
+        if record is not None:
+            self._session.delete(record)
 
     def _to_domain(self, record: KnowledgeItemRecord) -> KnowledgeItem:
         return KnowledgeItem(
@@ -62,6 +56,15 @@ class SqlAlchemyKnowledgeRepository:
             document_version_id=record.document_version_id,
             created_at=_as_utc(record.created_at),
             updated_at=_as_utc(record.updated_at),
+        )
+
+    def _to_record(self, knowledge_item: KnowledgeItem) -> KnowledgeItemRecord:
+        return KnowledgeItemRecord(
+            id=knowledge_item.id.value,
+            document_id=knowledge_item.document_id,
+            document_version_id=knowledge_item.document_version_id,
+            created_at=knowledge_item.created_at,
+            updated_at=knowledge_item.updated_at,
         )
 
 

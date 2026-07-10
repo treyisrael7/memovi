@@ -1,37 +1,63 @@
+import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from memovi_memory.domain.exceptions import InvalidChunkError
+from memovi_memory.domain.exceptions import InvalidChunkError, InvalidDocumentReferenceError
 from memovi_memory.domain.value_objects import ChunkId, ChunkIndex, KnowledgeItemId
 
 
 @dataclass(frozen=True, slots=True)
 class Chunk:
-    """A bounded passage of knowledge materialized from a parent knowledge item."""
+    """Deterministic structural unit derived from a normalized document."""
 
     id: ChunkId
-    knowledge_item_id: KnowledgeItemId
-    index: ChunkIndex
-    content: str
+    knowledge_item_id: KnowledgeItemId | None
+    document_id: str
+    document_version_id: str
+    chunk_index: ChunkIndex
+    text: str
     created_at: datetime
 
     def __post_init__(self) -> None:
-        if not self.content:
-            raise InvalidChunkError("Chunk content is required.")
+        if not self.document_id:
+            raise InvalidChunkError("Document ID is required.")
+        if not self.document_version_id:
+            raise InvalidChunkError("Document version ID is required.")
+        _validate_document_reference(self.document_id)
+        _validate_document_reference(self.document_version_id)
+        if not self.text:
+            raise InvalidChunkError("Chunk text is required.")
 
     @classmethod
     def create(
         cls,
         *,
-        knowledge_item_id: KnowledgeItemId,
-        index: ChunkIndex,
-        content: str,
+        document_id: str,
+        document_version_id: str,
+        chunk_index: ChunkIndex,
+        text: str,
+        knowledge_item_id: KnowledgeItemId | None = None,
         now: datetime | None = None,
     ) -> Chunk:
+        normalized_text = text.strip()
+        if not normalized_text:
+            raise InvalidChunkError("Chunk text is required.")
+
         return cls(
             id=ChunkId.new(),
             knowledge_item_id=knowledge_item_id,
-            index=index,
-            content=content,
+            document_id=document_id,
+            document_version_id=document_version_id,
+            chunk_index=chunk_index,
+            text=normalized_text,
             created_at=now or datetime.now(UTC),
         )
+
+
+def _validate_document_reference(value: str) -> None:
+    try:
+        uuid.UUID(value)
+    except ValueError as exc:
+        raise InvalidDocumentReferenceError(
+            "Document references on chunks must be valid UUIDs.",
+        ) from exc
