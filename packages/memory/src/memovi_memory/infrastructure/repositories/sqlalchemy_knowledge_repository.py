@@ -1,3 +1,4 @@
+import builtins
 from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session as OrmSession
@@ -27,12 +28,29 @@ class SqlAlchemyKnowledgeRepository:
             return None
         return self._to_domain(record)
 
+    def list(self) -> builtins.list[KnowledgeItem]:
+        records = (
+            self._session.query(KnowledgeItemRecord)
+            .order_by(KnowledgeItemRecord.created_at.asc())
+            .all()
+        )
+        return [self._to_domain(record) for record in records]
+
+    def list_by_document(self, *, document_id: str) -> builtins.list[KnowledgeItem]:
+        records = (
+            self._session.query(KnowledgeItemRecord)
+            .filter(KnowledgeItemRecord.document_id == document_id)
+            .order_by(KnowledgeItemRecord.created_at.asc())
+            .all()
+        )
+        return [self._to_domain(record) for record in records]
+
     def list_by_document_version(
         self,
         *,
         document_id: str,
         document_version_id: str,
-    ) -> list[KnowledgeItem]:
+    ) -> builtins.list[KnowledgeItem]:
         records = (
             self._session.query(KnowledgeItemRecord)
             .filter(

@@ -13,6 +13,8 @@ from sqlalchemy.pool import StaticPool
 
 DOCUMENT_ID = "d62fa912-48a9-4d57-abf2-40a137f48ffa"
 DOCUMENT_VERSION_ID = "7d086319-ee8e-4fe5-9fc3-30eddad79749"
+OTHER_DOCUMENT_ID = "8e1b0f2a-1c3d-4e5f-9a0b-1c2d3e4f5a6b"
+OTHER_DOCUMENT_VERSION_ID = "9f086319-ee8e-4fe5-9fc3-30eddad79750"
 
 
 def _build_session_factory() -> tuple[sessionmaker[Session], Engine]:
@@ -80,6 +82,54 @@ def test_knowledge_repository_round_trips_save_get_list_and_delete() -> None:
             )
             == []
         )
+
+    engine.dispose()
+
+
+def test_knowledge_repository_lists_all_and_by_document() -> None:
+    session_factory, engine = _build_session_factory()
+    earlier = datetime(2026, 7, 10, 10, 0, tzinfo=UTC)
+    later = datetime(2026, 7, 10, 11, 0, tzinfo=UTC)
+    first_item = KnowledgeItem(
+        id=KnowledgeItemId.new(),
+        document_id=DOCUMENT_ID,
+        document_version_id=DOCUMENT_VERSION_ID,
+        created_at=earlier,
+        updated_at=earlier,
+    )
+    second_item = KnowledgeItem(
+        id=KnowledgeItemId.new(),
+        document_id=DOCUMENT_ID,
+        document_version_id=OTHER_DOCUMENT_VERSION_ID,
+        created_at=later,
+        updated_at=later,
+    )
+    third_item = KnowledgeItem(
+        id=KnowledgeItemId.new(),
+        document_id=OTHER_DOCUMENT_ID,
+        document_version_id=DOCUMENT_VERSION_ID,
+        created_at=later,
+        updated_at=later,
+    )
+
+    with session_factory() as session:
+        repository = SqlAlchemyKnowledgeRepository(session)
+        repository.save(first_item)
+        repository.save(second_item)
+        repository.save(third_item)
+        session.commit()
+
+    with session_factory() as session:
+        repository = SqlAlchemyKnowledgeRepository(session)
+        all_items = repository.list()
+        document_items = repository.list_by_document(document_id=DOCUMENT_ID)
+
+        assert [item.id for item in all_items] == [
+            first_item.id,
+            second_item.id,
+            third_item.id,
+        ]
+        assert [item.id for item in document_items] == [first_item.id, second_item.id]
 
     engine.dispose()
 

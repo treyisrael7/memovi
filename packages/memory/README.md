@@ -15,6 +15,8 @@ This package establishes the memory domain foundation:
 - Application DTOs, ports, and layer scaffolds for future use cases
 - Application command: `MaterializeKnowledge` for persistence orchestration
 - Application handler: `MemoryProcessingCompletedHandler` for event-driven materialization
+- Application queries: `GetKnowledge`, `ListKnowledge`, and `ListDocumentKnowledge`
+- Read DTOs: `KnowledgeDto`, `KnowledgeItemDto`, and `ChunkDto`
 - SQLAlchemy persistence models and repository implementations
 
 The import package is `memovi_memory` because the package boundary is already

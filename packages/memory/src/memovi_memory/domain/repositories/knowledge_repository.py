@@ -1,3 +1,4 @@
+import builtins
 from typing import Protocol
 
 from memovi_memory.domain.entities import KnowledgeItem
@@ -13,12 +14,18 @@ class KnowledgeRepository(Protocol):
     def get_by_id(self, knowledge_item_id: KnowledgeItemId) -> KnowledgeItem | None:
         raise NotImplementedError
 
+    def list(self) -> builtins.list[KnowledgeItem]:
+        raise NotImplementedError
+
+    def list_by_document(self, *, document_id: str) -> builtins.list[KnowledgeItem]:
+        raise NotImplementedError
+
     def list_by_document_version(
         self,
         *,
         document_id: str,
         document_version_id: str,
-    ) -> list[KnowledgeItem]:
+    ) -> builtins.list[KnowledgeItem]:
         raise NotImplementedError
 
     def delete(self, knowledge_item_id: KnowledgeItemId) -> None:

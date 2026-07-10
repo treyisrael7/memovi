@@ -1,3 +1,4 @@
+import builtins
 from datetime import datetime
 from typing import cast
 
@@ -37,12 +38,21 @@ class FakeKnowledgeRepository(KnowledgeRepository):
                 return item
         return None
 
+    def list(self) -> builtins.list[KnowledgeItem]:
+        return sorted(self.saved_items, key=lambda item: item.created_at)
+
+    def list_by_document(self, *, document_id: str) -> builtins.list[KnowledgeItem]:
+        return sorted(
+            [item for item in self.saved_items if item.document_id == document_id],
+            key=lambda item: item.created_at,
+        )
+
     def list_by_document_version(
         self,
         *,
         document_id: str,
         document_version_id: str,
-    ) -> list[KnowledgeItem]:
+    ) -> builtins.list[KnowledgeItem]:
         return [
             item
             for item in self.saved_items
