@@ -7,6 +7,7 @@ dependencies = [
     "fastapi",
     "memovi-auth",
     "memovi-documents",
+    "memovi-memory",
     "psycopg[binary]",
     "python-multipart",
     "sqlalchemy>=2",
@@ -27,3 +28,4 @@ package = true
 [tool.uv.sources]
 memovi-auth = { workspace = true }
 memovi-documents = { workspace = true }
+memovi-memory = { workspace = true }

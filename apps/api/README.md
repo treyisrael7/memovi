@@ -10,6 +10,11 @@ Business behavior remains in domain packages. For example, local authentication
 lives in `packages/auth`; this app only wires its router and database session
 dependency into the running API.
 
+Cross-domain event wiring also lives here: document processing publishes
+`ProcessingCompleted`, and the composition root dispatches it to
+`MemoryProcessingCompletedHandler`, which materializes knowledge and publishes
+`KnowledgeMaterialized` for future Search integration.
+
 Run the local API development server from the repository root:
 
 ```bash

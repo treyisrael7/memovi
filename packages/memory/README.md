@@ -11,9 +11,10 @@ This package establishes the memory domain foundation:
 - Value objects: `KnowledgeItemId`, `ChunkId`, and `ChunkIndex`
 - Repository contracts: `KnowledgeRepository` and `ChunkRepository`
 - Domain services: deterministic `ChunkGenerator` and `KnowledgeMaterializer`
-- Domain events: `KnowledgeConstructed` and `ChunksGenerated`
+- Domain events: `KnowledgeConstructed`, `ChunksGenerated`, and `KnowledgeMaterialized`
 - Application DTOs, ports, and layer scaffolds for future use cases
 - Application command: `MaterializeKnowledge` for persistence orchestration
+- Application handler: `MemoryProcessingCompletedHandler` for event-driven materialization
 - SQLAlchemy persistence models and repository implementations
 
 The import package is `memovi_memory` because the package boundary is already
@@ -28,12 +29,15 @@ clear from `packages/memory`.
 
 ## Out of scope for this foundation
 
-- Knowledge construction workflows
-- Chunk generation
 - Embeddings and vector indexes
 - Search integration
 - AI summarization or reasoning
-- FastAPI registration, migrations, and composition-root wiring
+- FastAPI registration and migrations
+
+Cross-domain wiring from document processing to memory materialization lives in
+the API composition root (`apps/api`), which subscribes to `ProcessingCompleted`
+and invokes `MemoryProcessingCompletedHandler` without creating a compile-time
+dependency from Documents to Memory.
 
 ## Document boundary
 

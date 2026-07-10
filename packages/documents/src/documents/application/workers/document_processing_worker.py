@@ -95,6 +95,9 @@ class DocumentProcessingWorker:
                     ProcessDocumentCommand(processing_job_id=queued.processing_job_id),
                 )
                 session.commit()
+                flush = getattr(self._event_publisher, "flush", None)
+                if flush is not None:
+                    flush()
             except TransientDocumentProcessingError as exc:
                 session.rollback()
                 self._handle_transient_failure(queued, reason=str(exc))

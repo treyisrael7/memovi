@@ -108,6 +108,7 @@ namespace_packages = true
 explicit_package_bases = true
 mypy_path = [
     "$MYPY_CONFIG_FILE_DIR/apps/api/src",
+    "$MYPY_CONFIG_FILE_DIR/apps/api/tests",
     "$MYPY_CONFIG_FILE_DIR/packages/auth/src",
     "$MYPY_CONFIG_FILE_DIR/packages/config/src",
     "$MYPY_CONFIG_FILE_DIR/packages/connectors/src",
@@ -135,6 +136,7 @@ ignore_missing_imports = true
 minversion = "8.0"
 pythonpath = [
     "apps/api/src",
+    "apps/api/tests",
     "packages/auth/src",
     "packages/config/src",
     "packages/connectors/src",
