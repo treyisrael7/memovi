@@ -778,6 +778,16 @@ source = { editable = "packages/observability" }
 name = "memovi-search"
 version = "0.1.0"
 source = { editable = "packages/search" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "sqlalchemy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi" },
+    { name = "sqlalchemy", specifier = ">=2" },
+]
 
 [[package]]
 name = "memovi-shared"
