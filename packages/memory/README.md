@@ -10,7 +10,7 @@ This package establishes the memory domain foundation:
 - Domain entities: `KnowledgeItem` and `Chunk` with enforced invariants
 - Value objects: `KnowledgeItemId`, `ChunkId`, and `ChunkIndex`
 - Repository contracts: `KnowledgeRepository` and `ChunkRepository`
-- Domain services: deterministic `ChunkGenerator` for normalized text
+- Domain services: deterministic `ChunkGenerator` and `KnowledgeMaterializer`
 - Domain events: `KnowledgeConstructed` and `ChunksGenerated`
 - Application DTOs, ports, and layer scaffolds for future use cases
 - SQLAlchemy persistence models and repository implementations

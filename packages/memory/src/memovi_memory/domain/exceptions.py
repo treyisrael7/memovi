@@ -28,3 +28,7 @@ class InvalidDocumentReferenceError(MemoryDomainError):
 
 class InvalidChunkGeneratorError(MemoryDomainError):
     """Raised when chunk generator configuration violates domain constraints."""
+
+
+class InvalidKnowledgeMaterializationError(MemoryDomainError):
+    """Raised when knowledge materialization input violates domain constraints."""
