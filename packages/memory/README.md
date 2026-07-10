@@ -13,6 +13,7 @@ This package establishes the memory domain foundation:
 - Domain services: deterministic `ChunkGenerator` and `KnowledgeMaterializer`
 - Domain events: `KnowledgeConstructed` and `ChunksGenerated`
 - Application DTOs, ports, and layer scaffolds for future use cases
+- Application command: `MaterializeKnowledge` for persistence orchestration
 - SQLAlchemy persistence models and repository implementations
 
 The import package is `memovi_memory` because the package boundary is already

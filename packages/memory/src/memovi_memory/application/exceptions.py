@@ -8,3 +8,7 @@ class KnowledgeItemNotFoundError(MemoryApplicationError):
 
 class ChunkNotFoundError(MemoryApplicationError):
     """Raised when a requested chunk does not exist."""
+
+
+class NoChunksGeneratedError(MemoryApplicationError):
+    """Raised when normalized text cannot produce materializable chunks."""
