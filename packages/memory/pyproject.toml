@@ -1,13 +1,21 @@
 [project]
 name = "memovi-memory"
 version = "0.1.0"
-description = "Memory and knowledge organization domain boundary. This package will own durable knowledge concepts, application use cases, infrastructure adapters, API boundaries, and events."
+description = "Memory and knowledge organization domain boundary."
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "fastapi",
+    "sqlalchemy>=2",
+]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/memovi_memory",
+]
 
 [tool.uv]
 package = true

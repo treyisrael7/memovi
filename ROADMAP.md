@@ -157,24 +157,28 @@ Allow information to enter the platform through a unified ingestion pipeline.
 
 # Milestone 4 — Knowledge Platform
 
+**Status**
+
+In progress — memory domain scaffolding established; knowledge workflows remain.
+
 **Objective**
 
 Transform processed documents into structured knowledge.
 
 **Deliverables**
 
-* Memory domain
-* Collections
-* Tags
-* Version history
-* Knowledge relationships
-* Metadata management
-* Processing status tracking
+* Memory domain — **partial** (entities, events, repositories, and persistence scaffold)
+* Collections — **not started**
+* Tags — **not started**
+* Version history — **not started**
+* Knowledge relationships — **not started**
+* Metadata management — **not started**
+* Processing status tracking — **not started**
 
 **Success Criteria**
 
-* Knowledge is independent from AI providers.
-* The platform can organize and manage information at scale.
+* Knowledge is independent from AI providers. — **not met**
+* The platform can organize and manage information at scale. — **not met**
 
 ---
 
