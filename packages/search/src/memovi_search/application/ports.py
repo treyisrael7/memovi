@@ -6,13 +6,3 @@ class EventPublisher(Protocol):
 
     def publish(self, event: object) -> None:
         raise NotImplementedError
-
-
-class EmbeddingProvider(Protocol):
-    """Produces embedding metadata for searchable content without coupling to AI SDKs."""
-
-    def model_id(self) -> str:
-        raise NotImplementedError
-
-    def dimensions(self) -> int:
-        raise NotImplementedError

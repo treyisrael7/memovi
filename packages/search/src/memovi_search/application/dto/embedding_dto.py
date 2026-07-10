@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import datetime
 
 from memovi_search.domain.entities import Embedding
 
@@ -8,16 +7,18 @@ from memovi_search.domain.entities import Embedding
 class EmbeddingDto:
     id: str
     search_document_id: str
-    model_id: str
+    provider: str
+    model: str
     dimensions: int
-    created_at: datetime
+    vector: list[float]
 
     @classmethod
     def from_embedding(cls, embedding: Embedding) -> EmbeddingDto:
         return cls(
             id=embedding.id.value,
             search_document_id=embedding.search_document_id.value,
-            model_id=embedding.model_id,
+            provider=embedding.provider,
+            model=embedding.model,
             dimensions=embedding.dimensions,
-            created_at=embedding.created_at,
+            vector=list(embedding.vector),
         )

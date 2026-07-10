@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime
 
 from memovi_search.domain.exceptions import InvalidEmbeddingError
 from memovi_search.domain.value_objects import EmbeddingId, SearchDocumentId
@@ -7,33 +6,42 @@ from memovi_search.domain.value_objects import EmbeddingId, SearchDocumentId
 
 @dataclass(frozen=True, slots=True)
 class Embedding:
-    """Metadata describing an embedding produced for a search document."""
+    """Vector associated with one searchable document projection."""
 
     id: EmbeddingId
     search_document_id: SearchDocumentId
-    model_id: str
+    provider: str
+    model: str
     dimensions: int
-    created_at: datetime
+    vector: tuple[float, ...]
 
     def __post_init__(self) -> None:
-        if not self.model_id.strip():
-            raise InvalidEmbeddingError("Embedding model ID is required.")
-        if self.dimensions <= 0:
-            raise InvalidEmbeddingError("Embedding dimensions must be positive.")
+        if not self.provider.strip():
+            raise InvalidEmbeddingError("Embedding provider is required.")
+        if not self.model.strip():
+            raise InvalidEmbeddingError("Embedding model is required.")
+        if len(self.vector) == 0:
+            raise InvalidEmbeddingError("Embedding vector cannot be empty.")
+        if self.dimensions != len(self.vector):
+            raise InvalidEmbeddingError("Embedding dimensions must match vector length.")
+        object.__setattr__(self, "provider", self.provider.strip())
+        object.__setattr__(self, "model", self.model.strip())
 
     @classmethod
-    def record(
+    def create(
         cls,
         *,
         search_document_id: SearchDocumentId,
-        model_id: str,
-        dimensions: int,
-        now: datetime | None = None,
+        provider: str,
+        model: str,
+        vector: list[float],
     ) -> Embedding:
+        normalized_vector = tuple(vector)
         return cls(
             id=EmbeddingId.new(),
             search_document_id=search_document_id,
-            model_id=model_id.strip(),
-            dimensions=dimensions,
-            created_at=now or datetime.now(UTC),
+            provider=provider,
+            model=model,
+            dimensions=len(normalized_vector),
+            vector=normalized_vector,
         )

@@ -22,5 +22,5 @@ class InvalidDocumentReferenceError(SearchDomainError):
     """Raised when a document reference on a search document is invalid."""
 
 
-class InvalidChunkReferenceError(SearchDomainError):
-    """Raised when a chunk reference on a search document is invalid."""
+class InvalidKnowledgeItemReferenceError(SearchDomainError):
+    """Raised when a knowledge item reference on a search document is invalid."""
