@@ -19,6 +19,7 @@ from memovi_memory.infrastructure.repositories import (
 from sqlalchemy.orm import Session as OrmSession
 
 from api.events import InProcessEventDispatcher
+from api.search_integration import register_search_event_handlers
 
 
 class SqlAlchemyProcessedDocumentReader:
@@ -95,4 +96,5 @@ def configure_event_dispatch(
 ) -> InProcessEventDispatcher:
     dispatcher = InProcessEventDispatcher()
     register_memory_event_handlers(dispatcher, session_factory=session_factory)
+    register_search_event_handlers(dispatcher, session_factory=session_factory)
     return dispatcher

@@ -25,6 +25,7 @@ from fastapi.testclient import TestClient
 from memovi_memory.domain.events import KnowledgeMaterialized
 from memovi_memory.infrastructure.persistence.models import Base as MemoryBase
 from memovi_memory.infrastructure.persistence.models import ChunkRecord, KnowledgeItemRecord
+from memovi_search.infrastructure.persistence.models import Base as SearchBase
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -78,6 +79,7 @@ def memory_integration_client() -> Iterator[tuple[TestClient, Engine, InProcessE
     AuthBase.metadata.create_all(engine)
     DocumentsBase.metadata.create_all(engine)
     MemoryBase.metadata.create_all(engine)
+    SearchBase.metadata.create_all(engine)
     test_session_factory = sessionmaker(bind=engine, expire_on_commit=False)
 
     def database_session() -> Iterator[Session]:

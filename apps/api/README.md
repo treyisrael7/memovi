@@ -13,7 +13,9 @@ dependency into the running API.
 Cross-domain event wiring also lives here: document processing publishes
 `ProcessingCompleted`, and the composition root dispatches it to
 `MemoryProcessingCompletedHandler`, which materializes knowledge and publishes
-`KnowledgeMaterialized` for future Search integration.
+`KnowledgeMaterialized`. Search subscribes through
+`SearchKnowledgeMaterializedHandler`, which materializes searchable documents
+and publishes `SearchIndexed`.
 
 Run the local API development server from the repository root:
 

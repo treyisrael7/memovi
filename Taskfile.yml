@@ -22,7 +22,7 @@ tasks:
     env:
       PYTHONPATH: "{{.BACKEND_PYTHONPATH}}"
     cmds:
-      - uv run uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload --app-dir apps/api/src
+      - uv run --package memovi-api uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload --app-dir apps/api/src
 
   backend:dev:
     desc: Alias for `task backend`.
@@ -44,7 +44,7 @@ tasks:
     env:
       PYTHONPATH: "{{.BACKEND_PYTHONPATH}}"
     cmds:
-      - uv run --group runtime python scripts/process_document.py {{.CLI_ARGS}}
+      - uv run --package memovi-api --group runtime python scripts/process_document.py {{.CLI_ARGS}}
     requires:
       vars: [CLI_ARGS]
 

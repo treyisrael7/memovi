@@ -50,7 +50,7 @@ PostgreSQL is the authoritative relational database for durable Memovi data.
 - Volume: `memovi_postgres_data`
 - Health check: `pg_isready` against the configured database and user
 
-The `pgvector/pgvector:pg18` image keeps local PostgreSQL 18 ready for future vector extension usage. The Compose stack does not create schemas, migrations, tables, or application data.
+The `pgvector/pgvector:pg18` image keeps local PostgreSQL 18 ready for future vector extension usage. The Compose stack does not create schemas, migrations, tables, or application data. Apply Alembic migrations with `task db:migrate` to create Auth, Documents, Memory, and Search tables.
 
 ## Redis
 

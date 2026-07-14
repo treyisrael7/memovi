@@ -13,7 +13,8 @@ This package establishes the search domain model and first materialization use c
 - Repository contract: `SearchRepository`
 - Domain service: `SearchMaterializer` for deterministic search document creation
 - Application command: `MaterializeSearchDocument` for persistence orchestration
-- Domain events: `SearchDocumentRegistered` and `EmbeddingRecorded`
+- Application handler: `SearchKnowledgeMaterializedHandler` for event-driven indexing
+- Domain events: `SearchDocumentRegistered`, `EmbeddingRecorded`, and `SearchIndexed`
 - Application DTOs, ports, and layer scaffolds for future use cases
 - SQLAlchemy persistence models and repository implementation
 
@@ -37,8 +38,10 @@ clear from `packages/search`.
 - Retrieval and ranking
 - FastAPI registration, event handlers, and migrations
 
-Cross-domain wiring from memory materialization to search indexing will live in
-the API composition root when those use cases are implemented.
+Cross-domain wiring from memory materialization to search indexing lives in
+the API composition root (`apps/api`), which subscribes to `KnowledgeMaterialized`
+and invokes `SearchKnowledgeMaterializedHandler` without creating a compile-time
+dependency from Memory to Search or Search to Memory.
 
 ## Memory boundary
 

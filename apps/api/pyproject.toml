@@ -8,6 +8,7 @@ dependencies = [
     "memovi-auth",
     "memovi-documents",
     "memovi-memory",
+    "memovi-search",
     "psycopg[binary]",
     "python-multipart",
     "sqlalchemy>=2",
@@ -29,3 +30,4 @@ package = true
 memovi-auth = { workspace = true }
 memovi-documents = { workspace = true }
 memovi-memory = { workspace = true }
+memovi-search = { workspace = true }
