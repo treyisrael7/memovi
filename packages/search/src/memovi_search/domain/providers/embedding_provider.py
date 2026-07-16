@@ -7,6 +7,14 @@ from memovi_search.domain.value_objects.embedding_vector import EmbeddingVector
 class EmbeddingProvider(Protocol):
     """Generates embedding vectors without exposing provider-specific details."""
 
+    @property
+    def provider(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def model(self) -> str:
+        raise NotImplementedError
+
     def embed(self, text: str) -> EmbeddingVector:
         raise NotImplementedError
 

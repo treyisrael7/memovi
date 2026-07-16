@@ -14,17 +14,20 @@ first retrieval capability:
 - Provider protocol: `EmbeddingProvider` for interchangeable embedding generators
 - Application service: `EmbeddingGenerationService` for provider-agnostic generation
 - Placeholder providers: OpenAI, Ollama, and Sentence Transformer (not implemented)
+- Deterministic `FakeEmbeddingProvider` for local wiring and tests
 - Provider selection: `EmbeddingProviderConfig` / `build_embedding_provider`
-- Repository contract: `SearchRepository` with PostgreSQL full-text search
+- Repository contracts: `SearchRepository` (full-text) and `EmbeddingRepository`
 - Domain service: `SearchMaterializer` for deterministic search document creation
-- Application command: `MaterializeSearchDocument` for persistence orchestration
-- Application handler: `SearchKnowledgeMaterializedHandler` for event-driven indexing
+- Application commands: `MaterializeSearchDocument` and `GenerateEmbedding`
+- Application handlers: `SearchKnowledgeMaterializedHandler` and
+  `SearchIndexedEmbeddingHandler` for event-driven indexing and embedding
 - Application query: `SearchKnowledge` for ranked full-text retrieval
 - Public HTTP API: `GET /search` for ranked full-text retrieval with optional
   metadata filters
-- Domain events: `SearchDocumentRegistered`, `EmbeddingRecorded`, and `SearchIndexed`
+- Domain events: `SearchDocumentRegistered`, `SearchIndexed`, and `EmbeddingGenerated`
 - Application DTOs, ports, and layer scaffolds for future use cases
-- SQLAlchemy persistence models and repository implementation
+- SQLAlchemy persistence models and repository implementations
+- Embedding vectors stored as JSON `list[float]` (pgvector not yet)
 
 Search owns derived retrieval structures. It does not own canonical knowledge.
 Everything in Search must be reproducible from Memory.
@@ -74,16 +77,30 @@ and maps `SearchResultDto` values to the public response schema.
 - `infrastructure` — persistence models, SQLAlchemy repositories, and provider adapters
 - `api` — FastAPI router, dependencies, and response schemas for search
 
+## Embedding generation
+
+`SearchIndexed` triggers `SearchIndexedEmbeddingHandler`, which loads the
+canonical `SearchDocument`, generates a vector through
+`EmbeddingGenerationService`, persists an `Embedding` projection, and publishes
+`EmbeddingGenerated`. Embeddings are derived data and remain reproducible from
+`SearchDocument` text.
+
+The composition root currently wires `FakeEmbeddingProvider` so the pipeline is
+exercisable without external embedding APIs. Provider identity (`provider`,
+`model`) is recorded on each embedding for later regeneration.
+
 ## Out of scope for this foundation
 
 - Live embedding generation against OpenAI, Ollama, or Sentence Transformers
 - Vector storage and pgvector integration
-- Hybrid retrieval and reranking
+- Vector similarity search and hybrid retrieval
+- Intelligence / answer generation
 
 Cross-domain wiring from memory materialization to search indexing lives in
 the API composition root (`apps/api`), which subscribes to `KnowledgeMaterialized`
 and invokes `SearchKnowledgeMaterializedHandler` without creating a compile-time
-dependency from Memory to Search or Search to Memory.
+dependency from Memory to Search or Search to Memory. `SearchIndexed` similarly
+drives embedding generation inside Search.
 
 ## Memory boundary
 

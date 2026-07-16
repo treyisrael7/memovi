@@ -5,6 +5,14 @@ from memovi_search.domain.value_objects import EmbeddingVector
 
 
 class FakeEmbeddingProvider:
+    @property
+    def provider(self) -> str:
+        return "fake"
+
+    @property
+    def model(self) -> str:
+        return "fake-embedding-v1"
+
     def __init__(self) -> None:
         self.embed_calls: list[str] = []
         self.embed_many_calls: list[list[str]] = []
@@ -22,6 +30,14 @@ class FakeEmbeddingProvider:
 
 
 class MismatchedCountProvider:
+    @property
+    def provider(self) -> str:
+        return "mismatched"
+
+    @property
+    def model(self) -> str:
+        return "mismatched-model"
+
     def embed(self, text: str) -> EmbeddingVector:
         return EmbeddingVector(values=[1.0], dimensions=1)
 
@@ -43,6 +59,8 @@ def test_embedding_generation_service_delegates_to_provider() -> None:
     ]
     assert provider.embed_calls == ["knowledge fragment"]
     assert provider.embed_many_calls == [["one", "two"]]
+    assert service.provider == "fake"
+    assert service.model == "fake-embedding-v1"
 
 
 def test_embedding_generation_service_rejects_mismatched_batch_size() -> None:

@@ -3,9 +3,9 @@ from datetime import datetime
 
 from memovi_search.application.dto import SearchFilters
 from memovi_search.application.queries import SearchKnowledge, SearchKnowledgeQuery
-from memovi_search.domain.entities import Embedding, RankedSearchDocument, SearchDocument
+from memovi_search.domain.entities import RankedSearchDocument, SearchDocument
 from memovi_search.domain.repositories import SearchRepository
-from memovi_search.domain.value_objects import EmbeddingId, SearchDocumentId
+from memovi_search.domain.value_objects import SearchDocumentId
 
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
 DOCUMENT_VERSION_ID = "7ce3e814-de68-4200-973e-b2526eee058d"
@@ -55,15 +55,6 @@ class FakeSearchRepository(SearchRepository):
             created_before,
         )
         return self._search_results
-
-    def save_embedding(self, embedding: Embedding) -> None:
-        raise NotImplementedError
-
-    def get_embedding(self, embedding_id: EmbeddingId) -> Embedding | None:
-        raise NotImplementedError
-
-    def delete_embedding(self, embedding_id: EmbeddingId) -> None:
-        raise NotImplementedError
 
 
 def test_search_knowledge_maps_ranked_documents_to_result_dtos() -> None:

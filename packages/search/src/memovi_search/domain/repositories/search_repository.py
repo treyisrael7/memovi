@@ -2,12 +2,12 @@ import builtins
 from datetime import datetime
 from typing import Protocol
 
-from memovi_search.domain.entities import Embedding, RankedSearchDocument, SearchDocument
-from memovi_search.domain.value_objects import EmbeddingId, SearchDocumentId
+from memovi_search.domain.entities import RankedSearchDocument, SearchDocument
+from memovi_search.domain.value_objects import SearchDocumentId
 
 
 class SearchRepository(Protocol):
-    """Persistence contract for searchable documents and embeddings."""
+    """Persistence contract for searchable documents."""
 
     def save_document(self, search_document: SearchDocument) -> None:
         raise NotImplementedError
@@ -34,13 +34,4 @@ class SearchRepository(Protocol):
         created_after: datetime | None = None,
         created_before: datetime | None = None,
     ) -> builtins.list[RankedSearchDocument]:
-        raise NotImplementedError
-
-    def save_embedding(self, embedding: Embedding) -> None:
-        raise NotImplementedError
-
-    def get_embedding(self, embedding_id: EmbeddingId) -> Embedding | None:
-        raise NotImplementedError
-
-    def delete_embedding(self, embedding_id: EmbeddingId) -> None:
         raise NotImplementedError

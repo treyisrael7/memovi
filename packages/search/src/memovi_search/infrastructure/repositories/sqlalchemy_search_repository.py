@@ -4,13 +4,10 @@ from datetime import UTC, datetime
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session as OrmSession
 
-from memovi_search.domain.entities import Embedding, RankedSearchDocument, SearchDocument
-from memovi_search.domain.value_objects import EmbeddingId, SearchDocumentId
+from memovi_search.domain.entities import RankedSearchDocument, SearchDocument
+from memovi_search.domain.value_objects import SearchDocumentId
 from memovi_search.infrastructure.persistence.full_text import ENGLISH_TEXT_SEARCH_CONFIG
-from memovi_search.infrastructure.persistence.models import (
-    SearchDocumentRecord,
-    SearchEmbeddingRecord,
-)
+from memovi_search.infrastructure.persistence.models import SearchDocumentRecord
 
 
 class SqlAlchemySearchRepository:
@@ -108,29 +105,6 @@ class SqlAlchemySearchRepository:
             for record, score in rows
         ]
 
-    def save_embedding(self, embedding: Embedding) -> None:
-        record = self._session.get(SearchEmbeddingRecord, embedding.id.value)
-        if record is None:
-            self._session.add(self._embedding_to_record(embedding))
-            return
-
-        record.search_document_id = embedding.search_document_id.value
-        record.provider = embedding.provider
-        record.model = embedding.model
-        record.dimensions = embedding.dimensions
-        record.vector = list(embedding.vector)
-
-    def get_embedding(self, embedding_id: EmbeddingId) -> Embedding | None:
-        record = self._session.get(SearchEmbeddingRecord, embedding_id.value)
-        if record is None:
-            return None
-        return self._embedding_to_domain(record)
-
-    def delete_embedding(self, embedding_id: EmbeddingId) -> None:
-        record = self._session.get(SearchEmbeddingRecord, embedding_id.value)
-        if record is not None:
-            self._session.delete(record)
-
     def _document_to_domain(self, record: SearchDocumentRecord) -> SearchDocument:
         return SearchDocument(
             id=SearchDocumentId(record.id),
@@ -159,26 +133,6 @@ class SqlAlchemySearchRepository:
             ),
             created_at=search_document.created_at,
             updated_at=search_document.updated_at,
-        )
-
-    def _embedding_to_domain(self, record: SearchEmbeddingRecord) -> Embedding:
-        return Embedding(
-            id=EmbeddingId(record.id),
-            search_document_id=SearchDocumentId(record.search_document_id),
-            provider=record.provider,
-            model=record.model,
-            dimensions=record.dimensions,
-            vector=tuple(record.vector),
-        )
-
-    def _embedding_to_record(self, embedding: Embedding) -> SearchEmbeddingRecord:
-        return SearchEmbeddingRecord(
-            id=embedding.id.value,
-            search_document_id=embedding.search_document_id.value,
-            provider=embedding.provider,
-            model=embedding.model,
-            dimensions=embedding.dimensions,
-            vector=list(embedding.vector),
         )
 
 

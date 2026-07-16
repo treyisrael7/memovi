@@ -6,6 +6,9 @@ from memovi_search.infrastructure.persistence.models import (
     SearchDocumentRecord,
     SearchEmbeddingRecord,
 )
+from memovi_search.infrastructure.repositories.sqlalchemy_embedding_repository import (
+    SqlAlchemyEmbeddingRepository,
+)
 from memovi_search.infrastructure.repositories.sqlalchemy_search_repository import (
     SqlAlchemySearchRepository,
 )
@@ -43,7 +46,7 @@ def test_document_mapping_round_trips_between_domain_and_record() -> None:
 
 
 def test_embedding_mapping_round_trips_between_domain_and_record() -> None:
-    repository = SqlAlchemySearchRepository(session=object())  # type: ignore[arg-type]
+    repository = SqlAlchemyEmbeddingRepository(session=object())  # type: ignore[arg-type]
     search_document_id = SearchDocumentId.new()
     embedding = Embedding(
         id=EmbeddingId.new(),
@@ -54,8 +57,8 @@ def test_embedding_mapping_round_trips_between_domain_and_record() -> None:
         vector=(0.1, 0.2, 0.3),
     )
 
-    record = repository._embedding_to_record(embedding)
-    restored = repository._embedding_to_domain(record)
+    record = repository._to_record(embedding)
+    restored = repository._to_domain(record)
 
     assert isinstance(record, SearchEmbeddingRecord)
     assert record.provider == "openai"

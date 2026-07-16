@@ -9,6 +9,14 @@ class EmbeddingGenerationService:
     def __init__(self, *, provider: EmbeddingProvider) -> None:
         self._provider = provider
 
+    @property
+    def provider(self) -> str:
+        return self._provider.provider
+
+    @property
+    def model(self) -> str:
+        return self._provider.model
+
     def generate(self, text: str) -> EmbeddingVector:
         return self._validate_vector(self._provider.embed(text))
 

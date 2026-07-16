@@ -191,7 +191,7 @@ Provide fast, accurate retrieval across the knowledge platform.
 **Deliverables**
 
 * Full-text search — **done**
-* Vector search — **partial** (embedding provider architecture only; no live generation or pgvector)
+* Vector search — **partial** (event-driven embedding generation and JSON vector persistence; no pgvector or similarity search yet)
 * Hybrid retrieval
 * Metadata filtering — **done** (full-text search projections)
 * Semantic ranking

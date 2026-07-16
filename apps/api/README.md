@@ -15,7 +15,8 @@ Cross-domain event wiring also lives here: document processing publishes
 `MemoryProcessingCompletedHandler`, which materializes knowledge and publishes
 `KnowledgeMaterialized`. Search subscribes through
 `SearchKnowledgeMaterializedHandler`, which materializes searchable documents
-and publishes `SearchIndexed`.
+and publishes `SearchIndexed`. Search then generates embedding projections via
+`SearchIndexedEmbeddingHandler` and publishes `EmbeddingGenerated`.
 
 Run the local API development server from the repository root:
 

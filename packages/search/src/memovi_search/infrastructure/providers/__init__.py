@@ -3,6 +3,9 @@ from memovi_search.infrastructure.providers.factory import (
     EmbeddingProviderKind,
     build_embedding_provider,
 )
+from memovi_search.infrastructure.providers.fake_embedding_provider import (
+    FakeEmbeddingProvider,
+)
 from memovi_search.infrastructure.providers.ollama_embedding_provider import (
     OllamaEmbeddingProvider,
 )
@@ -16,6 +19,7 @@ from memovi_search.infrastructure.providers.sentence_transformer_embedding_provi
 __all__ = [
     "EmbeddingProviderConfig",
     "EmbeddingProviderKind",
+    "FakeEmbeddingProvider",
     "OllamaEmbeddingProvider",
     "OpenAIEmbeddingProvider",
     "SentenceTransformerEmbeddingProvider",

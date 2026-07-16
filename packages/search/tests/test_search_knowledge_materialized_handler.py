@@ -13,11 +13,11 @@ from memovi_search.application.dto import (
     KnowledgeReadDto,
 )
 from memovi_search.application.handlers import SearchKnowledgeMaterializedHandler
-from memovi_search.domain.entities import Embedding, RankedSearchDocument, SearchDocument
+from memovi_search.domain.entities import RankedSearchDocument, SearchDocument
 from memovi_search.domain.events import SearchIndexed
 from memovi_search.domain.repositories import SearchRepository
 from memovi_search.domain.services import SearchMaterializer
-from memovi_search.domain.value_objects import EmbeddingId, SearchDocumentId
+from memovi_search.domain.value_objects import SearchDocumentId
 from sqlalchemy.orm import Session as OrmSession
 
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
@@ -70,15 +70,6 @@ class FakeSearchRepository(SearchRepository):
         created_before: datetime | None = None,
     ) -> list[RankedSearchDocument]:
         return []
-
-    def save_embedding(self, embedding: Embedding) -> None:
-        raise NotImplementedError
-
-    def get_embedding(self, embedding_id: EmbeddingId) -> Embedding | None:
-        return None
-
-    def delete_embedding(self, embedding_id: EmbeddingId) -> None:
-        raise NotImplementedError
 
 
 class FakeEventPublisher:
