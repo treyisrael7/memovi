@@ -8,3 +8,11 @@ class SearchDocumentNotFoundError(SearchApplicationError):
 
 class EmbeddingNotFoundError(SearchApplicationError):
     """Raised when a requested embedding does not exist."""
+
+
+class EmbeddingGenerationError(SearchApplicationError):
+    """Raised when embedding generation fails application-level validation."""
+
+
+class UnknownEmbeddingProviderError(SearchApplicationError):
+    """Raised when configuration selects an unsupported embedding provider."""

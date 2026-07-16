@@ -82,6 +82,17 @@ Dedicated vector databases may be evaluated in the future if operational scale r
 
 See [`storage-architecture.md`](storage-architecture.md).
 
+# Embedding Providers
+
+Embedding generation is isolated behind an `EmbeddingProvider` protocol owned by Search.
+
+Application code calls `EmbeddingGenerationService`, which remains provider-agnostic.
+Concrete adapters (OpenAI, Ollama, Sentence Transformers, and future providers) live in
+infrastructure and are selected through configuration.
+
+Provider SDKs must not leak into the domain model. Embedding vectors are validated as
+domain value objects before they participate in indexing or retrieval workflows.
+
 # Search in the Request Lifecycle
 
 Search requests remain synchronous when retrieval can complete quickly.
@@ -136,6 +147,7 @@ Retrieval never modifies knowledge.
 * Search does not own knowledge storage or AI responses.
 * Indexes are derived rather than authoritative.
 * Vector data is derived and reproducible from stored documents.
+* Embedding generation is provider-agnostic and selected through configuration.
 * pgvector is used to avoid premature vector database specialization.
 * Intelligence consumes Search instead of bypassing it.
 * Retrieval returns knowledge and does not generate answers.

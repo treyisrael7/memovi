@@ -10,7 +10,11 @@ This package provides the search domain model, materialization workflow, and
 first retrieval capability:
 
 - Domain entities: `SearchDocument` and `Embedding` with enforced invariants
-- Value objects: `SearchDocumentId` and `EmbeddingId`
+- Value objects: `SearchDocumentId`, `EmbeddingId`, and `EmbeddingVector`
+- Provider protocol: `EmbeddingProvider` for interchangeable embedding generators
+- Application service: `EmbeddingGenerationService` for provider-agnostic generation
+- Placeholder providers: OpenAI, Ollama, and Sentence Transformer (not implemented)
+- Provider selection: `EmbeddingProviderConfig` / `build_embedding_provider`
 - Repository contract: `SearchRepository` with PostgreSQL full-text search
 - Domain service: `SearchMaterializer` for deterministic search document creation
 - Application command: `MaterializeSearchDocument` for persistence orchestration
@@ -65,14 +69,14 @@ and maps `SearchResultDto` values to the public response schema.
 
 ## Layout
 
-- `domain` — business model, invariants, repository interfaces, and events
-- `application` — use cases, DTOs, ports, and worker placeholders
-- `infrastructure` — persistence models and SQLAlchemy repositories
+- `domain` — business model, invariants, provider protocols, repository interfaces, and events
+- `application` — use cases, generation services, DTOs, ports, and worker placeholders
+- `infrastructure` — persistence models, SQLAlchemy repositories, and provider adapters
 - `api` — FastAPI router, dependencies, and response schemas for search
 
 ## Out of scope for this foundation
 
-- Embedding generation workflows
+- Live embedding generation against OpenAI, Ollama, or Sentence Transformers
 - Vector storage and pgvector integration
 - Hybrid retrieval and reranking
 
