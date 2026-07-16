@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from documents.domain.events import ProcessingCompleted
+from documents.domain.value_objects import DocumentId
 from documents.infrastructure.repositories import (
     SqlAlchemyDocumentRepository,
     SqlAlchemyProcessingJobRepository,
@@ -38,15 +39,20 @@ class SqlAlchemyProcessedDocumentReader:
             if job is None:
                 return None
 
-            version = SqlAlchemyDocumentRepository(session).get_version_by_id(
-                job.document_version_id,
-            )
+            documents = SqlAlchemyDocumentRepository(session)
+            version = documents.get_version_by_id(job.document_version_id)
             if version is None:
+                return None
+
+            document = documents.get_by_id(DocumentId(job.document_id.value))
+            if document is None:
                 return None
 
             return ProcessedDocumentSnapshot(
                 document_id=job.document_id.value,
                 document_version_id=job.document_version_id,
+                source_type=document.source_type.value,
+                mime_type=document.mime_type.value,
                 normalized_content=version.normalized_content,
             )
         finally:

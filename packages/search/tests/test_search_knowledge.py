@@ -1,5 +1,7 @@
 import builtins
+from datetime import datetime
 
+from memovi_search.application.dto import SearchFilters
 from memovi_search.application.queries import SearchKnowledge, SearchKnowledgeQuery
 from memovi_search.domain.entities import Embedding, RankedSearchDocument, SearchDocument
 from memovi_search.domain.repositories import SearchRepository
@@ -8,6 +10,8 @@ from memovi_search.domain.value_objects import EmbeddingId, SearchDocumentId
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
 DOCUMENT_VERSION_ID = "7ce3e814-de68-4200-973e-b2526eee058d"
 KNOWLEDGE_ITEM_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+SOURCE_TYPE = "upload"
+MIME_TYPE = "text/markdown"
 
 
 class FakeSearchRepository(SearchRepository):
@@ -26,8 +30,30 @@ class FakeSearchRepository(SearchRepository):
     def delete_document(self, search_document_id: SearchDocumentId) -> None:
         raise NotImplementedError
 
-    def search(self, query: str, limit: int, offset: int) -> builtins.list[RankedSearchDocument]:
-        self.last_search = (query, limit, offset)
+    def search(
+        self,
+        query: str,
+        limit: int,
+        offset: int,
+        *,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
+        source_type: str | None = None,
+        mime_type: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+    ) -> builtins.list[RankedSearchDocument]:
+        self.last_search = (
+            query,
+            limit,
+            offset,
+            document_id,
+            document_version_id,
+            source_type,
+            mime_type,
+            created_after,
+            created_before,
+        )
         return self._search_results
 
     def save_embedding(self, embedding: Embedding) -> None:
@@ -45,6 +71,8 @@ def test_search_knowledge_maps_ranked_documents_to_result_dtos() -> None:
         knowledge_item_id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         searchable_text="Memovi knowledge platform.",
     )
     repository = FakeSearchRepository(
@@ -65,13 +93,47 @@ def test_search_knowledge_maps_ranked_documents_to_result_dtos() -> None:
         )
     )
 
-    assert repository.last_search == ("Memovi", 10, 0)
+    assert repository.last_search == ("Memovi", 10, 0, None, None, None, None, None, None)
     assert len(results) == 1
     assert results[0].search_document_id == search_document.id.value
     assert results[0].knowledge_item_id == KNOWLEDGE_ITEM_ID
     assert results[0].document_id == DOCUMENT_ID
     assert results[0].relevance_score == 0.42
     assert results[0].searchable_text == "Memovi knowledge platform."
+
+
+def test_search_knowledge_forwards_filters_to_repository() -> None:
+    created_after = datetime(2026, 7, 10, 12, 0)
+    repository = FakeSearchRepository()
+    use_case = SearchKnowledge(search_repository=repository)
+
+    use_case.execute(
+        SearchKnowledgeQuery(
+            query="Memovi",
+            limit=5,
+            offset=2,
+            filters=SearchFilters(
+                document_id=DOCUMENT_ID,
+                document_version_id=DOCUMENT_VERSION_ID,
+                source_type=SOURCE_TYPE,
+                mime_type=MIME_TYPE,
+                created_after=created_after,
+                created_before=None,
+            ),
+        )
+    )
+
+    assert repository.last_search == (
+        "Memovi",
+        5,
+        2,
+        DOCUMENT_ID,
+        DOCUMENT_VERSION_ID,
+        SOURCE_TYPE,
+        MIME_TYPE,
+        created_after,
+        None,
+    )
 
 
 def test_search_knowledge_returns_empty_results_for_blank_query() -> None:

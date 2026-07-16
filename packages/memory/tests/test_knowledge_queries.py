@@ -17,6 +17,8 @@ KNOWLEDGE_A2_ID = KnowledgeItemId("b2c3d4e5-f6a7-8901-bcde-f12345678901")
 KNOWLEDGE_B1_ID = KnowledgeItemId("c3d4e5f6-a7b8-9012-cdef-123456789012")
 EARLIER = datetime(2026, 7, 10, 10, 0, tzinfo=UTC)
 LATER = datetime(2026, 7, 10, 11, 0, tzinfo=UTC)
+SOURCE_TYPE = "upload"
+MIME_TYPE = "text/markdown"
 
 
 class InMemoryKnowledgeRepository(KnowledgeRepository):
@@ -95,6 +97,8 @@ def _build_fixtures() -> tuple[InMemoryKnowledgeRepository, InMemoryChunkReposit
             id=KNOWLEDGE_A1_ID,
             document_id=DOCUMENT_A_ID,
             document_version_id=VERSION_A1_ID,
+            source_type=SOURCE_TYPE,
+            mime_type=MIME_TYPE,
             created_at=EARLIER,
             updated_at=EARLIER,
         ),
@@ -102,6 +106,8 @@ def _build_fixtures() -> tuple[InMemoryKnowledgeRepository, InMemoryChunkReposit
             id=KNOWLEDGE_A2_ID,
             document_id=DOCUMENT_A_ID,
             document_version_id=VERSION_A2_ID,
+            source_type=SOURCE_TYPE,
+            mime_type=MIME_TYPE,
             created_at=LATER,
             updated_at=LATER,
         ),
@@ -109,6 +115,8 @@ def _build_fixtures() -> tuple[InMemoryKnowledgeRepository, InMemoryChunkReposit
             id=KNOWLEDGE_B1_ID,
             document_id=DOCUMENT_B_ID,
             document_version_id=VERSION_A1_ID,
+            source_type=SOURCE_TYPE,
+            mime_type=MIME_TYPE,
             created_at=LATER,
             updated_at=LATER,
         ),

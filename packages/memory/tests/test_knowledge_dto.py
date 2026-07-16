@@ -8,6 +8,8 @@ DOCUMENT_ID = "d62fa912-48a9-4d57-abf2-40a137f48ffa"
 DOCUMENT_VERSION_ID = "7d086319-ee8e-4fe5-9fc3-30eddad79749"
 KNOWLEDGE_ITEM_ID = KnowledgeItemId("a1b2c3d4-e5f6-7890-abcd-ef1234567890")
 TIMESTAMP = datetime(2026, 7, 10, 12, 0, tzinfo=UTC)
+SOURCE_TYPE = "upload"
+MIME_TYPE = "text/markdown"
 
 
 def test_knowledge_item_dto_maps_domain_entity() -> None:
@@ -15,6 +17,8 @@ def test_knowledge_item_dto_maps_domain_entity() -> None:
         id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         created_at=TIMESTAMP,
         updated_at=TIMESTAMP,
     )
@@ -54,6 +58,8 @@ def test_knowledge_dto_maps_item_and_chunks_in_index_order() -> None:
         id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         created_at=TIMESTAMP,
         updated_at=TIMESTAMP,
     )

@@ -9,6 +9,8 @@ class MaterializeSearchDocumentCommand:
     knowledge_item_id: str
     document_id: str
     document_version_id: str
+    source_type: str
+    mime_type: str
     chunk_texts: list[str]
 
 
@@ -37,6 +39,8 @@ class MaterializeSearchDocument:
             knowledge_item_id=command.knowledge_item_id,
             document_id=command.document_id,
             document_version_id=command.document_version_id,
+            source_type=command.source_type,
+            mime_type=command.mime_type,
             chunk_texts=command.chunk_texts,
         )
         self._search_repository.save_document(search_document)

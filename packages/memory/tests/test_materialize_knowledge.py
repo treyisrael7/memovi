@@ -20,6 +20,8 @@ from memovi_memory.domain.value_objects import KnowledgeItemId
 
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
 DOCUMENT_VERSION_ID = "7ce3e814-de68-4200-973e-b2526eee058d"
+SOURCE_TYPE = "upload"
+MIME_TYPE = "text/markdown"
 MAX_CHUNK_SIZE = 20
 
 
@@ -120,6 +122,8 @@ class SpyKnowledgeMaterializer:
         *,
         document_id: str,
         document_version_id: str,
+        source_type: str,
+        mime_type: str,
         chunk_drafts: list[ChunkDraft],
         now: datetime | None = None,
     ) -> KnowledgeMaterializationResult:
@@ -129,6 +133,8 @@ class SpyKnowledgeMaterializer:
         return self._inner.materialize(
             document_id=document_id,
             document_version_id=document_version_id,
+            source_type=source_type,
+            mime_type=mime_type,
             chunk_drafts=chunk_drafts,
             now=now,
         )
@@ -178,6 +184,8 @@ def test_materialize_knowledge_orchestrates_domain_services_and_repositories() -
         MaterializeKnowledgeCommand(
             document_id=DOCUMENT_ID,
             document_version_id=DOCUMENT_VERSION_ID,
+            source_type=SOURCE_TYPE,
+            mime_type=MIME_TYPE,
             normalized_text=normalized_text,
         )
     )
@@ -200,6 +208,8 @@ def test_materialize_knowledge_persists_knowledge_item_before_chunks() -> None:
         MaterializeKnowledgeCommand(
             document_id=DOCUMENT_ID,
             document_version_id=DOCUMENT_VERSION_ID,
+            source_type=SOURCE_TYPE,
+            mime_type=MIME_TYPE,
             normalized_text="Single chunk text.",
         )
     )
@@ -220,6 +230,8 @@ def test_materialize_knowledge_rejects_empty_normalized_text_without_persistence
             MaterializeKnowledgeCommand(
                 document_id=DOCUMENT_ID,
                 document_version_id=DOCUMENT_VERSION_ID,
+                source_type=SOURCE_TYPE,
+                mime_type=MIME_TYPE,
                 normalized_text="   ",
             )
         )

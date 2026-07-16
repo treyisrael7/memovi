@@ -16,6 +16,8 @@ class KnowledgeItemRecord(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     document_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
     document_version_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    source_type: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

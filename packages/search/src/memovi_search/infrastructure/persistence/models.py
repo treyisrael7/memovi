@@ -24,12 +24,18 @@ class SearchDocumentRecord(Base):
     )
     document_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
     document_version_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    source_type: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
     searchable_text: Mapped[str] = mapped_column(Text, nullable=False)
     search_vector: Mapped[Any] = mapped_column(
         TSVECTOR().with_variant(Text(), "sqlite"),
         nullable=False,
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        index=True,
+        nullable=False,
+    )
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 

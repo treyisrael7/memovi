@@ -16,7 +16,8 @@ first retrieval capability:
 - Application command: `MaterializeSearchDocument` for persistence orchestration
 - Application handler: `SearchKnowledgeMaterializedHandler` for event-driven indexing
 - Application query: `SearchKnowledge` for ranked full-text retrieval
-- Public HTTP API: `GET /search` for ranked full-text retrieval
+- Public HTTP API: `GET /search` for ranked full-text retrieval with optional
+  metadata filters
 - Domain events: `SearchDocumentRegistered`, `EmbeddingRecorded`, and `SearchIndexed`
 - Application DTOs, ports, and layer scaffolds for future use cases
 - SQLAlchemy persistence models and repository implementation
@@ -46,8 +47,16 @@ document identifiers, searchable text, and relevance scores.
 | Parameter | Required | Default | Notes |
 |-----------|----------|---------|-------|
 | `q` | yes | — | Non-empty search query |
+| `document_id` | no | — | Restrict to one document |
+| `source_type` | no | — | Restrict by source type |
+| `mime_type` | no | — | Restrict by MIME type |
+| `created_after` | no | — | Inclusive lower bound on `created_at` |
+| `created_before` | no | — | Inclusive upper bound on `created_at` |
 | `limit` | no | `25` | Maximum `100` |
 | `offset` | no | `0` | Must be non-negative |
+
+Optional metadata filters are applied to search projections before ranking.
+When omitted, search behavior is unchanged.
 
 The response returns the normalized query, result count, and ranked matches with
 `search_document_id`, `knowledge_item_id`, `document_id`, `score`, and `text`.

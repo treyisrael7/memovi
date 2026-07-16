@@ -10,6 +10,8 @@ from memovi_memory.domain.value_objects import ChunkIndex
 
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
 DOCUMENT_VERSION_ID = "7ce3e814-de68-4200-973e-b2526eee058d"
+SOURCE_TYPE = "upload"
+MIME_TYPE = "text/markdown"
 MATERIALIZED_AT = datetime(2026, 7, 9, 22, 30, tzinfo=UTC)
 
 
@@ -24,6 +26,8 @@ def test_knowledge_materializer_creates_single_chunk() -> None:
     result = materializer.materialize(
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         chunk_drafts=drafts,
         now=MATERIALIZED_AT,
     )
@@ -44,6 +48,8 @@ def test_knowledge_materializer_creates_multiple_chunks() -> None:
     result = materializer.materialize(
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         chunk_drafts=drafts,
         now=MATERIALIZED_AT,
     )
@@ -59,6 +65,8 @@ def test_knowledge_materializer_rejects_empty_chunk_list() -> None:
         materializer.materialize(
             document_id=DOCUMENT_ID,
             document_version_id=DOCUMENT_VERSION_ID,
+            source_type=SOURCE_TYPE,
+            mime_type=MIME_TYPE,
             chunk_drafts=[],
             now=MATERIALIZED_AT,
         )
@@ -74,6 +82,8 @@ def test_knowledge_materializer_assigns_chunk_ownership_to_knowledge_item() -> N
     result = materializer.materialize(
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         chunk_drafts=drafts,
         now=MATERIALIZED_AT,
     )
@@ -93,6 +103,8 @@ def test_knowledge_materializer_preserves_sequential_chunk_indexes() -> None:
     result = materializer.materialize(
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         chunk_drafts=drafts,
         now=MATERIALIZED_AT,
     )
@@ -107,6 +119,8 @@ def test_knowledge_materializer_propagates_document_identifiers() -> None:
     result = materializer.materialize(
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         chunk_drafts=drafts,
         now=MATERIALIZED_AT,
     )
@@ -127,12 +141,16 @@ def test_knowledge_materializer_is_deterministic_for_same_input() -> None:
     first = materializer.materialize(
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         chunk_drafts=drafts,
         now=MATERIALIZED_AT,
     )
     second = materializer.materialize(
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         chunk_drafts=drafts,
         now=MATERIALIZED_AT,
     )

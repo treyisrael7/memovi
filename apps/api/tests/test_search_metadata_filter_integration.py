@@ -1,12 +1,12 @@
 import time
 from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from api.app import create_app
 from api.document_processing import configure_document_processing
 from api.documents_session import build_documents_database_session
 from api.events import InProcessEventDispatcher
-from api.search_integration import build_search_knowledge
 from auth.api.dependencies import get_database_session as get_auth_database_session
 from auth.infrastructure.persistence import Base as AuthBase
 from documents.api.dependencies import (
@@ -22,7 +22,7 @@ from documents.infrastructure.persistence.models import ProcessingJobRecord
 from documents.infrastructure.queue import InMemoryProcessingJobQueue
 from fastapi.testclient import TestClient
 from memovi_memory.infrastructure.persistence.models import Base as MemoryBase
-from memovi_search.application.queries import SearchKnowledgeQuery
+from memovi_search.api.dependencies import get_database_session as get_search_database_session
 from memovi_search.infrastructure.persistence.models import Base as SearchBase
 from memovi_search.infrastructure.persistence.models import SearchDocumentRecord
 from postgres_support import postgres_available, postgres_database_url
@@ -81,7 +81,7 @@ def _wait_for_search_documents(
         time.sleep(0.05)
 
     with Session(engine) as session:
-        count = len(session.scalars(select(SearchDocumentRecord)).all())
+        count = len(list(session.scalars(select(SearchDocumentRecord)).all()))
 
     pytest.fail(
         f"Expected at least {minimum_count} search documents within "
@@ -89,10 +89,30 @@ def _wait_for_search_documents(
     )
 
 
+def _upload_document(
+    client: TestClient,
+    *,
+    filename: str,
+    content: bytes,
+    mime_type: str,
+) -> dict[str, str]:
+    response = client.post(
+        "/documents",
+        files={"file": (filename, content, mime_type)},
+    )
+    assert response.status_code == 202
+    payload = response.json()
+    assert isinstance(payload, dict)
+    return {
+        "document_id": str(payload["document_id"]),
+        "processing_job_id": str(payload["processing_job_id"]),
+    }
+
+
 @pytest.fixture
-def full_text_search_client() -> Iterator[tuple[TestClient, Engine, InProcessEventDispatcher]]:
+def search_filter_client() -> Iterator[tuple[TestClient, Engine]]:
     if not postgres_available():
-        pytest.skip("PostgreSQL is required for full-text search integration tests.")
+        pytest.skip("PostgreSQL is required for search filter integration tests.")
 
     object_storage = InMemoryObjectStorage()
     engine = create_engine(postgres_database_url(), pool_pre_ping=True)
@@ -132,65 +152,108 @@ def full_text_search_client() -> Iterator[tuple[TestClient, Engine, InProcessEve
         ),
         object_storage=object_storage,
     )
-    dispatcher: InProcessEventDispatcher = app.state.event_dispatcher
+    _: InProcessEventDispatcher = app.state.event_dispatcher
 
     app.dependency_overrides[get_auth_database_session] = database_session
     app.dependency_overrides[get_documents_database_session] = build_documents_database_session(
         database_session
     )
+    app.dependency_overrides[get_search_database_session] = database_session
     app.dependency_overrides[get_object_storage] = lambda: object_storage
 
     with TestClient(app, base_url="https://testserver") as client:
-        yield client, engine, dispatcher
+        yield client, engine
 
     engine.dispose()
 
 
-def test_upload_process_and_search_returns_memovi_document(
-    full_text_search_client: tuple[TestClient, Engine, InProcessEventDispatcher],
+def test_search_api_filters_uploaded_documents_by_metadata(
+    search_filter_client: tuple[TestClient, Engine],
 ) -> None:
-    client, engine, _ = full_text_search_client
+    client, engine = search_filter_client
+    before_upload = datetime.now(UTC) - timedelta(seconds=1)
 
-    response = client.post(
-        "/documents",
-        files={
-            "file": (
-                "memovi-overview.md",
-                b"# Memovi\r\n\r\nMemovi is a self-hosted knowledge platform.",
-                "text/markdown",
-            )
-        },
+    markdown = _upload_document(
+        client,
+        filename="memovi-markdown.md",
+        content=b"# Memovi\n\nMemovi markdown knowledge.",
+        mime_type="text/markdown",
     )
-    assert response.status_code == 202
-    payload = response.json()
+    plain = _upload_document(
+        client,
+        filename="memovi-plain.txt",
+        content=b"Memovi plain text knowledge.",
+        mime_type="text/plain",
+    )
 
-    _wait_for_job_status(
-        engine,
-        payload["processing_job_id"],
-        ProcessingStatus.COMPLETED,
-    )
-    _wait_for_search_documents(engine)
+    _wait_for_job_status(engine, markdown["processing_job_id"], ProcessingStatus.COMPLETED)
+    _wait_for_job_status(engine, plain["processing_job_id"], ProcessingStatus.COMPLETED)
+    search_documents = _wait_for_search_documents(engine, minimum_count=2)
+    after_upload = datetime.now(UTC) + timedelta(seconds=1)
 
     with Session(engine) as session:
-        search = build_search_knowledge(session)
-        results = search.execute(
-            SearchKnowledgeQuery(
-                query="Memovi",
-                limit=10,
-                offset=0,
-            )
-        )
+        for record in session.scalars(select(SearchDocumentRecord)).all():
+            assert record.source_type == "upload"
+            assert record.mime_type in {"text/markdown", "text/plain"}
 
-        assert len(results) == 1
-        assert results[0].document_id == payload["document_id"]
-        assert "Memovi" in results[0].searchable_text
-        assert results[0].relevance_score > 0
+    unfiltered = client.get("/search", params={"q": "Memovi"})
+    assert unfiltered.status_code == 200
+    assert unfiltered.json()["count"] == 2
 
-        missing_results = search.execute(
-            SearchKnowledgeQuery(
-                query="missing-term",
-                limit=10,
-                offset=0,
-            )
-        )
-        assert missing_results == []
+    by_mime = client.get(
+        "/search",
+        params={"q": "Memovi", "mime_type": "text/markdown"},
+    )
+    assert by_mime.status_code == 200
+    mime_payload = by_mime.json()
+    assert mime_payload["count"] == 1
+    assert mime_payload["results"][0]["document_id"] == markdown["document_id"]
+
+    by_source = client.get(
+        "/search",
+        params={"q": "Memovi", "source_type": "upload"},
+    )
+    assert by_source.status_code == 200
+    assert by_source.json()["count"] == 2
+
+    missing_source = client.get(
+        "/search",
+        params={"q": "Memovi", "source_type": "connector"},
+    )
+    assert missing_source.status_code == 200
+    assert missing_source.json()["count"] == 0
+
+    by_document = client.get(
+        "/search",
+        params={"q": "Memovi", "document_id": plain["document_id"]},
+    )
+    assert by_document.status_code == 200
+    document_payload = by_document.json()
+    assert document_payload["count"] == 1
+    assert document_payload["results"][0]["document_id"] == plain["document_id"]
+
+    by_date = client.get(
+        "/search",
+        params={
+            "q": "Memovi",
+            "created_after": before_upload.isoformat(),
+            "created_before": after_upload.isoformat(),
+        },
+    )
+    assert by_date.status_code == 200
+    assert by_date.json()["count"] == 2
+
+    outside_range = client.get(
+        "/search",
+        params={
+            "q": "Memovi",
+            "created_after": after_upload.isoformat(),
+        },
+    )
+    assert outside_range.status_code == 200
+    assert outside_range.json()["count"] == 0
+
+    assert {document.document_id for document in search_documents} == {
+        markdown["document_id"],
+        plain["document_id"],
+    }

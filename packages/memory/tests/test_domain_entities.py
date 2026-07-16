@@ -12,6 +12,8 @@ from memovi_memory.domain.value_objects import ChunkIndex, KnowledgeItemId
 
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
 DOCUMENT_VERSION_ID = "7ce3e814-de68-4200-973e-b2526eee058d"
+SOURCE_TYPE = "upload"
+MIME_TYPE = "text/markdown"
 
 
 def test_knowledge_item_create_assigns_identifiers_and_timestamps() -> None:
@@ -19,6 +21,8 @@ def test_knowledge_item_create_assigns_identifiers_and_timestamps() -> None:
     knowledge_item = KnowledgeItem.create(
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         now=timestamp,
     )
 
@@ -36,6 +40,8 @@ def test_knowledge_item_touch_updates_only_updated_at() -> None:
         id=KnowledgeItemId.new(),
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         created_at=created_at,
         updated_at=updated_at,
     )
@@ -51,6 +57,8 @@ def test_knowledge_item_rejects_invalid_document_reference() -> None:
         KnowledgeItem.create(
             document_id="not-a-uuid",
             document_version_id=DOCUMENT_VERSION_ID,
+            source_type=SOURCE_TYPE,
+            mime_type=MIME_TYPE,
         )
 
 
@@ -60,6 +68,8 @@ def test_knowledge_item_rejects_updated_at_before_created_at() -> None:
             id=KnowledgeItemId.new(),
             document_id=DOCUMENT_ID,
             document_version_id=DOCUMENT_VERSION_ID,
+            source_type=SOURCE_TYPE,
+            mime_type=MIME_TYPE,
             created_at=datetime(2026, 7, 9, 13, 0, tzinfo=UTC),
             updated_at=datetime(2026, 7, 9, 12, 0, tzinfo=UTC),
         )

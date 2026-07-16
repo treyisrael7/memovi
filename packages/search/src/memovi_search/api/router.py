@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
@@ -5,6 +6,7 @@ from pydantic import AfterValidator
 
 from memovi_search.api.dependencies import get_search_knowledge
 from memovi_search.api.schemas import SearchResponse, SearchResultItemResponse
+from memovi_search.application.dto import SearchFilters
 from memovi_search.application.queries import SearchKnowledge, SearchKnowledgeQuery
 
 
@@ -27,7 +29,7 @@ router = APIRouter(prefix="/search", tags=["search"])
     summary="Search indexed knowledge",
     description=(
         "Run a ranked full-text search over indexed searchable documents. "
-        "Returns matching passages with relevance scores. "
+        "Optional metadata filters narrow results before ranking. "
         "Does not perform vector, hybrid, or AI-assisted retrieval."
     ),
     responses={
@@ -44,6 +46,26 @@ def search(
         ),
     ],
     use_case: Annotated[SearchKnowledge, Depends(get_search_knowledge)],
+    document_id: Annotated[
+        str | None,
+        Query(description="Restrict results to a single document ID."),
+    ] = None,
+    source_type: Annotated[
+        str | None,
+        Query(description="Restrict results to a document source type."),
+    ] = None,
+    mime_type: Annotated[
+        str | None,
+        Query(description="Restrict results to a MIME type."),
+    ] = None,
+    created_after: Annotated[
+        datetime | None,
+        Query(description="Include documents created at or after this timestamp."),
+    ] = None,
+    created_before: Annotated[
+        datetime | None,
+        Query(description="Include documents created at or before this timestamp."),
+    ] = None,
     limit: Annotated[
         int,
         Query(
@@ -65,6 +87,13 @@ def search(
             query=q,
             limit=limit,
             offset=offset,
+            filters=SearchFilters(
+                document_id=document_id,
+                source_type=source_type,
+                mime_type=mime_type,
+                created_after=created_after,
+                created_before=created_before,
+            ),
         )
     )
     return SearchResponse(

@@ -8,6 +8,8 @@ from memovi_search.domain.services import SearchMaterializer
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
 DOCUMENT_VERSION_ID = "7ce3e814-de68-4200-973e-b2526eee058d"
 KNOWLEDGE_ITEM_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+SOURCE_TYPE = "upload"
+MIME_TYPE = "text/markdown"
 MATERIALIZED_AT = datetime(2026, 7, 10, 14, 0, tzinfo=UTC)
 
 
@@ -22,6 +24,8 @@ def test_search_materializer_creates_document_from_single_chunk() -> None:
         knowledge_item_id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         chunk_texts=["First passage."],
         now=MATERIALIZED_AT,
     )
@@ -42,6 +46,8 @@ def test_search_materializer_concatenates_multiple_chunks_in_order() -> None:
         knowledge_item_id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         chunk_texts=["Alpha.", "Beta.", "Gamma."],
         now=MATERIALIZED_AT,
     )
@@ -56,6 +62,8 @@ def test_search_materializer_normalizes_whitespace() -> None:
         knowledge_item_id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         chunk_texts=["  Alpha   passage.  ", "\n\n", "  Beta\tpassage.  "],
         now=MATERIALIZED_AT,
     )
@@ -71,6 +79,8 @@ def test_search_materializer_rejects_empty_chunk_list() -> None:
             knowledge_item_id=KNOWLEDGE_ITEM_ID,
             document_id=DOCUMENT_ID,
             document_version_id=DOCUMENT_VERSION_ID,
+            source_type=SOURCE_TYPE,
+            mime_type=MIME_TYPE,
             chunk_texts=[],
             now=MATERIALIZED_AT,
         )
@@ -84,6 +94,8 @@ def test_search_materializer_rejects_whitespace_only_chunk_texts() -> None:
             knowledge_item_id=KNOWLEDGE_ITEM_ID,
             document_id=DOCUMENT_ID,
             document_version_id=DOCUMENT_VERSION_ID,
+            source_type=SOURCE_TYPE,
+            mime_type=MIME_TYPE,
             chunk_texts=["   ", "\n\t"],
             now=MATERIALIZED_AT,
         )
@@ -97,6 +109,8 @@ def test_search_materializer_is_deterministic_for_same_input() -> None:
         knowledge_item_id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         chunk_texts=chunk_texts,
         now=MATERIALIZED_AT,
     )
@@ -104,6 +118,8 @@ def test_search_materializer_is_deterministic_for_same_input() -> None:
         knowledge_item_id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         chunk_texts=chunk_texts,
         now=MATERIALIZED_AT,
     )

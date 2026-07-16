@@ -13,6 +13,8 @@ class KnowledgeDto:
     id: str
     document_id: str
     document_version_id: str
+    source_type: str
+    mime_type: str
     created_at: datetime
     updated_at: datetime
     chunks: tuple[ChunkDto, ...]
@@ -29,6 +31,8 @@ class KnowledgeDto:
             id=item.id,
             document_id=item.document_id,
             document_version_id=item.document_version_id,
+            source_type=item.source_type,
+            mime_type=item.mime_type,
             created_at=item.created_at,
             updated_at=item.updated_at,
             chunks=tuple(ChunkDto.from_chunk(chunk) for chunk in ordered_chunks),

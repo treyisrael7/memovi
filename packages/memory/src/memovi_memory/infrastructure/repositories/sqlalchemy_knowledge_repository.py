@@ -20,6 +20,8 @@ class SqlAlchemyKnowledgeRepository:
 
         record.document_id = knowledge_item.document_id
         record.document_version_id = knowledge_item.document_version_id
+        record.source_type = knowledge_item.source_type
+        record.mime_type = knowledge_item.mime_type
         record.updated_at = knowledge_item.updated_at
 
     def get_by_id(self, knowledge_item_id: KnowledgeItemId) -> KnowledgeItem | None:
@@ -72,6 +74,8 @@ class SqlAlchemyKnowledgeRepository:
             id=KnowledgeItemId(record.id),
             document_id=record.document_id,
             document_version_id=record.document_version_id,
+            source_type=record.source_type,
+            mime_type=record.mime_type,
             created_at=_as_utc(record.created_at),
             updated_at=_as_utc(record.updated_at),
         )
@@ -81,6 +85,8 @@ class SqlAlchemyKnowledgeRepository:
             id=knowledge_item.id.value,
             document_id=knowledge_item.document_id,
             document_version_id=knowledge_item.document_version_id,
+            source_type=knowledge_item.source_type,
+            mime_type=knowledge_item.mime_type,
             created_at=knowledge_item.created_at,
             updated_at=knowledge_item.updated_at,
         )

@@ -10,6 +10,8 @@ class SearchDocumentDto:
     knowledge_item_id: str
     document_id: str
     document_version_id: str
+    source_type: str
+    mime_type: str
     searchable_text: str
     created_at: datetime
     updated_at: datetime
@@ -21,6 +23,8 @@ class SearchDocumentDto:
             knowledge_item_id=search_document.knowledge_item_id,
             document_id=search_document.document_id,
             document_version_id=search_document.document_version_id,
+            source_type=search_document.source_type,
+            mime_type=search_document.mime_type,
             searchable_text=search_document.searchable_text,
             created_at=search_document.created_at,
             updated_at=search_document.updated_at,

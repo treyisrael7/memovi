@@ -190,12 +190,12 @@ Provide fast, accurate retrieval across the knowledge platform.
 
 **Deliverables**
 
-* Full-text search
+* Full-text search — **done**
 * Vector search
 * Hybrid retrieval
-* Metadata filtering
+* Metadata filtering — **done** (full-text search projections)
 * Semantic ranking
-* Search APIs
+* Search APIs — **partial** (`GET /search` for full-text search)
 * Query optimization
 
 **Success Criteria**

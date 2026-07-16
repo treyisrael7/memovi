@@ -1,15 +1,18 @@
 from collections.abc import Iterator
+from datetime import UTC, datetime
 
 import pytest
 from api.app import create_app
 from fastapi.testclient import TestClient
 from memovi_search.api.dependencies import get_search_knowledge
-from memovi_search.application.dto import SearchResultDto
+from memovi_search.application.dto import SearchFilters, SearchResultDto
 from memovi_search.application.queries import SearchKnowledgeQuery
 
 SEARCH_DOCUMENT_ID = "11111111-1111-1111-1111-111111111111"
 KNOWLEDGE_ITEM_ID = "22222222-2222-2222-2222-222222222222"
 DOCUMENT_ID = "33333333-3333-3333-3333-333333333333"
+CREATED_AFTER = datetime(2026, 7, 10, 12, 0, tzinfo=UTC)
+CREATED_BEFORE = datetime(2026, 7, 15, 12, 0, tzinfo=UTC)
 
 
 class FakeSearchKnowledge:
@@ -86,6 +89,7 @@ def test_search_returns_matching_document(
         query="Memovi",
         limit=25,
         offset=0,
+        filters=SearchFilters(),
     )
 
 
@@ -110,6 +114,7 @@ def test_search_returns_empty_results_when_nothing_matches() -> None:
         query="no-such-term",
         limit=25,
         offset=0,
+        filters=SearchFilters(),
     )
 
 
@@ -129,6 +134,90 @@ def test_search_applies_pagination(
         query="Memovi",
         limit=1,
         offset=1,
+        filters=SearchFilters(),
+    )
+
+
+def test_search_passes_mime_type_filter(
+    search_client: tuple[TestClient, FakeSearchKnowledge],
+) -> None:
+    client, fake_search = search_client
+
+    response = client.get(
+        "/search",
+        params={"q": "Memovi", "mime_type": "text/markdown"},
+    )
+
+    assert response.status_code == 200
+    assert fake_search.last_query == SearchKnowledgeQuery(
+        query="Memovi",
+        limit=25,
+        offset=0,
+        filters=SearchFilters(mime_type="text/markdown"),
+    )
+
+
+def test_search_passes_source_type_filter(
+    search_client: tuple[TestClient, FakeSearchKnowledge],
+) -> None:
+    client, fake_search = search_client
+
+    response = client.get(
+        "/search",
+        params={"q": "Memovi", "source_type": "upload"},
+    )
+
+    assert response.status_code == 200
+    assert fake_search.last_query == SearchKnowledgeQuery(
+        query="Memovi",
+        limit=25,
+        offset=0,
+        filters=SearchFilters(source_type="upload"),
+    )
+
+
+def test_search_passes_document_id_filter(
+    search_client: tuple[TestClient, FakeSearchKnowledge],
+) -> None:
+    client, fake_search = search_client
+
+    response = client.get(
+        "/search",
+        params={"q": "Memovi", "document_id": DOCUMENT_ID},
+    )
+
+    assert response.status_code == 200
+    assert fake_search.last_query == SearchKnowledgeQuery(
+        query="Memovi",
+        limit=25,
+        offset=0,
+        filters=SearchFilters(document_id=DOCUMENT_ID),
+    )
+
+
+def test_search_passes_date_range_filters(
+    search_client: tuple[TestClient, FakeSearchKnowledge],
+) -> None:
+    client, fake_search = search_client
+
+    response = client.get(
+        "/search",
+        params={
+            "q": "Memovi",
+            "created_after": CREATED_AFTER.isoformat(),
+            "created_before": CREATED_BEFORE.isoformat(),
+        },
+    )
+
+    assert response.status_code == 200
+    assert fake_search.last_query == SearchKnowledgeQuery(
+        query="Memovi",
+        limit=25,
+        offset=0,
+        filters=SearchFilters(
+            created_after=CREATED_AFTER,
+            created_before=CREATED_BEFORE,
+        ),
     )
 
 

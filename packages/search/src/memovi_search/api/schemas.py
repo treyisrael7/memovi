@@ -10,6 +10,8 @@ class SearchDocumentResponse(BaseModel):
     knowledge_item_id: str
     document_id: str
     document_version_id: str
+    source_type: str
+    mime_type: str
     searchable_text: str
     created_at: datetime
     updated_at: datetime

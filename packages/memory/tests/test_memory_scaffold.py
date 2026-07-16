@@ -9,12 +9,16 @@ from memovi_memory.infrastructure.persistence.models import (
 
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
 DOCUMENT_VERSION_ID = "7ce3e814-de68-4200-973e-b2526eee058d"
+SOURCE_TYPE = "upload"
+MIME_TYPE = "text/markdown"
 
 
 def test_dtos_map_from_domain_entities() -> None:
     knowledge_item = KnowledgeItem.create(
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
     )
     chunk = Chunk.create(
         document_id=DOCUMENT_ID,

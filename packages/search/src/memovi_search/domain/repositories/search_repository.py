@@ -1,4 +1,5 @@
 import builtins
+from datetime import datetime
 from typing import Protocol
 
 from memovi_search.domain.entities import Embedding, RankedSearchDocument, SearchDocument
@@ -20,7 +21,19 @@ class SearchRepository(Protocol):
     def delete_document(self, search_document_id: SearchDocumentId) -> None:
         raise NotImplementedError
 
-    def search(self, query: str, limit: int, offset: int) -> builtins.list[RankedSearchDocument]:
+    def search(
+        self,
+        query: str,
+        limit: int,
+        offset: int,
+        *,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
+        source_type: str | None = None,
+        mime_type: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+    ) -> builtins.list[RankedSearchDocument]:
         raise NotImplementedError
 
     def save_embedding(self, embedding: Embedding) -> None:

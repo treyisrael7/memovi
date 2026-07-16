@@ -88,6 +88,8 @@ def _to_knowledge_read_dto(knowledge: KnowledgeDto) -> KnowledgeReadDto:
         id=knowledge.id,
         document_id=knowledge.document_id,
         document_version_id=knowledge.document_version_id,
+        source_type=knowledge.source_type,
+        mime_type=knowledge.mime_type,
         chunks=tuple(
             KnowledgeChunkReadDto(
                 chunk_index=chunk.chunk_index,

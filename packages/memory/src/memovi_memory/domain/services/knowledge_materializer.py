@@ -26,6 +26,8 @@ class KnowledgeMaterializer:
         *,
         document_id: str,
         document_version_id: str,
+        source_type: str,
+        mime_type: str,
         chunk_drafts: list[ChunkDraft],
         now: datetime | None = None,
     ) -> KnowledgeMaterializationResult:
@@ -39,6 +41,8 @@ class KnowledgeMaterializer:
             id=_knowledge_item_id(document_id, document_version_id),
             document_id=document_id,
             document_version_id=document_version_id,
+            source_type=source_type,
+            mime_type=mime_type,
             created_at=timestamp,
             updated_at=timestamp,
         )

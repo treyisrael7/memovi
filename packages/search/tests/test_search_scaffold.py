@@ -9,6 +9,8 @@ from memovi_search.infrastructure.persistence.models import (
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
 DOCUMENT_VERSION_ID = "7ce3e814-de68-4200-973e-b2526eee058d"
 KNOWLEDGE_ITEM_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+SOURCE_TYPE = "upload"
+MIME_TYPE = "text/markdown"
 
 
 def test_dtos_map_from_domain_entities() -> None:
@@ -16,6 +18,8 @@ def test_dtos_map_from_domain_entities() -> None:
         knowledge_item_id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         searchable_text="Retrievable passage.",
     )
     embedding = Embedding.create(

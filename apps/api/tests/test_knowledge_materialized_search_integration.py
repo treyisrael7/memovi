@@ -112,6 +112,8 @@ def test_knowledge_materialized_indexes_search_and_publishes_event(
                 id=knowledge_item_id,
                 document_id=document_id,
                 document_version_id=document_version_id,
+                source_type="upload",
+                mime_type="text/markdown",
                 created_at=timestamp,
                 updated_at=timestamp,
             )
@@ -204,6 +206,8 @@ def test_knowledge_materialized_with_empty_searchable_text_skips_search_indexed(
                 id=knowledge_item_id,
                 document_id=document_id,
                 document_version_id=document_version_id,
+                source_type="upload",
+                mime_type="text/markdown",
                 created_at=timestamp,
                 updated_at=timestamp,
             )

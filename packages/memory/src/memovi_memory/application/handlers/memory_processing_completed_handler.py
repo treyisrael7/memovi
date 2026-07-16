@@ -47,6 +47,8 @@ class MemoryProcessingCompletedHandler:
                 MaterializeKnowledgeCommand(
                     document_id=snapshot.document_id,
                     document_version_id=snapshot.document_version_id,
+                    source_type=snapshot.source_type,
+                    mime_type=snapshot.mime_type,
                     normalized_text=normalized_content,
                 ),
             )

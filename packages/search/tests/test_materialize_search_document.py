@@ -1,4 +1,5 @@
 import builtins
+from datetime import datetime
 from typing import cast
 
 import pytest
@@ -15,6 +16,8 @@ from memovi_search.domain.value_objects import EmbeddingId, SearchDocumentId
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
 DOCUMENT_VERSION_ID = "7ce3e814-de68-4200-973e-b2526eee058d"
 KNOWLEDGE_ITEM_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+SOURCE_TYPE = "upload"
+MIME_TYPE = "text/markdown"
 
 
 class FakeSearchRepository(SearchRepository):
@@ -40,7 +43,19 @@ class FakeSearchRepository(SearchRepository):
             document for document in self.saved_documents if document.id != search_document_id
         ]
 
-    def search(self, query: str, limit: int, offset: int) -> builtins.list[RankedSearchDocument]:
+    def search(
+        self,
+        query: str,
+        limit: int,
+        offset: int,
+        *,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
+        source_type: str | None = None,
+        mime_type: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+    ) -> builtins.list[RankedSearchDocument]:
         return []
 
     def save_embedding(self, embedding: Embedding) -> None:
@@ -64,6 +79,8 @@ class SpySearchMaterializer:
         knowledge_item_id: str,
         document_id: str,
         document_version_id: str,
+        source_type: str,
+        mime_type: str,
         chunk_texts: list[str],
         now: object | None = None,
     ) -> SearchDocument:
@@ -74,6 +91,8 @@ class SpySearchMaterializer:
             knowledge_item_id=knowledge_item_id,
             document_id=document_id,
             document_version_id=document_version_id,
+            source_type=source_type,
+            mime_type=mime_type,
             chunk_texts=chunk_texts,
             now=now,  # type: ignore[arg-type]
         )
@@ -103,6 +122,8 @@ def test_materialize_search_document_orchestrates_materializer_and_repository() 
             knowledge_item_id=KNOWLEDGE_ITEM_ID,
             document_id=DOCUMENT_ID,
             document_version_id=DOCUMENT_VERSION_ID,
+            source_type=SOURCE_TYPE,
+            mime_type=MIME_TYPE,
             chunk_texts=["Alpha passage.", "Beta passage."],
         )
     )
@@ -124,6 +145,8 @@ def test_materialize_search_document_persists_exactly_once() -> None:
             knowledge_item_id=KNOWLEDGE_ITEM_ID,
             document_id=DOCUMENT_ID,
             document_version_id=DOCUMENT_VERSION_ID,
+            source_type=SOURCE_TYPE,
+            mime_type=MIME_TYPE,
             chunk_texts=["Single chunk text."],
         )
     )
@@ -141,6 +164,8 @@ def test_materialize_search_document_skips_persistence_on_materialization_failur
                 knowledge_item_id=KNOWLEDGE_ITEM_ID,
                 document_id=DOCUMENT_ID,
                 document_version_id=DOCUMENT_VERSION_ID,
+                source_type=SOURCE_TYPE,
+                mime_type=MIME_TYPE,
                 chunk_texts=["   "],
             )
         )

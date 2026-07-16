@@ -1,7 +1,7 @@
 import builtins
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session as OrmSession
 
 from memovi_search.domain.entities import Embedding, RankedSearchDocument, SearchDocument
@@ -26,6 +26,8 @@ class SqlAlchemySearchRepository:
             record.knowledge_item_id = search_document.knowledge_item_id
             record.document_id = search_document.document_id
             record.document_version_id = search_document.document_version_id
+            record.source_type = search_document.source_type
+            record.mime_type = search_document.mime_type
             record.searchable_text = search_document.searchable_text
             record.updated_at = search_document.updated_at
 
@@ -53,7 +55,19 @@ class SqlAlchemySearchRepository:
         if record is not None:
             self._session.delete(record)
 
-    def search(self, query: str, limit: int, offset: int) -> builtins.list[RankedSearchDocument]:
+    def search(
+        self,
+        query: str,
+        limit: int,
+        offset: int,
+        *,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
+        source_type: str | None = None,
+        mime_type: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+    ) -> builtins.list[RankedSearchDocument]:
         if not _supports_full_text_search(self._session):
             return []
 
@@ -63,10 +77,25 @@ class SqlAlchemySearchRepository:
             ts_query,
         ).label("relevance_score")
 
+        statement: Select[tuple[SearchDocumentRecord, float]] = select(
+            SearchDocumentRecord,
+            relevance_score,
+        ).where(SearchDocumentRecord.search_vector.op("@@")(ts_query))
+        statement = _apply_search_filters(
+            statement,
+            document_id=document_id,
+            document_version_id=document_version_id,
+            source_type=source_type,
+            mime_type=mime_type,
+            created_after=created_after,
+            created_before=created_before,
+        )
+
         rows = self._session.execute(
-            select(SearchDocumentRecord, relevance_score)
-            .where(SearchDocumentRecord.search_vector.op("@@")(ts_query))
-            .order_by(relevance_score.desc(), SearchDocumentRecord.created_at.asc())
+            statement.order_by(
+                relevance_score.desc(),
+                SearchDocumentRecord.created_at.asc(),
+            )
             .limit(limit)
             .offset(offset)
         ).all()
@@ -108,6 +137,8 @@ class SqlAlchemySearchRepository:
             knowledge_item_id=record.knowledge_item_id,
             document_id=record.document_id,
             document_version_id=record.document_version_id,
+            source_type=record.source_type,
+            mime_type=record.mime_type,
             searchable_text=record.searchable_text,
             created_at=_as_utc(record.created_at),
             updated_at=_as_utc(record.updated_at),
@@ -119,6 +150,8 @@ class SqlAlchemySearchRepository:
             knowledge_item_id=search_document.knowledge_item_id,
             document_id=search_document.document_id,
             document_version_id=search_document.document_version_id,
+            source_type=search_document.source_type,
+            mime_type=search_document.mime_type,
             searchable_text=search_document.searchable_text,
             search_vector=_search_vector_expression(
                 self._session,
@@ -147,6 +180,33 @@ class SqlAlchemySearchRepository:
             dimensions=embedding.dimensions,
             vector=list(embedding.vector),
         )
+
+
+def _apply_search_filters(
+    statement: Select[tuple[SearchDocumentRecord, float]],
+    *,
+    document_id: str | None,
+    document_version_id: str | None,
+    source_type: str | None,
+    mime_type: str | None,
+    created_after: datetime | None,
+    created_before: datetime | None,
+) -> Select[tuple[SearchDocumentRecord, float]]:
+    if document_id is not None:
+        statement = statement.where(SearchDocumentRecord.document_id == document_id)
+    if document_version_id is not None:
+        statement = statement.where(
+            SearchDocumentRecord.document_version_id == document_version_id,
+        )
+    if source_type is not None:
+        statement = statement.where(SearchDocumentRecord.source_type == source_type)
+    if mime_type is not None:
+        statement = statement.where(SearchDocumentRecord.mime_type == mime_type)
+    if created_after is not None:
+        statement = statement.where(SearchDocumentRecord.created_at >= created_after)
+    if created_before is not None:
+        statement = statement.where(SearchDocumentRecord.created_at <= created_before)
+    return statement
 
 
 def _as_utc(value: datetime) -> datetime:

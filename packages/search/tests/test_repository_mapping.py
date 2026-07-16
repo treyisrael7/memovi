@@ -13,6 +13,8 @@ from memovi_search.infrastructure.repositories.sqlalchemy_search_repository impo
 DOCUMENT_ID = "d62fa912-48a9-4d57-abf2-40a137f48ffa"
 DOCUMENT_VERSION_ID = "7d086319-ee8e-4fe5-9fc3-30eddad79749"
 KNOWLEDGE_ITEM_ID = "f1e2d3c4-b5a6-9788-7654-3210fedcba98"
+SOURCE_TYPE = "upload"
+MIME_TYPE = "text/markdown"
 
 
 def test_document_mapping_round_trips_between_domain_and_record() -> None:
@@ -23,6 +25,8 @@ def test_document_mapping_round_trips_between_domain_and_record() -> None:
         knowledge_item_id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         searchable_text="Retrievable passage.",
         created_at=timestamp,
         updated_at=timestamp,

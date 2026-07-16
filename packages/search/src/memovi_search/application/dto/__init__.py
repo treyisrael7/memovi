@@ -4,6 +4,7 @@ from memovi_search.application.dto.knowledge_materialized_notification import (
 )
 from memovi_search.application.dto.knowledge_read_dto import KnowledgeChunkReadDto, KnowledgeReadDto
 from memovi_search.application.dto.search_document_dto import SearchDocumentDto
+from memovi_search.application.dto.search_filters import SearchFilters
 from memovi_search.application.dto.search_result_dto import SearchResultDto
 
 __all__ = [
@@ -12,5 +13,6 @@ __all__ = [
     "KnowledgeMaterializedNotification",
     "KnowledgeReadDto",
     "SearchDocumentDto",
+    "SearchFilters",
     "SearchResultDto",
 ]

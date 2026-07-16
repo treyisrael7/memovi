@@ -19,6 +19,8 @@ class SearchMaterializer:
         knowledge_item_id: str,
         document_id: str,
         document_version_id: str,
+        source_type: str,
+        mime_type: str,
         chunk_texts: list[str],
         now: datetime | None = None,
     ) -> SearchDocument:
@@ -39,6 +41,8 @@ class SearchMaterializer:
             knowledge_item_id=knowledge_item_id,
             document_id=document_id,
             document_version_id=document_version_id,
+            source_type=source_type,
+            mime_type=mime_type,
             searchable_text=searchable_text,
             created_at=timestamp,
             updated_at=timestamp,

@@ -13,6 +13,8 @@ class KnowledgeItem:
     id: KnowledgeItemId
     document_id: str
     document_version_id: str
+    source_type: str
+    mime_type: str
     created_at: datetime
     updated_at: datetime
 
@@ -21,6 +23,10 @@ class KnowledgeItem:
             raise InvalidKnowledgeItemError("Document ID is required.")
         if not self.document_version_id:
             raise InvalidKnowledgeItemError("Document version ID is required.")
+        if not self.source_type.strip():
+            raise InvalidKnowledgeItemError("Source type is required.")
+        if not self.mime_type.strip():
+            raise InvalidKnowledgeItemError("MIME type is required.")
         _validate_document_reference(self.document_id)
         _validate_document_reference(self.document_version_id)
         if self.updated_at < self.created_at:
@@ -32,13 +38,24 @@ class KnowledgeItem:
         *,
         document_id: str,
         document_version_id: str,
+        source_type: str,
+        mime_type: str,
         now: datetime | None = None,
     ) -> KnowledgeItem:
+        normalized_source_type = source_type.strip()
+        if not normalized_source_type:
+            raise InvalidKnowledgeItemError("Source type is required.")
+        normalized_mime_type = mime_type.strip()
+        if not normalized_mime_type:
+            raise InvalidKnowledgeItemError("MIME type is required.")
+
         timestamp = now or datetime.now(UTC)
         return cls(
             id=KnowledgeItemId.new(),
             document_id=document_id,
             document_version_id=document_version_id,
+            source_type=normalized_source_type,
+            mime_type=normalized_mime_type,
             created_at=timestamp,
             updated_at=timestamp,
         )

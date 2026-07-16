@@ -15,6 +15,8 @@ DOCUMENT_ID = "d62fa912-48a9-4d57-abf2-40a137f48ffa"
 DOCUMENT_VERSION_ID = "7d086319-ee8e-4fe5-9fc3-30eddad79749"
 OTHER_DOCUMENT_ID = "8e1b0f2a-1c3d-4e5f-9a0b-1c2d3e4f5a6b"
 OTHER_DOCUMENT_VERSION_ID = "9f086319-ee8e-4fe5-9fc3-30eddad79750"
+SOURCE_TYPE = "upload"
+MIME_TYPE = "text/markdown"
 
 
 def _build_session_factory() -> tuple[sessionmaker[Session], Engine]:
@@ -34,6 +36,8 @@ def test_knowledge_repository_round_trips_save_get_list_and_delete() -> None:
         id=KnowledgeItemId.new(),
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         created_at=timestamp,
         updated_at=timestamp,
     )
@@ -94,6 +98,8 @@ def test_knowledge_repository_lists_all_and_by_document() -> None:
         id=KnowledgeItemId.new(),
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         created_at=earlier,
         updated_at=earlier,
     )
@@ -101,6 +107,8 @@ def test_knowledge_repository_lists_all_and_by_document() -> None:
         id=KnowledgeItemId.new(),
         document_id=DOCUMENT_ID,
         document_version_id=OTHER_DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         created_at=later,
         updated_at=later,
     )
@@ -108,6 +116,8 @@ def test_knowledge_repository_lists_all_and_by_document() -> None:
         id=KnowledgeItemId.new(),
         document_id=OTHER_DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         created_at=later,
         updated_at=later,
     )

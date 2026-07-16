@@ -9,6 +9,8 @@ class KnowledgeItemDto:
     id: str
     document_id: str
     document_version_id: str
+    source_type: str
+    mime_type: str
     created_at: datetime
     updated_at: datetime
 
@@ -18,6 +20,8 @@ class KnowledgeItemDto:
             id=knowledge_item.id.value,
             document_id=knowledge_item.document_id,
             document_version_id=knowledge_item.document_version_id,
+            source_type=knowledge_item.source_type,
+            mime_type=knowledge_item.mime_type,
             created_at=knowledge_item.created_at,
             updated_at=knowledge_item.updated_at,
         )

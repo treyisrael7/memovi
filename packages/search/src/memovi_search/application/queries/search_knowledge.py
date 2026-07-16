@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from memovi_search.application.dto import SearchDocumentDto, SearchResultDto
+from memovi_search.application.dto import SearchDocumentDto, SearchFilters, SearchResultDto
 from memovi_search.domain.repositories import SearchRepository
 
 
@@ -9,6 +9,7 @@ class SearchKnowledgeQuery:
     query: str
     limit: int
     offset: int
+    filters: SearchFilters | None = None
 
 
 class SearchKnowledge:
@@ -22,10 +23,17 @@ class SearchKnowledge:
         if not normalized_query:
             return []
 
+        filters = query.filters or SearchFilters()
         ranked_documents = self._search_repository.search(
             normalized_query,
             query.limit,
             query.offset,
+            document_id=filters.document_id,
+            document_version_id=filters.document_version_id,
+            source_type=filters.source_type,
+            mime_type=filters.mime_type,
+            created_after=filters.created_after,
+            created_before=filters.created_before,
         )
         return [
             SearchResultDto.from_search_document_dto(

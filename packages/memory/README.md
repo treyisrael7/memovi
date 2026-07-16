@@ -44,5 +44,7 @@ dependency from Documents to Memory.
 ## Document boundary
 
 Memory references processed documents by `document_id` and `document_version_id`
-string identifiers. It does not import the Documents domain. Normalized source
-text remains owned by Documents until future use cases materialize knowledge.
+string identifiers. It also stores denormalized `source_type` and `mime_type` so
+search projections can be rematerialized from Memory without joining Documents.
+It does not import the Documents domain. Normalized source text remains owned by
+Documents until future use cases materialize knowledge.

@@ -18,6 +18,8 @@ class SearchDocument:
     knowledge_item_id: str
     document_id: str
     document_version_id: str
+    source_type: str
+    mime_type: str
     searchable_text: str
     created_at: datetime
     updated_at: datetime
@@ -29,6 +31,10 @@ class SearchDocument:
             raise InvalidSearchDocumentError("Document ID is required.")
         if not self.document_version_id:
             raise InvalidSearchDocumentError("Document version ID is required.")
+        if not self.source_type.strip():
+            raise InvalidSearchDocumentError("Source type is required.")
+        if not self.mime_type.strip():
+            raise InvalidSearchDocumentError("MIME type is required.")
         if not self.searchable_text:
             raise InvalidSearchDocumentError("Searchable text is required.")
         _validate_knowledge_item_reference(self.knowledge_item_id)
@@ -46,12 +52,20 @@ class SearchDocument:
         knowledge_item_id: str,
         document_id: str,
         document_version_id: str,
+        source_type: str,
+        mime_type: str,
         searchable_text: str,
         now: datetime | None = None,
     ) -> SearchDocument:
         normalized_text = searchable_text.strip()
         if not normalized_text:
             raise InvalidSearchDocumentError("Searchable text is required.")
+        normalized_source_type = source_type.strip()
+        if not normalized_source_type:
+            raise InvalidSearchDocumentError("Source type is required.")
+        normalized_mime_type = mime_type.strip()
+        if not normalized_mime_type:
+            raise InvalidSearchDocumentError("MIME type is required.")
 
         timestamp = now or datetime.now(UTC)
         return cls(
@@ -59,6 +73,8 @@ class SearchDocument:
             knowledge_item_id=knowledge_item_id,
             document_id=document_id,
             document_version_id=document_version_id,
+            source_type=normalized_source_type,
+            mime_type=normalized_mime_type,
             searchable_text=normalized_text,
             created_at=timestamp,
             updated_at=timestamp,

@@ -9,6 +9,8 @@ from memovi_memory.domain.services import ChunkGenerator, KnowledgeMaterializer
 class MaterializeKnowledgeCommand:
     document_id: str
     document_version_id: str
+    source_type: str
+    mime_type: str
     normalized_text: str
 
 
@@ -44,6 +46,8 @@ class MaterializeKnowledge:
         materialization = self._knowledge_materializer.materialize(
             document_id=command.document_id,
             document_version_id=command.document_version_id,
+            source_type=command.source_type,
+            mime_type=command.mime_type,
             chunk_drafts=chunk_drafts,
         )
 

@@ -23,6 +23,8 @@ from sqlalchemy.orm import Session as OrmSession
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
 DOCUMENT_VERSION_ID = "7ce3e814-de68-4200-973e-b2526eee058d"
 KNOWLEDGE_ITEM_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+SOURCE_TYPE = "upload"
+MIME_TYPE = "text/markdown"
 NOTIFICATION_AT = datetime(2026, 7, 10, 15, 0, tzinfo=UTC)
 
 
@@ -54,7 +56,19 @@ class FakeSearchRepository(SearchRepository):
     def delete_document(self, search_document_id: SearchDocumentId) -> None:
         raise NotImplementedError
 
-    def search(self, query: str, limit: int, offset: int) -> list[RankedSearchDocument]:
+    def search(
+        self,
+        query: str,
+        limit: int,
+        offset: int,
+        *,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
+        source_type: str | None = None,
+        mime_type: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+    ) -> list[RankedSearchDocument]:
         return []
 
     def save_embedding(self, embedding: Embedding) -> None:
@@ -111,6 +125,8 @@ def _knowledge_read_dto(*, chunks: tuple[KnowledgeChunkReadDto, ...]) -> Knowled
         id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
         chunks=chunks,
     )
 
