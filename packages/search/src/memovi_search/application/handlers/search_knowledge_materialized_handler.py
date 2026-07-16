@@ -37,8 +37,7 @@ class SearchKnowledgeMaterializedHandler:
             return
 
         chunk_texts = [
-            chunk.text
-            for chunk in sorted(knowledge.chunks, key=lambda chunk: chunk.chunk_index)
+            chunk.text for chunk in sorted(knowledge.chunks, key=lambda chunk: chunk.chunk_index)
         ]
 
         session = self._session_factory()

@@ -6,7 +6,7 @@ from memovi_search.application.commands import (
     MaterializeSearchDocument,
     MaterializeSearchDocumentCommand,
 )
-from memovi_search.domain.entities import Embedding, SearchDocument
+from memovi_search.domain.entities import Embedding, RankedSearchDocument, SearchDocument
 from memovi_search.domain.exceptions import InvalidSearchMaterializationError
 from memovi_search.domain.repositories import SearchRepository
 from memovi_search.domain.services import SearchMaterializer
@@ -39,6 +39,9 @@ class FakeSearchRepository(SearchRepository):
         self.saved_documents = [
             document for document in self.saved_documents if document.id != search_document_id
         ]
+
+    def search(self, query: str, limit: int, offset: int) -> builtins.list[RankedSearchDocument]:
+        return []
 
     def save_embedding(self, embedding: Embedding) -> None:
         raise NotImplementedError

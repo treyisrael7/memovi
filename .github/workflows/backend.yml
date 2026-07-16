@@ -19,6 +19,21 @@ jobs:
         python-version:
           - "3.14"
 
+    services:
+      postgres:
+        image: pgvector/pgvector:pg18
+        env:
+          POSTGRES_DB: memovi
+          POSTGRES_USER: memovi_app
+          POSTGRES_PASSWORD: memovi_local_pg_9f4c8e2d7a6b41c3
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U memovi_app -d memovi"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -69,6 +84,12 @@ jobs:
           PY
 
       - name: Pytest
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: memovi
+          POSTGRES_USER: memovi_app
+          POSTGRES_PASSWORD: memovi_local_pg_9f4c8e2d7a6b41c3
         run: |
           set +e
           uv run pytest

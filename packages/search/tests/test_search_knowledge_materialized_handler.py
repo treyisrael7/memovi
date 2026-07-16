@@ -13,7 +13,7 @@ from memovi_search.application.dto import (
     KnowledgeReadDto,
 )
 from memovi_search.application.handlers import SearchKnowledgeMaterializedHandler
-from memovi_search.domain.entities import Embedding, SearchDocument
+from memovi_search.domain.entities import Embedding, RankedSearchDocument, SearchDocument
 from memovi_search.domain.events import SearchIndexed
 from memovi_search.domain.repositories import SearchRepository
 from memovi_search.domain.services import SearchMaterializer
@@ -53,6 +53,9 @@ class FakeSearchRepository(SearchRepository):
 
     def delete_document(self, search_document_id: SearchDocumentId) -> None:
         raise NotImplementedError
+
+    def search(self, query: str, limit: int, offset: int) -> list[RankedSearchDocument]:
+        return []
 
     def save_embedding(self, embedding: Embedding) -> None:
         raise NotImplementedError

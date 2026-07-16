@@ -1,10 +1,12 @@
 import builtins
 from datetime import UTC, datetime
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session as OrmSession
 
-from memovi_search.domain.entities import Embedding, SearchDocument
+from memovi_search.domain.entities import Embedding, RankedSearchDocument, SearchDocument
 from memovi_search.domain.value_objects import EmbeddingId, SearchDocumentId
+from memovi_search.infrastructure.persistence.full_text import ENGLISH_TEXT_SEARCH_CONFIG
 from memovi_search.infrastructure.persistence.models import (
     SearchDocumentRecord,
     SearchEmbeddingRecord,
@@ -18,14 +20,19 @@ class SqlAlchemySearchRepository:
     def save_document(self, search_document: SearchDocument) -> None:
         record = self._session.get(SearchDocumentRecord, search_document.id.value)
         if record is None:
-            self._session.add(self._document_to_record(search_document))
-            return
+            record = self._document_to_record(search_document)
+            self._session.add(record)
+        else:
+            record.knowledge_item_id = search_document.knowledge_item_id
+            record.document_id = search_document.document_id
+            record.document_version_id = search_document.document_version_id
+            record.searchable_text = search_document.searchable_text
+            record.updated_at = search_document.updated_at
 
-        record.knowledge_item_id = search_document.knowledge_item_id
-        record.document_id = search_document.document_id
-        record.document_version_id = search_document.document_version_id
-        record.searchable_text = search_document.searchable_text
-        record.updated_at = search_document.updated_at
+        record.search_vector = _search_vector_expression(
+            self._session,
+            search_document.searchable_text,
+        )
 
     def get_document(self, search_document_id: SearchDocumentId) -> SearchDocument | None:
         record = self._session.get(SearchDocumentRecord, search_document_id.value)
@@ -45,6 +52,32 @@ class SqlAlchemySearchRepository:
         record = self._session.get(SearchDocumentRecord, search_document_id.value)
         if record is not None:
             self._session.delete(record)
+
+    def search(self, query: str, limit: int, offset: int) -> builtins.list[RankedSearchDocument]:
+        if not _supports_full_text_search(self._session):
+            return []
+
+        ts_query = func.plainto_tsquery(ENGLISH_TEXT_SEARCH_CONFIG, query)
+        relevance_score = func.ts_rank(
+            SearchDocumentRecord.search_vector,
+            ts_query,
+        ).label("relevance_score")
+
+        rows = self._session.execute(
+            select(SearchDocumentRecord, relevance_score)
+            .where(SearchDocumentRecord.search_vector.op("@@")(ts_query))
+            .order_by(relevance_score.desc(), SearchDocumentRecord.created_at.asc())
+            .limit(limit)
+            .offset(offset)
+        ).all()
+
+        return [
+            RankedSearchDocument(
+                search_document=self._document_to_domain(record),
+                relevance_score=float(score),
+            )
+            for record, score in rows
+        ]
 
     def save_embedding(self, embedding: Embedding) -> None:
         record = self._session.get(SearchEmbeddingRecord, embedding.id.value)
@@ -87,6 +120,10 @@ class SqlAlchemySearchRepository:
             document_id=search_document.document_id,
             document_version_id=search_document.document_version_id,
             searchable_text=search_document.searchable_text,
+            search_vector=_search_vector_expression(
+                self._session,
+                search_document.searchable_text,
+            ),
             created_at=search_document.created_at,
             updated_at=search_document.updated_at,
         )
@@ -116,3 +153,17 @@ def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
+
+
+def _supports_full_text_search(session: OrmSession) -> bool:
+    try:
+        bind = session.get_bind()
+    except Exception:
+        return False
+    return bind.dialect.name == "postgresql"
+
+
+def _search_vector_expression(session: OrmSession, searchable_text: str) -> object:
+    if _supports_full_text_search(session):
+        return func.to_tsvector(ENGLISH_TEXT_SEARCH_CONFIG, searchable_text)
+    return searchable_text

@@ -1,7 +1,7 @@
 import builtins
 from typing import Protocol
 
-from memovi_search.domain.entities import Embedding, SearchDocument
+from memovi_search.domain.entities import Embedding, RankedSearchDocument, SearchDocument
 from memovi_search.domain.value_objects import EmbeddingId, SearchDocumentId
 
 
@@ -18,6 +18,9 @@ class SearchRepository(Protocol):
         raise NotImplementedError
 
     def delete_document(self, search_document_id: SearchDocumentId) -> None:
+        raise NotImplementedError
+
+    def search(self, query: str, limit: int, offset: int) -> builtins.list[RankedSearchDocument]:
         raise NotImplementedError
 
     def save_embedding(self, embedding: Embedding) -> None:

@@ -1,4 +1,3 @@
-
 from memovi_search.application.dto import EmbeddingDto, SearchDocumentDto
 from memovi_search.domain.entities import Embedding, SearchDocument
 from memovi_search.infrastructure.persistence.models import (

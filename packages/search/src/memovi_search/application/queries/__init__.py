@@ -1,1 +1,6 @@
-"""Read-side use cases for search retrieval workflows."""
+from memovi_search.application.queries.search_knowledge import SearchKnowledge, SearchKnowledgeQuery
+
+__all__ = [
+    "SearchKnowledge",
+    "SearchKnowledgeQuery",
+]

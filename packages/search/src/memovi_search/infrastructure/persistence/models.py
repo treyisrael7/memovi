@@ -1,6 +1,8 @@
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -23,6 +25,10 @@ class SearchDocumentRecord(Base):
     document_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
     document_version_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
     searchable_text: Mapped[str] = mapped_column(Text, nullable=False)
+    search_vector: Mapped[Any] = mapped_column(
+        TSVECTOR().with_variant(Text(), "sqlite"),
+        nullable=False,
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

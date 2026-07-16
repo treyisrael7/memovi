@@ -12,6 +12,7 @@ from memovi_search.application.commands.materialize_search_document import Mater
 from memovi_search.application.dto import KnowledgeChunkReadDto, KnowledgeMaterializedNotification
 from memovi_search.application.dto.knowledge_read_dto import KnowledgeReadDto
 from memovi_search.application.handlers import SearchKnowledgeMaterializedHandler
+from memovi_search.application.queries import SearchKnowledge
 from memovi_search.domain.services import SearchMaterializer
 from memovi_search.infrastructure.repositories import SqlAlchemySearchRepository
 from sqlalchemy.orm import Session as OrmSession
@@ -43,6 +44,12 @@ class SqlAlchemyKnowledgeReader:
 def build_materialize_search_document(session: OrmSession) -> MaterializeSearchDocument:
     return MaterializeSearchDocument(
         search_materializer=SearchMaterializer(),
+        search_repository=SqlAlchemySearchRepository(session),
+    )
+
+
+def build_search_knowledge(session: OrmSession) -> SearchKnowledge:
+    return SearchKnowledge(
         search_repository=SqlAlchemySearchRepository(session),
     )
 
