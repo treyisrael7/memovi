@@ -16,6 +16,7 @@ first retrieval capability:
 - Application command: `MaterializeSearchDocument` for persistence orchestration
 - Application handler: `SearchKnowledgeMaterializedHandler` for event-driven indexing
 - Application query: `SearchKnowledge` for ranked full-text retrieval
+- Public HTTP API: `GET /search` for ranked full-text retrieval
 - Domain events: `SearchDocumentRegistered`, `EmbeddingRecorded`, and `SearchIndexed`
 - Application DTOs, ports, and layer scaffolds for future use cases
 - SQLAlchemy persistence models and repository implementation
@@ -38,19 +39,33 @@ A GIN index on `search_vector` supports ranked retrieval ordered by
 `ts_rank`. The `SearchKnowledge` query returns `SearchResultDto` records with
 document identifiers, searchable text, and relevance scores.
 
+## Search API
+
+`GET /search` exposes ranked full-text retrieval over HTTP:
+
+| Parameter | Required | Default | Notes |
+|-----------|----------|---------|-------|
+| `q` | yes | — | Non-empty search query |
+| `limit` | no | `25` | Maximum `100` |
+| `offset` | no | `0` | Must be non-negative |
+
+The response returns the normalized query, result count, and ranked matches with
+`search_document_id`, `knowledge_item_id`, `document_id`, `score`, and `text`.
+The route stays thin: it validates query parameters, calls `SearchKnowledge`,
+and maps `SearchResultDto` values to the public response schema.
+
 ## Layout
 
 - `domain` — business model, invariants, repository interfaces, and events
 - `application` — use cases, DTOs, ports, and worker placeholders
 - `infrastructure` — persistence models and SQLAlchemy repositories
-- `api` — router, dependency, and schema scaffolds without endpoints yet
+- `api` — FastAPI router, dependencies, and response schemas for search
 
 ## Out of scope for this foundation
 
 - Embedding generation workflows
 - Vector storage and pgvector integration
 - Hybrid retrieval and reranking
-- FastAPI search endpoints
 
 Cross-domain wiring from memory materialization to search indexing lives in
 the API composition root (`apps/api`), which subscribes to `KnowledgeMaterialized`

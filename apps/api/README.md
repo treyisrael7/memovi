@@ -25,3 +25,4 @@ task backend
 
 The health endpoint is available at `http://localhost:8000/health`.
 Authentication endpoints are available under `http://localhost:8000/auth`.
+Full-text search is available at `http://localhost:8000/search`.

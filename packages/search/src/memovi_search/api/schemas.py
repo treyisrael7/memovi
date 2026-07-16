@@ -28,3 +28,21 @@ class EmbeddingResponse(BaseModel):
 
 class SearchDocumentListResponse(BaseModel):
     items: list[SearchDocumentResponse]
+
+
+class SearchResultItemResponse(BaseModel):
+    """A single ranked full-text search match."""
+
+    search_document_id: str
+    knowledge_item_id: str
+    document_id: str
+    score: float
+    text: str
+
+
+class SearchResponse(BaseModel):
+    """Ranked full-text search response for indexed knowledge."""
+
+    query: str
+    count: int = Field(ge=0)
+    results: list[SearchResultItemResponse]
