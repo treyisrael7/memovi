@@ -38,6 +38,10 @@ class InvalidCitationError(IntelligenceDomainError):
     """Raised when a citation violates domain constraints."""
 
 
+class InvalidPromptError(IntelligenceDomainError):
+    """Raised when a prompt or prompt component violates domain constraints."""
+
+
 class NoRetrievedKnowledgeError(IntelligenceDomainError):
     """Raised when reasoning cannot proceed because retrieval returned no knowledge."""
 

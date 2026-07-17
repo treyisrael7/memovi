@@ -1,5 +1,6 @@
 from memovi_intelligence.application.ports import KnowledgeRetriever, ReasoningProvider
 from memovi_intelligence.application.services.context_assembler import ContextAssembler
+from memovi_intelligence.application.services.prompt_builder import PromptBuilder
 from memovi_intelligence.config import IntelligenceConfig
 from memovi_intelligence.domain.entities import (
     ReasoningContext,
@@ -22,6 +23,7 @@ class ReasoningService:
         reasoning_provider: ReasoningProvider,
         config: IntelligenceConfig | None = None,
         context_assembler: ContextAssembler | None = None,
+        prompt_builder: PromptBuilder | None = None,
     ) -> None:
         self._config = config or IntelligenceConfig()
         self._knowledge_retriever = knowledge_retriever
@@ -30,6 +32,7 @@ class ReasoningService:
             knowledge_retriever=knowledge_retriever,
             config=self._config,
         )
+        self._prompt_builder = prompt_builder or PromptBuilder()
 
     @property
     def config(self) -> IntelligenceConfig:
@@ -48,4 +51,5 @@ class ReasoningService:
             knowledge_retriever=self._knowledge_retriever,
             context_assembler=self._context_assembler,
             reasoning_provider=self._reasoning_provider,
+            prompt_builder=self._prompt_builder,
         ).execute(request)

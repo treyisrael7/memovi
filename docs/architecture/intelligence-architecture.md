@@ -53,7 +53,8 @@ provider integrations land.
 Core immutable concepts:
 
 * `ReasoningRequest` — intent to reason over retrieved knowledge
-* `ReasoningContext` — assembled knowledge context for a future provider
+* `ReasoningContext` — assembled knowledge context for prompt construction
+* `Prompt` — provider-agnostic reasoning prompt (`PromptMessage`, `PromptRole`, `PromptSection`)
 * `ReasoningResult` — immutable reasoning output
 
 `ReasoningContext` includes the originating request, retained retrieved knowledge,
@@ -65,6 +66,10 @@ name, execution time, and the context that produced it.
 `ContextAssembler` builds that context through the `KnowledgeRetriever` port. It orders
 by retrieval ranking, removes duplicate chunks, skips excess documents when limits
 require it, and trims to configurable document, chunk, and estimated-token budgets.
+
+`PromptBuilder` converts a `ReasoningContext` into a deterministic `Prompt` with ordered
+sections for system instructions, user request, retrieved knowledge, citations, and
+metadata. It does not encode OpenAI, Anthropic, or Ollama message schemas.
 
 The central use case is the `Reason` command:
 
@@ -78,6 +83,9 @@ KnowledgeRetriever
 ContextAssembler
     │
     ▼
+PromptBuilder
+    │
+    ▼
 ReasoningProvider
     │
     ▼
@@ -87,13 +95,13 @@ ReasoningResult
 Application ports remain:
 
 * `KnowledgeRetriever` — future Search-facing retrieval boundary
-* `ReasoningProvider` — future AI provider boundary (`reason(context) -> ReasoningResult`)
+* `ReasoningProvider` — future AI provider boundary (`reason(prompt) -> ReasoningResult`)
 
 Infrastructure currently provides a deterministic `FakeReasoningProvider` for tests,
 plus placeholder adapters that raise `NotImplementedError` for unfinished Search/LLM
 wiring.
-Package configuration exists without provider selection. Chat, prompts, streaming, and
-agents remain out of scope until later milestones.
+Package configuration exists without provider selection. Chat, streaming, and agents
+remain out of scope until later milestones.
 
 # Provider Isolation
 

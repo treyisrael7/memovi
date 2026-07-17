@@ -1,11 +1,7 @@
 from typing import Protocol
 
-from memovi_intelligence.domain.entities import (
-    ReasoningContext,
-    ReasoningRequest,
-    ReasoningResult,
-)
-from memovi_intelligence.domain.value_objects import RetrievedKnowledge
+from memovi_intelligence.domain.entities import ReasoningRequest, ReasoningResult
+from memovi_intelligence.domain.value_objects import Prompt, RetrievedKnowledge
 
 
 class KnowledgeRetriever(Protocol):
@@ -21,7 +17,7 @@ class KnowledgeRetriever(Protocol):
 
 
 class ReasoningProvider(Protocol):
-    """Produces reasoning output from prepared context without exposing provider details."""
+    """Produces reasoning output from a provider-agnostic prompt."""
 
-    def reason(self, context: ReasoningContext) -> ReasoningResult:
+    def reason(self, prompt: Prompt) -> ReasoningResult:
         raise NotImplementedError

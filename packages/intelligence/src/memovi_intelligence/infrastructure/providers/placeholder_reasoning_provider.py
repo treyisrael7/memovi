@@ -1,4 +1,5 @@
-from memovi_intelligence.domain.entities import ReasoningContext, ReasoningResult
+from memovi_intelligence.domain.entities import ReasoningResult
+from memovi_intelligence.domain.value_objects import Prompt
 
 
 class PlaceholderReasoningProvider:
@@ -7,7 +8,7 @@ class PlaceholderReasoningProvider:
     Concrete LLM provider integrations will replace this implementation later.
     """
 
-    def reason(self, context: ReasoningContext) -> ReasoningResult:
+    def reason(self, prompt: Prompt) -> ReasoningResult:
         raise NotImplementedError(
             "Reasoning provider integrations are not implemented yet.",
         )

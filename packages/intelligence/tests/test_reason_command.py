@@ -1,13 +1,13 @@
 import pytest
 from memovi_intelligence.application.commands import Reason
-from memovi_intelligence.application.services import ContextAssembler
-from memovi_intelligence.domain.entities import ReasoningContext, ReasoningRequest, ReasoningResult
+from memovi_intelligence.application.services import ContextAssembler, PromptBuilder
+from memovi_intelligence.domain.entities import ReasoningRequest, ReasoningResult
 from memovi_intelligence.domain.exceptions import (
-    InvalidReasoningContextError,
+    InvalidPromptError,
     NoRetrievedKnowledgeError,
     ReasoningProviderError,
 )
-from memovi_intelligence.domain.value_objects import RetrievedKnowledge
+from memovi_intelligence.domain.value_objects import Prompt, RetrievedKnowledge
 from memovi_intelligence.infrastructure import FakeReasoningProvider
 
 
@@ -27,13 +27,13 @@ class StubKnowledgeRetriever:
 
 
 class FailingReasoningProvider:
-    def reason(self, context: ReasoningContext) -> ReasoningResult:
+    def reason(self, prompt: Prompt) -> ReasoningResult:
         raise RuntimeError("provider boom")
 
 
-class InvalidContextReasoningProvider:
-    def reason(self, context: ReasoningContext) -> ReasoningResult:
-        raise InvalidReasoningContextError("provider rejected context")
+class InvalidPromptReasoningProvider:
+    def reason(self, prompt: Prompt) -> ReasoningResult:
+        raise InvalidPromptError("provider rejected prompt")
 
 
 def _knowledge(
@@ -57,7 +57,7 @@ def _reason(
     items: tuple[RetrievedKnowledge, ...] = (),
     provider: FakeReasoningProvider
     | FailingReasoningProvider
-    | InvalidContextReasoningProvider
+    | InvalidPromptReasoningProvider
     | None = None,
 ) -> tuple[Reason, StubKnowledgeRetriever]:
     retriever = StubKnowledgeRetriever(items)
@@ -66,6 +66,7 @@ def _reason(
         knowledge_retriever=retriever,
         context_assembler=assembler,
         reasoning_provider=provider or FakeReasoningProvider(),
+        prompt_builder=PromptBuilder(),
     )
     return command, retriever
 
@@ -86,6 +87,7 @@ def test_reason_successful_pipeline() -> None:
     assert result.citations[0].chunk_id == "chunk-1"
     assert result.citations[0].document_id == "doc-1"
     assert result.metadata["chunk_count"] == 1
+    assert result.metadata["section_count"] == 5
     assert result.context.retrieved_knowledge == (item,)
     assert retriever.calls == 1
 
@@ -106,9 +108,9 @@ def test_reason_raises_when_provider_fails() -> None:
         command.execute(request)
 
 
-def test_reason_propagates_invalid_context_from_provider() -> None:
-    command, _ = _reason(items=(_knowledge(),), provider=InvalidContextReasoningProvider())
-    request = ReasoningRequest.create(query="Invalid context path")
+def test_reason_propagates_invalid_prompt_from_provider() -> None:
+    command, _ = _reason(items=(_knowledge(),), provider=InvalidPromptReasoningProvider())
+    request = ReasoningRequest.create(query="Invalid prompt path")
 
-    with pytest.raises(InvalidReasoningContextError, match="provider rejected context"):
+    with pytest.raises(InvalidPromptError, match="provider rejected prompt"):
         command.execute(request)

@@ -1,8 +1,10 @@
 from memovi_intelligence.application.ports import KnowledgeRetriever, ReasoningProvider
 from memovi_intelligence.application.services.context_assembler import ContextAssembler
+from memovi_intelligence.application.services.prompt_builder import PromptBuilder
 from memovi_intelligence.domain.entities import ReasoningRequest, ReasoningResult
 from memovi_intelligence.domain.exceptions import (
     IntelligenceDomainError,
+    InvalidPromptError,
     InvalidReasoningContextError,
     NoRetrievedKnowledgeError,
     ReasoningProviderError,
@@ -10,10 +12,10 @@ from memovi_intelligence.domain.exceptions import (
 
 
 class Reason:
-    """Orchestrates retrieval, context assembly, and provider reasoning.
+    """Orchestrates retrieval, context assembly, prompt construction, and reasoning.
 
-    Contains orchestration only: retrieve knowledge, assemble context, execute
-    reasoning, and return an immutable ReasoningResult.
+    Contains orchestration only: retrieve knowledge, assemble context, build a
+    prompt, execute reasoning, and return an immutable ReasoningResult.
     """
 
     def __init__(
@@ -22,10 +24,12 @@ class Reason:
         knowledge_retriever: KnowledgeRetriever,
         context_assembler: ContextAssembler,
         reasoning_provider: ReasoningProvider,
+        prompt_builder: PromptBuilder | None = None,
     ) -> None:
         self._knowledge_retriever = knowledge_retriever
         self._context_assembler = context_assembler
         self._reasoning_provider = reasoning_provider
+        self._prompt_builder = prompt_builder or PromptBuilder()
 
     def execute(self, request: ReasoningRequest) -> ReasoningResult:
         limit = (
@@ -54,7 +58,16 @@ class Reason:
             )
 
         try:
-            return self._reasoning_provider.reason(context)
+            prompt = self._prompt_builder.build(context)
+        except InvalidPromptError:
+            raise
+        except IntelligenceDomainError:
+            raise
+        except Exception as exc:
+            raise InvalidPromptError("Failed to build a valid reasoning prompt.") from exc
+
+        try:
+            return self._reasoning_provider.reason(prompt)
         except IntelligenceDomainError:
             raise
         except Exception as exc:

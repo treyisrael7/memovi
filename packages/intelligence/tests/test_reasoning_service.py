@@ -1,5 +1,10 @@
 import pytest
-from memovi_intelligence.application import ContextAssembler, Reason, ReasoningService
+from memovi_intelligence.application import (
+    ContextAssembler,
+    PromptBuilder,
+    Reason,
+    ReasoningService,
+)
 from memovi_intelligence.application.commands import Reason as ReasonCommand
 from memovi_intelligence.config import IntelligenceConfig
 from memovi_intelligence.domain.entities import ReasoningContext, ReasoningRequest, ReasoningResult
@@ -89,20 +94,30 @@ def test_placeholder_adapters_raise_not_implemented() -> None:
     request = ReasoningRequest.create(query="Adapter placeholder behavior.")
     retriever = PlaceholderKnowledgeRetriever()
     provider = PlaceholderReasoningProvider()
+    item = RetrievedKnowledge(
+        chunk_id="chunk-1",
+        document_id="doc-1",
+        text="Enough knowledge to build a prompt.",
+        score=0.5,
+    )
+    prompt = PromptBuilder().build(
+        ContextAssembler(knowledge_retriever=StubKnowledgeRetriever((item,))).assemble(request),
+    )
 
     with pytest.raises(NotImplementedError, match="Search"):
         retriever.retrieve(request, limit=3)
 
     with pytest.raises(NotImplementedError, match="provider"):
-        provider.reason(ReasoningContext.empty(request))
+        provider.reason(prompt)
 
 
-def test_context_assembler_and_reason_are_exported() -> None:
+def test_context_assembler_prompt_builder_and_reason_are_exported() -> None:
     assert ContextAssembler is not None
+    assert PromptBuilder is not None
     assert Reason is ReasonCommand
 
 
-def test_integration_request_retrieve_assemble_reason_result() -> None:
+def test_integration_request_retrieve_context_prompt_reason_result() -> None:
     items = (
         RetrievedKnowledge(
             chunk_id="chunk-a",
@@ -121,22 +136,35 @@ def test_integration_request_retrieve_assemble_reason_result() -> None:
     )
     retriever = StubKnowledgeRetriever(items)
     assembler = ContextAssembler(knowledge_retriever=retriever)
+    builder = PromptBuilder()
     command = Reason(
         knowledge_retriever=retriever,
         context_assembler=assembler,
         reasoning_provider=FakeReasoningProvider(),
+        prompt_builder=builder,
     )
     request = ReasoningRequest.create(query="Summarize the decisions.", limit=2)
 
+    context = assembler.assemble(request)
+    prompt = builder.build(context)
     result = command.execute(request)
 
+    assert len(context.retrieved_knowledge) == 2
+    assert [section.name for section in prompt.sections] == [
+        "system_instructions",
+        "user_request",
+        "retrieved_knowledge",
+        "citations",
+        "metadata",
+    ]
+    assert prompt.messages[0].role.value == "system"
+    assert prompt.messages[1].role.value == "user"
     assert isinstance(result, ReasoningResult)
     assert result.context.request is request
-    assert len(result.context.retrieved_knowledge) == 2
-    assert len(result.context.assembled_documents) == 2
     assert len(result.citations) == 2
     assert result.citations[0].document_id == "doc-a"
     assert result.metadata["document_count"] == 2
+    assert result.metadata["section_count"] == 5
     assert "Summarize the decisions." in result.answer
     assert "Alpha decision from notes." in result.answer
     assert "Beta follow-up detail." in result.answer
