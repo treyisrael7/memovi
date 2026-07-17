@@ -11,6 +11,7 @@ from memovi_intelligence.domain.exceptions import (
 from memovi_intelligence.domain.services import estimate_token_count
 from memovi_intelligence.domain.value_objects import (
     AssembledDocument,
+    Citation,
     ContextMetadata,
     RetrievedKnowledge,
 )
@@ -83,18 +84,57 @@ def test_reasoning_context_preserves_assembled_fields() -> None:
     assert context.is_empty is False
 
 
-def test_reasoning_result_create_trims_content() -> None:
+def test_reasoning_result_create_trims_answer_and_freezes_metadata() -> None:
     request = ReasoningRequest.create(query="Status?")
     context = ReasoningContext.empty(request)
-    result = ReasoningResult.create(content="  No blockers.  ", context=context)
+    citation = Citation(document_id="doc-1", chunk_id="chunk-1", score=0.8)
+    result = ReasoningResult.create(
+        answer="  No blockers.  ",
+        citations=(citation,),
+        metadata={"source": "test"},
+        provider="fake",
+        execution_time=0.01,
+        context=context,
+    )
 
-    assert result.content == "No blockers."
+    assert result.answer == "No blockers."
+    assert result.citations == (citation,)
+    assert result.provider == "fake"
+    assert result.execution_time == 0.01
     assert result.context is context
+    assert result.metadata["source"] == "test"
+    with pytest.raises(TypeError):
+        result.metadata["source"] = "changed"  # type: ignore[index]
 
 
-def test_reasoning_result_rejects_blank_content() -> None:
+def test_reasoning_result_rejects_blank_answer() -> None:
     request = ReasoningRequest.create(query="Status?")
     context = ReasoningContext.empty(request)
 
     with pytest.raises(InvalidReasoningResultError):
-        ReasoningResult.create(content="   ", context=context)
+        ReasoningResult.create(
+            answer="   ",
+            provider="fake",
+            execution_time=0.0,
+            context=context,
+        )
+
+
+def test_reasoning_result_rejects_negative_execution_time() -> None:
+    request = ReasoningRequest.create(query="Status?")
+    context = ReasoningContext.empty(request)
+
+    with pytest.raises(InvalidReasoningResultError):
+        ReasoningResult.create(
+            answer="Ok",
+            provider="fake",
+            execution_time=-0.1,
+            context=context,
+        )
+
+
+def test_citation_rejects_blank_ids() -> None:
+    from memovi_intelligence.domain.exceptions import InvalidCitationError
+
+    with pytest.raises(InvalidCitationError):
+        Citation(document_id=" ", chunk_id="chunk-1")

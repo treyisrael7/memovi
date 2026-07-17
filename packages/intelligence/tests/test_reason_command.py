@@ -1,0 +1,114 @@
+import pytest
+from memovi_intelligence.application.commands import Reason
+from memovi_intelligence.application.services import ContextAssembler
+from memovi_intelligence.domain.entities import ReasoningContext, ReasoningRequest, ReasoningResult
+from memovi_intelligence.domain.exceptions import (
+    InvalidReasoningContextError,
+    NoRetrievedKnowledgeError,
+    ReasoningProviderError,
+)
+from memovi_intelligence.domain.value_objects import RetrievedKnowledge
+from memovi_intelligence.infrastructure import FakeReasoningProvider
+
+
+class StubKnowledgeRetriever:
+    def __init__(self, items: tuple[RetrievedKnowledge, ...] = ()) -> None:
+        self._items = items
+        self.calls = 0
+
+    def retrieve(
+        self,
+        request: ReasoningRequest,
+        *,
+        limit: int,
+    ) -> tuple[RetrievedKnowledge, ...]:
+        self.calls += 1
+        return self._items[:limit]
+
+
+class FailingReasoningProvider:
+    def reason(self, context: ReasoningContext) -> ReasoningResult:
+        raise RuntimeError("provider boom")
+
+
+class InvalidContextReasoningProvider:
+    def reason(self, context: ReasoningContext) -> ReasoningResult:
+        raise InvalidReasoningContextError("provider rejected context")
+
+
+def _knowledge(
+    *,
+    chunk_id: str = "chunk-1",
+    document_id: str = "doc-1",
+    text: str = "Decision recorded in meeting notes.",
+    score: float = 0.9,
+) -> RetrievedKnowledge:
+    return RetrievedKnowledge(
+        chunk_id=chunk_id,
+        document_id=document_id,
+        text=text,
+        score=score,
+        document_title="Notes",
+    )
+
+
+def _reason(
+    *,
+    items: tuple[RetrievedKnowledge, ...] = (),
+    provider: FakeReasoningProvider
+    | FailingReasoningProvider
+    | InvalidContextReasoningProvider
+    | None = None,
+) -> tuple[Reason, StubKnowledgeRetriever]:
+    retriever = StubKnowledgeRetriever(items)
+    assembler = ContextAssembler(knowledge_retriever=retriever)
+    command = Reason(
+        knowledge_retriever=retriever,
+        context_assembler=assembler,
+        reasoning_provider=provider or FakeReasoningProvider(),
+    )
+    return command, retriever
+
+
+def test_reason_successful_pipeline() -> None:
+    item = _knowledge()
+    command, retriever = _reason(items=(item,))
+    request = ReasoningRequest.create(query="What was decided?")
+
+    result = command.execute(request)
+
+    assert isinstance(result, ReasoningResult)
+    assert result.provider == "fake"
+    assert result.execution_time == 0.0
+    assert "What was decided?" in result.answer
+    assert "Decision recorded in meeting notes." in result.answer
+    assert len(result.citations) == 1
+    assert result.citations[0].chunk_id == "chunk-1"
+    assert result.citations[0].document_id == "doc-1"
+    assert result.metadata["chunk_count"] == 1
+    assert result.context.retrieved_knowledge == (item,)
+    assert retriever.calls == 1
+
+
+def test_reason_raises_when_retrieval_is_empty() -> None:
+    command, _ = _reason(items=())
+    request = ReasoningRequest.create(query="Anything known?")
+
+    with pytest.raises(NoRetrievedKnowledgeError, match="No knowledge was retrieved"):
+        command.execute(request)
+
+
+def test_reason_raises_when_provider_fails() -> None:
+    command, _ = _reason(items=(_knowledge(),), provider=FailingReasoningProvider())
+    request = ReasoningRequest.create(query="What failed?")
+
+    with pytest.raises(ReasoningProviderError, match="Reasoning provider failed"):
+        command.execute(request)
+
+
+def test_reason_propagates_invalid_context_from_provider() -> None:
+    command, _ = _reason(items=(_knowledge(),), provider=InvalidContextReasoningProvider())
+    request = ReasoningRequest.create(query="Invalid context path")
+
+    with pytest.raises(InvalidReasoningContextError, match="provider rejected context"):
+        command.execute(request)

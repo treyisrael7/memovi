@@ -6,6 +6,7 @@ from memovi_intelligence.domain.entities import (
 from memovi_intelligence.domain.services import estimate_token_count
 from memovi_intelligence.domain.value_objects import (
     AssembledDocument,
+    Citation,
     ContextMetadata,
     ReasoningQuery,
     ReasoningRequestId,
@@ -14,6 +15,7 @@ from memovi_intelligence.domain.value_objects import (
 
 __all__ = [
     "AssembledDocument",
+    "Citation",
     "ContextMetadata",
     "ReasoningContext",
     "ReasoningQuery",

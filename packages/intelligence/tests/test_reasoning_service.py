@@ -1,15 +1,18 @@
 import pytest
-from memovi_intelligence.application import ContextAssembler, ReasoningService
+from memovi_intelligence.application import ContextAssembler, Reason, ReasoningService
+from memovi_intelligence.application.commands import Reason as ReasonCommand
 from memovi_intelligence.config import IntelligenceConfig
-from memovi_intelligence.domain.entities import ReasoningContext, ReasoningRequest
+from memovi_intelligence.domain.entities import ReasoningContext, ReasoningRequest, ReasoningResult
+from memovi_intelligence.domain.exceptions import NoRetrievedKnowledgeError
 from memovi_intelligence.domain.value_objects import RetrievedKnowledge
 from memovi_intelligence.infrastructure import (
+    FakeReasoningProvider,
     PlaceholderKnowledgeRetriever,
     PlaceholderReasoningProvider,
 )
 
 
-class FakeKnowledgeRetriever:
+class StubKnowledgeRetriever:
     def __init__(self, items: tuple[RetrievedKnowledge, ...] = ()) -> None:
         self._items = items
 
@@ -50,7 +53,7 @@ def test_reasoning_service_prepare_context_uses_assembler() -> None:
         score=0.7,
     )
     service = ReasoningService(
-        knowledge_retriever=FakeKnowledgeRetriever((item,)),
+        knowledge_retriever=StubKnowledgeRetriever((item,)),
         reasoning_provider=PlaceholderReasoningProvider(),
     )
     request = ReasoningRequest.create(query="Prepare context for this question.")
@@ -62,15 +65,24 @@ def test_reasoning_service_prepare_context_uses_assembler() -> None:
     assert context.request is request
 
 
-def test_reasoning_service_reason_is_not_implemented() -> None:
-    service = ReasoningService(
-        knowledge_retriever=PlaceholderKnowledgeRetriever(),
-        reasoning_provider=PlaceholderReasoningProvider(),
+def test_reasoning_service_reason_delegates_to_reason_command() -> None:
+    item = RetrievedKnowledge(
+        chunk_id="chunk-1",
+        document_id="doc-1",
+        text="Service delegates successfully.",
+        score=0.8,
     )
-    request = ReasoningRequest.create(query="Reason about this question.")
+    service = ReasoningService(
+        knowledge_retriever=StubKnowledgeRetriever((item,)),
+        reasoning_provider=FakeReasoningProvider(),
+    )
+    request = ReasoningRequest.create(query="Run full reasoning.")
 
-    with pytest.raises(NotImplementedError, match="Reasoning workflows"):
-        service.reason(request)
+    result = service.reason(request)
+
+    assert isinstance(result, ReasoningResult)
+    assert result.provider == "fake"
+    assert "Service delegates successfully." in result.answer
 
 
 def test_placeholder_adapters_raise_not_implemented() -> None:
@@ -85,5 +97,59 @@ def test_placeholder_adapters_raise_not_implemented() -> None:
         provider.reason(ReasoningContext.empty(request))
 
 
-def test_context_assembler_is_exported() -> None:
+def test_context_assembler_and_reason_are_exported() -> None:
     assert ContextAssembler is not None
+    assert Reason is ReasonCommand
+
+
+def test_integration_request_retrieve_assemble_reason_result() -> None:
+    items = (
+        RetrievedKnowledge(
+            chunk_id="chunk-a",
+            document_id="doc-a",
+            text="Alpha decision from notes.",
+            score=0.95,
+            document_title="Alpha",
+        ),
+        RetrievedKnowledge(
+            chunk_id="chunk-b",
+            document_id="doc-b",
+            text="Beta follow-up detail.",
+            score=0.80,
+            document_title="Beta",
+        ),
+    )
+    retriever = StubKnowledgeRetriever(items)
+    assembler = ContextAssembler(knowledge_retriever=retriever)
+    command = Reason(
+        knowledge_retriever=retriever,
+        context_assembler=assembler,
+        reasoning_provider=FakeReasoningProvider(),
+    )
+    request = ReasoningRequest.create(query="Summarize the decisions.", limit=2)
+
+    result = command.execute(request)
+
+    assert isinstance(result, ReasoningResult)
+    assert result.context.request is request
+    assert len(result.context.retrieved_knowledge) == 2
+    assert len(result.context.assembled_documents) == 2
+    assert len(result.citations) == 2
+    assert result.citations[0].document_id == "doc-a"
+    assert result.metadata["document_count"] == 2
+    assert "Summarize the decisions." in result.answer
+    assert "Alpha decision from notes." in result.answer
+    assert "Beta follow-up detail." in result.answer
+
+
+def test_integration_empty_retrieval_stops_before_provider() -> None:
+    retriever = StubKnowledgeRetriever(())
+    assembler = ContextAssembler(knowledge_retriever=retriever)
+    command = Reason(
+        knowledge_retriever=retriever,
+        context_assembler=assembler,
+        reasoning_provider=FakeReasoningProvider(),
+    )
+
+    with pytest.raises(NoRetrievedKnowledgeError):
+        command.execute(ReasoningRequest.create(query="Nothing here."))

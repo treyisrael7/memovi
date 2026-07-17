@@ -6,7 +6,7 @@ from memovi_intelligence.domain.services import estimate_token_count
 from memovi_intelligence.domain.value_objects import RetrievedKnowledge
 
 
-class FakeKnowledgeRetriever:
+class StubKnowledgeRetriever:
     def __init__(self, items: tuple[RetrievedKnowledge, ...] = ()) -> None:
         self._items = items
         self.last_limit: int | None = None
@@ -21,7 +21,7 @@ class FakeKnowledgeRetriever:
         return self._items[:limit]
 
 
-class FifteenChunkFakeRetriever(FakeKnowledgeRetriever):
+class FifteenChunkFakeRetriever(StubKnowledgeRetriever):
     """Returns 15 ranked chunks across multiple documents, including duplicates.
 
     Shape (intentionally unsorted / duplicated):
@@ -113,7 +113,7 @@ def _fifteen_chunk_fixture() -> tuple[RetrievedKnowledge, ...]:
 
 def test_assemble_empty_retrieval_returns_empty_context() -> None:
     request = ReasoningRequest.create(query="Anything found?")
-    assembler = ContextAssembler(knowledge_retriever=FakeKnowledgeRetriever())
+    assembler = ContextAssembler(knowledge_retriever=StubKnowledgeRetriever())
 
     context = assembler.assemble(request)
 
@@ -146,7 +146,7 @@ def test_assemble_removes_duplicate_chunks() -> None:
         score=0.4,
     )
     assembler = ContextAssembler(
-        knowledge_retriever=FakeKnowledgeRetriever((duplicate, higher, other)),
+        knowledge_retriever=StubKnowledgeRetriever((duplicate, higher, other)),
         config=IntelligenceConfig(max_chunks=10, max_documents=5, max_estimated_tokens=1_000),
     )
 
@@ -163,7 +163,7 @@ def test_assemble_orders_by_retrieval_ranking() -> None:
     higher = _knowledge(chunk_id="a", document_id="doc-2", text="Higher", score=0.8)
     middle = _knowledge(chunk_id="c", document_id="doc-3", text="Middle", score=0.5)
     assembler = ContextAssembler(
-        knowledge_retriever=FakeKnowledgeRetriever((lower, higher, middle)),
+        knowledge_retriever=StubKnowledgeRetriever((lower, higher, middle)),
     )
 
     context = assembler.assemble(ReasoningRequest.create(query="Order by score"))
@@ -196,7 +196,7 @@ def test_assemble_enforces_token_limit_deterministically() -> None:
         score=0.8,
     )
     assembler = ContextAssembler(
-        knowledge_retriever=FakeKnowledgeRetriever((first, second, third)),
+        knowledge_retriever=StubKnowledgeRetriever((first, second, third)),
         config=IntelligenceConfig(
             max_chunks=10,
             max_documents=10,
@@ -234,7 +234,7 @@ def test_assemble_enforces_document_limit() -> None:
         document_title="Two",
     )
     assembler = ContextAssembler(
-        knowledge_retriever=FakeKnowledgeRetriever((doc1_a, doc1_b, doc2)),
+        knowledge_retriever=StubKnowledgeRetriever((doc1_a, doc1_b, doc2)),
         config=IntelligenceConfig(
             max_documents=1,
             max_chunks=10,
@@ -263,7 +263,7 @@ def test_assemble_enforces_chunk_limit() -> None:
         for index in range(5)
     )
     assembler = ContextAssembler(
-        knowledge_retriever=FakeKnowledgeRetriever(items),
+        knowledge_retriever=StubKnowledgeRetriever(items),
         config=IntelligenceConfig(
             max_chunks=2,
             max_documents=10,
@@ -288,7 +288,7 @@ def test_assemble_uses_request_limit_for_retrieval() -> None:
         )
         for index in range(5)
     )
-    retriever = FakeKnowledgeRetriever(items)
+    retriever = StubKnowledgeRetriever(items)
     assembler = ContextAssembler(knowledge_retriever=retriever)
 
     assembler.assemble(ReasoningRequest.create(query="Limited retrieval", limit=2))

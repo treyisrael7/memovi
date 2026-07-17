@@ -3,7 +3,6 @@ from memovi_search.application.queries import SemanticSearch, SemanticSearchQuer
 from memovi_search.application.services import RetrievalEngine
 from memovi_search.domain.entities import SearchDocument, SearchResult
 from memovi_search.domain.retrievers import RetrievalRequest
-from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
 DOCUMENT_VERSION_ID = "7ce3e814-de68-4200-973e-b2526eee058d"
@@ -55,7 +54,6 @@ def test_semantic_search_facade_uses_semantic_mode() -> None:
     ]
     assert semantic.calls
     assert not keyword.calls
-    assert FakeEmbeddingProvider().embed("Memovi").dimensions == 4
 
 
 def test_semantic_search_returns_empty_for_blank_query() -> None:

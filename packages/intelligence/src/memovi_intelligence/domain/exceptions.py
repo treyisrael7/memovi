@@ -34,5 +34,17 @@ class InvalidReasoningResultError(IntelligenceDomainError):
     """Raised when a reasoning result violates its invariants."""
 
 
+class InvalidCitationError(IntelligenceDomainError):
+    """Raised when a citation violates domain constraints."""
+
+
+class NoRetrievedKnowledgeError(IntelligenceDomainError):
+    """Raised when reasoning cannot proceed because retrieval returned no knowledge."""
+
+
+class ReasoningProviderError(IntelligenceDomainError):
+    """Raised when a reasoning provider fails during execution."""
+
+
 class InvalidIntelligenceConfigError(IntelligenceDomainError):
     """Raised when intelligence package configuration is invalid."""

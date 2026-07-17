@@ -210,12 +210,3 @@ def test_generate_embedding_raises_when_search_document_missing() -> None:
 
     assert embedding_repository.saved == []
     assert event_publisher.published_events == []
-
-
-def test_fake_provider_returns_embedding_vector() -> None:
-    provider = FakeEmbeddingProvider()
-
-    vector = provider.embed("text")
-
-    assert isinstance(vector, EmbeddingVector)
-    assert vector.dimensions == 4

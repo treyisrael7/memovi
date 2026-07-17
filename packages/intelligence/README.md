@@ -6,13 +6,16 @@ from model providers.
 
 ## Current Scope
 
-This package establishes Intelligence domain boundaries:
+This package establishes Intelligence domain boundaries and the core reasoning
+pipeline:
 
 * Immutable reasoning concepts (`ReasoningRequest`, `ReasoningContext`, `ReasoningResult`)
+* Citations attached to reasoning answers
 * Context assembly via `ContextAssembler` (ordering, deduplication, document/chunk/token limits)
+* `Reason` command orchestration: retrieve → assemble → reason → result
 * Application ports for knowledge retrieval and reasoning providers
-* `ReasoningService` orchestration surface (providers not wired yet)
-* Placeholder infrastructure adapters
+* Deterministic `FakeReasoningProvider` for tests and local wiring
+* Placeholder infrastructure adapters for unfinished Search/LLM integrations
 * Package configuration without provider selection
 
 It does not yet implement LLM integrations, prompts, chat, conversations, streaming,
@@ -23,7 +26,7 @@ or agents.
 ```text
 src/memovi_intelligence/
 ├── api/                  # Transport entry points (reserved)
-├── application/          # Use cases and ports
+├── application/          # Use cases, commands, and ports
 ├── domain/               # Reasoning concepts and invariants
 └── infrastructure/       # Provider and retrieval adapters
 ```

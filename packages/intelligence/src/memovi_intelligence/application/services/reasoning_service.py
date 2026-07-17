@@ -9,10 +9,10 @@ from memovi_intelligence.domain.entities import (
 
 
 class ReasoningService:
-    """Orchestrates reasoning workflows over retrieved knowledge.
+    """Coordinates context preparation and reasoning workflows.
 
-    Coordinates context assembly through KnowledgeRetriever and future AI provider calls.
-    Provider execution is intentionally not invoked yet.
+    Context assembly is available directly. End-to-end reasoning delegates to the
+    Reason command.
     """
 
     def __init__(
@@ -40,8 +40,12 @@ class ReasoningService:
         return self._context_assembler.assemble(request)
 
     def reason(self, request: ReasoningRequest) -> ReasoningResult:
-        """Run a reasoning workflow for the given request.
+        """Run the full reasoning pipeline for the given request."""
+        # Imported lazily to avoid an application.commands ↔ services cycle.
+        from memovi_intelligence.application.commands.reason import Reason
 
-        End-to-end provider orchestration is deferred.
-        """
-        raise NotImplementedError("Reasoning workflows are not implemented yet.")
+        return Reason(
+            knowledge_retriever=self._knowledge_retriever,
+            context_assembler=self._context_assembler,
+            reasoning_provider=self._reasoning_provider,
+        ).execute(request)

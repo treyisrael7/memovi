@@ -279,7 +279,7 @@ The Intelligence Layer consumes knowledge. It never owns it.
 
 Responsibilities include chat, retrieval-augmented generation, prompt construction, tool orchestration, provider routing, AI summaries, planning, reasoning, and future autonomous agents.
 
-The `packages/intelligence` package currently defines the reasoning domain foundation (`ReasoningRequest`, `ReasoningContext`, `ReasoningResult`), `ContextAssembler` for deterministic context assembly, application ports (`KnowledgeRetriever`, `ReasoningProvider`), and `ReasoningService` orchestration boundaries. LLM integrations, prompts, chat, and agents are not implemented yet.
+The `packages/intelligence` package currently defines the reasoning domain foundation (`ReasoningRequest`, `ReasoningContext`, `ReasoningResult` with citations and provider metadata), `ContextAssembler` for deterministic context assembly, application ports (`KnowledgeRetriever`, `ReasoningProvider`), the `Reason` command for retrieve → assemble → reason orchestration, and a deterministic `FakeReasoningProvider` for tests. LLM integrations, prompts, chat, and agents are not implemented yet.
 
 Provider-specific logic remains isolated so replacing one AI provider with another requires minimal architectural change.
 

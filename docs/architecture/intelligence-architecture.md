@@ -59,16 +59,39 @@ Core immutable concepts:
 `ReasoningContext` includes the originating request, retained retrieved knowledge,
 assembled documents, assembly metadata, and an estimated token count.
 
+`ReasoningResult` is immutable and includes the answer, citations, metadata, provider
+name, execution time, and the context that produced it.
+
 `ContextAssembler` builds that context through the `KnowledgeRetriever` port. It orders
 by retrieval ranking, removes duplicate chunks, skips excess documents when limits
 require it, and trims to configurable document, chunk, and estimated-token budgets.
 
-Application orchestration is owned by `ReasoningService`, which depends only on ports:
+The central use case is the `Reason` command:
+
+```text
+ReasoningRequest
+    │
+    ▼
+KnowledgeRetriever
+    │
+    ▼
+ContextAssembler
+    │
+    ▼
+ReasoningProvider
+    │
+    ▼
+ReasoningResult
+```
+
+Application ports remain:
 
 * `KnowledgeRetriever` — future Search-facing retrieval boundary
-* `ReasoningProvider` — future AI provider boundary
+* `ReasoningProvider` — future AI provider boundary (`reason(context) -> ReasoningResult`)
 
-Infrastructure currently provides placeholder adapters that raise `NotImplementedError`.
+Infrastructure currently provides a deterministic `FakeReasoningProvider` for tests,
+plus placeholder adapters that raise `NotImplementedError` for unfinished Search/LLM
+wiring.
 Package configuration exists without provider selection. Chat, prompts, streaming, and
 agents remain out of scope until later milestones.
 

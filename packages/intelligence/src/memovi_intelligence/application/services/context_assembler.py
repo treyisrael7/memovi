@@ -34,6 +34,14 @@ class ContextAssembler:
     def assemble(self, request: ReasoningRequest) -> ReasoningContext:
         limit = request.limit if request.limit is not None else self._config.default_retrieval_limit
         retrieved = tuple(self._knowledge_retriever.retrieve(request, limit=limit))
+        return self.assemble_from(request, retrieved)
+
+    def assemble_from(
+        self,
+        request: ReasoningRequest,
+        retrieved: tuple[RetrievedKnowledge, ...],
+    ) -> ReasoningContext:
+        """Assemble context from already-retrieved knowledge without re-querying."""
         if not retrieved:
             return ReasoningContext.empty(request)
 
