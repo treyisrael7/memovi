@@ -3,17 +3,23 @@ from memovi_intelligence.domain.entities import (
     ReasoningRequest,
     ReasoningResult,
 )
+from memovi_intelligence.domain.services import estimate_token_count
 from memovi_intelligence.domain.value_objects import (
+    AssembledDocument,
+    ContextMetadata,
     ReasoningQuery,
     ReasoningRequestId,
-    RetrievedPassage,
+    RetrievedKnowledge,
 )
 
 __all__ = [
+    "AssembledDocument",
+    "ContextMetadata",
     "ReasoningContext",
     "ReasoningQuery",
     "ReasoningRequest",
     "ReasoningRequestId",
     "ReasoningResult",
-    "RetrievedPassage",
+    "RetrievedKnowledge",
+    "estimate_token_count",
 ]

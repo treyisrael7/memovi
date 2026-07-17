@@ -10,8 +10,16 @@ class InvalidReasoningQueryError(IntelligenceDomainError):
     """Raised when a reasoning query violates domain constraints."""
 
 
-class InvalidRetrievedPassageError(IntelligenceDomainError):
-    """Raised when a retrieved passage violates domain constraints."""
+class InvalidRetrievedKnowledgeError(IntelligenceDomainError):
+    """Raised when retrieved knowledge violates domain constraints."""
+
+
+class InvalidAssembledDocumentError(IntelligenceDomainError):
+    """Raised when an assembled document violates domain constraints."""
+
+
+class InvalidContextMetadataError(IntelligenceDomainError):
+    """Raised when context metadata violates domain constraints."""
 
 
 class InvalidReasoningRequestError(IntelligenceDomainError):

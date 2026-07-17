@@ -56,6 +56,13 @@ Core immutable concepts:
 * `ReasoningContext` — assembled knowledge context for a future provider
 * `ReasoningResult` — immutable reasoning output
 
+`ReasoningContext` includes the originating request, retained retrieved knowledge,
+assembled documents, assembly metadata, and an estimated token count.
+
+`ContextAssembler` builds that context through the `KnowledgeRetriever` port. It orders
+by retrieval ranking, removes duplicate chunks, skips excess documents when limits
+require it, and trims to configurable document, chunk, and estimated-token budgets.
+
 Application orchestration is owned by `ReasoningService`, which depends only on ports:
 
 * `KnowledgeRetriever` — future Search-facing retrieval boundary

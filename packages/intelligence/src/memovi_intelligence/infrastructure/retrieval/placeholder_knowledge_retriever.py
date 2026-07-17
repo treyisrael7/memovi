@@ -1,4 +1,5 @@
-from memovi_intelligence.domain.entities import ReasoningContext, ReasoningRequest
+from memovi_intelligence.domain.entities import ReasoningRequest
+from memovi_intelligence.domain.value_objects import RetrievedKnowledge
 
 
 class PlaceholderKnowledgeRetriever:
@@ -7,7 +8,12 @@ class PlaceholderKnowledgeRetriever:
     Concrete Search coordination will replace this implementation later.
     """
 
-    def retrieve(self, request: ReasoningRequest, *, limit: int) -> ReasoningContext:
+    def retrieve(
+        self,
+        request: ReasoningRequest,
+        *,
+        limit: int,
+    ) -> tuple[RetrievedKnowledge, ...]:
         raise NotImplementedError(
             "Knowledge retrieval via Search is not implemented yet.",
         )

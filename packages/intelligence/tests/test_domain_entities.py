@@ -8,7 +8,12 @@ from memovi_intelligence.domain.exceptions import (
     InvalidReasoningRequestError,
     InvalidReasoningResultError,
 )
-from memovi_intelligence.domain.value_objects import ReasoningQuery, RetrievedPassage
+from memovi_intelligence.domain.services import estimate_token_count
+from memovi_intelligence.domain.value_objects import (
+    AssembledDocument,
+    ContextMetadata,
+    RetrievedKnowledge,
+)
 
 
 def test_reasoning_request_create_assigns_id_and_normalizes_query() -> None:
@@ -31,24 +36,56 @@ def test_reasoning_request_rejects_non_positive_limit() -> None:
         ReasoningRequest.create(query="Valid query", limit=0)
 
 
-def test_reasoning_context_create_preserves_passages() -> None:
-    passage = RetrievedPassage(text="Decision recorded in meeting notes.", source_id="doc-1")
-    context = ReasoningContext.create(query="What was decided?", passages=[passage])
+def test_reasoning_context_empty_has_zero_counts() -> None:
+    request = ReasoningRequest.create(query="Any updates?")
+    context = ReasoningContext.empty(request)
 
-    assert context.query.value == "What was decided?"
-    assert context.passages == (passage,)
+    assert context.request is request
+    assert context.query == "Any updates?"
+    assert context.retrieved_knowledge == ()
+    assert context.assembled_documents == ()
+    assert context.estimated_token_count == 0
+    assert context.is_empty is True
+    assert context.metadata.retrieved_count == 0
+
+
+def test_reasoning_context_preserves_assembled_fields() -> None:
+    request = ReasoningRequest.create(query="What was decided?")
+    knowledge = RetrievedKnowledge(
+        chunk_id="chunk-1",
+        document_id="doc-1",
+        text="Decision recorded in meeting notes.",
+        score=0.9,
+        document_title="Notes",
+    )
+    document = AssembledDocument(
+        document_id="doc-1",
+        title="Notes",
+        chunks=(knowledge,),
+        text=knowledge.text,
+        estimated_token_count=estimate_token_count(knowledge.text),
+    )
+    context = ReasoningContext(
+        request=request,
+        retrieved_knowledge=(knowledge,),
+        assembled_documents=(document,),
+        metadata=ContextMetadata(
+            retrieved_count=1,
+            retained_chunk_count=1,
+            retained_document_count=1,
+            truncated=False,
+        ),
+        estimated_token_count=document.estimated_token_count,
+    )
+
+    assert context.retrieved_knowledge == (knowledge,)
+    assert context.assembled_documents == (document,)
     assert context.is_empty is False
 
 
-def test_reasoning_context_create_defaults_to_empty_passages() -> None:
-    context = ReasoningContext.create(query=ReasoningQuery("Any updates?"))
-
-    assert context.passages == ()
-    assert context.is_empty is True
-
-
 def test_reasoning_result_create_trims_content() -> None:
-    context = ReasoningContext.create(query="Status?")
+    request = ReasoningRequest.create(query="Status?")
+    context = ReasoningContext.empty(request)
     result = ReasoningResult.create(content="  No blockers.  ", context=context)
 
     assert result.content == "No blockers."
@@ -56,7 +93,8 @@ def test_reasoning_result_create_trims_content() -> None:
 
 
 def test_reasoning_result_rejects_blank_content() -> None:
-    context = ReasoningContext.create(query="Status?")
+    request = ReasoningRequest.create(query="Status?")
+    context = ReasoningContext.empty(request)
 
     with pytest.raises(InvalidReasoningResultError):
         ReasoningResult.create(content="   ", context=context)

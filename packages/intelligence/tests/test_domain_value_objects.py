@@ -6,12 +6,13 @@ from memovi_intelligence.domain.exceptions import (
     InvalidIntelligenceConfigError,
     InvalidReasoningQueryError,
     InvalidReasoningRequestIdError,
-    InvalidRetrievedPassageError,
+    InvalidRetrievedKnowledgeError,
 )
+from memovi_intelligence.domain.services import estimate_token_count
 from memovi_intelligence.domain.value_objects import (
     ReasoningQuery,
     ReasoningRequestId,
-    RetrievedPassage,
+    RetrievedKnowledge,
 )
 
 
@@ -40,26 +41,40 @@ def test_reasoning_query_rejects_blank_value() -> None:
         ReasoningQuery("   ")
 
 
-def test_retrieved_passage_trims_text_and_source_id() -> None:
-    passage = RetrievedPassage(
+def test_retrieved_knowledge_trims_fields() -> None:
+    knowledge = RetrievedKnowledge(
+        chunk_id="  chunk-1  ",
+        document_id="  doc-1  ",
         text="  Indexed knowledge chunk.  ",
-        source_id="  source-1  ",
         score=0.91,
+        document_title="  Source  ",
     )
 
-    assert passage.text == "Indexed knowledge chunk."
-    assert passage.source_id == "source-1"
-    assert passage.score == 0.91
+    assert knowledge.chunk_id == "chunk-1"
+    assert knowledge.document_id == "doc-1"
+    assert knowledge.text == "Indexed knowledge chunk."
+    assert knowledge.document_title == "Source"
+    assert knowledge.score == 0.91
 
 
-def test_retrieved_passage_rejects_blank_text() -> None:
-    with pytest.raises(InvalidRetrievedPassageError):
-        RetrievedPassage(text=" ")
+def test_retrieved_knowledge_rejects_blank_text() -> None:
+    with pytest.raises(InvalidRetrievedKnowledgeError):
+        RetrievedKnowledge(
+            chunk_id="chunk-1",
+            document_id="doc-1",
+            text=" ",
+            score=0.5,
+        )
 
 
-def test_retrieved_passage_rejects_negative_score() -> None:
-    with pytest.raises(InvalidRetrievedPassageError):
-        RetrievedPassage(text="Valid text", score=-0.1)
+def test_retrieved_knowledge_rejects_negative_score() -> None:
+    with pytest.raises(InvalidRetrievedKnowledgeError):
+        RetrievedKnowledge(
+            chunk_id="chunk-1",
+            document_id="doc-1",
+            text="Valid text",
+            score=-0.1,
+        )
 
 
 def test_value_objects_are_immutable() -> None:
@@ -69,11 +84,19 @@ def test_value_objects_are_immutable() -> None:
         query.value = "changed"  # type: ignore[misc]
 
 
+def test_estimate_token_count_is_deterministic() -> None:
+    assert estimate_token_count("") == 0
+    assert estimate_token_count("abcd") == 1
+    assert estimate_token_count("a" * 8) == 2
+
+
 def test_intelligence_config_defaults_are_valid() -> None:
     config = IntelligenceConfig()
 
-    assert config.default_retrieval_limit == 5
-    assert config.max_retrieved_passages == 8
+    assert config.default_retrieval_limit == 20
+    assert config.max_documents == 8
+    assert config.max_chunks == 16
+    assert config.max_estimated_tokens == 4_000
 
 
 def test_intelligence_config_rejects_invalid_limits() -> None:
@@ -81,4 +104,7 @@ def test_intelligence_config_rejects_invalid_limits() -> None:
         IntelligenceConfig(default_retrieval_limit=0)
 
     with pytest.raises(InvalidIntelligenceConfigError):
-        IntelligenceConfig(default_retrieval_limit=10, max_retrieved_passages=3)
+        IntelligenceConfig(max_documents=0)
+
+    with pytest.raises(InvalidIntelligenceConfigError):
+        IntelligenceConfig(max_estimated_tokens=0)

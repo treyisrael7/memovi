@@ -6,11 +6,12 @@ from model providers.
 
 ## Current Scope
 
-This package establishes domain boundaries only:
+This package establishes Intelligence domain boundaries:
 
 * Immutable reasoning concepts (`ReasoningRequest`, `ReasoningContext`, `ReasoningResult`)
+* Context assembly via `ContextAssembler` (ordering, deduplication, document/chunk/token limits)
 * Application ports for knowledge retrieval and reasoning providers
-* `ReasoningService` orchestration surface (retrieval and providers not wired yet)
+* `ReasoningService` orchestration surface (providers not wired yet)
 * Placeholder infrastructure adapters
 * Package configuration without provider selection
 

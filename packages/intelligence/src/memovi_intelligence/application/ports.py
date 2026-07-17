@@ -5,12 +5,18 @@ from memovi_intelligence.domain.entities import (
     ReasoningRequest,
     ReasoningResult,
 )
+from memovi_intelligence.domain.value_objects import RetrievedKnowledge
 
 
 class KnowledgeRetriever(Protocol):
-    """Retrieves knowledge for reasoning without coupling to Search internals."""
+    """Retrieves ranked knowledge for reasoning without coupling to Search internals."""
 
-    def retrieve(self, request: ReasoningRequest, *, limit: int) -> ReasoningContext:
+    def retrieve(
+        self,
+        request: ReasoningRequest,
+        *,
+        limit: int,
+    ) -> tuple[RetrievedKnowledge, ...]:
         raise NotImplementedError
 
 
