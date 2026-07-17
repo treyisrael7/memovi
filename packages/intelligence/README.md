@@ -1,5 +1,28 @@
 # Memovi Intelligence
 
-Intelligence domain boundary. This package will own AI-facing orchestration, provider boundaries, API contracts, and events while keeping durable knowledge independent from model providers.
+Intelligence domain boundary. This package owns AI-facing orchestration, provider
+boundaries, API contracts, and events while keeping durable knowledge independent
+from model providers.
 
-This package currently defines structure only. It intentionally contains no application code, business logic, persistence models, API endpoints, or placeholder classes.
+## Current Scope
+
+This package establishes domain boundaries only:
+
+* Immutable reasoning concepts (`ReasoningRequest`, `ReasoningContext`, `ReasoningResult`)
+* Application ports for knowledge retrieval and reasoning providers
+* `ReasoningService` orchestration surface (retrieval and providers not wired yet)
+* Placeholder infrastructure adapters
+* Package configuration without provider selection
+
+It does not yet implement LLM integrations, prompts, chat, conversations, streaming,
+or agents.
+
+## Layout
+
+```text
+src/memovi_intelligence/
+├── api/                  # Transport entry points (reserved)
+├── application/          # Use cases and ports
+├── domain/               # Reasoning concepts and invariants
+└── infrastructure/       # Provider and retrieval adapters
+```

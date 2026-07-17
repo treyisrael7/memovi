@@ -45,6 +45,26 @@ Intelligence does not own:
 
 Artificial intelligence is a consumer of knowledge rather than its owner.
 
+# Package Foundation
+
+The Intelligence package (`packages/intelligence`) establishes domain boundaries before
+provider integrations land.
+
+Core immutable concepts:
+
+* `ReasoningRequest` — intent to reason over retrieved knowledge
+* `ReasoningContext` — assembled knowledge context for a future provider
+* `ReasoningResult` — immutable reasoning output
+
+Application orchestration is owned by `ReasoningService`, which depends only on ports:
+
+* `KnowledgeRetriever` — future Search-facing retrieval boundary
+* `ReasoningProvider` — future AI provider boundary
+
+Infrastructure currently provides placeholder adapters that raise `NotImplementedError`.
+Package configuration exists without provider selection. Chat, prompts, streaming, and
+agents remain out of scope until later milestones.
+
 # Provider Isolation
 
 Provider-specific logic remains isolated within Intelligence.
