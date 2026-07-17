@@ -1,4 +1,5 @@
-"""Transport entry points for the Intelligence domain.
+"""Transport entry points for the Intelligence domain."""
 
-API routes, schemas, and dependencies are reserved for later milestones.
-"""
+from memovi_intelligence.api.router import router
+
+__all__ = ["router"]

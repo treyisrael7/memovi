@@ -726,6 +726,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "memovi-auth" },
     { name = "memovi-documents" },
+    { name = "memovi-intelligence" },
     { name = "memovi-memory" },
     { name = "memovi-search" },
     { name = "psycopg", extra = ["binary"] },
@@ -738,6 +739,7 @@ requires-dist = [
     { name = "fastapi" },
     { name = "memovi-auth", editable = "packages/auth" },
     { name = "memovi-documents", editable = "packages/documents" },
+    { name = "memovi-intelligence", editable = "packages/intelligence" },
     { name = "memovi-memory", editable = "packages/memory" },
     { name = "memovi-search", editable = "packages/search" },
     { name = "psycopg", extras = ["binary"] },
@@ -803,11 +805,15 @@ name = "memovi-intelligence"
 version = "0.1.0"
 source = { editable = "packages/intelligence" }
 dependencies = [
+    { name = "fastapi" },
     { name = "openai" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "openai", specifier = ">=1.0" }]
+requires-dist = [
+    { name = "fastapi" },
+    { name = "openai", specifier = ">=1.0" },
+]
 
 [[package]]
 name = "memovi-memory"

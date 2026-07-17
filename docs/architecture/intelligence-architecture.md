@@ -132,9 +132,15 @@ Application ports remain:
 
 Infrastructure currently provides a deterministic `FakeReasoningProvider` for tests and
 an `OpenAIReasoningProvider` adapter that maps provider-agnostic prompts to Chat
-Completions. Placeholder adapters remain for unfinished Search wiring.
-Package configuration supports provider selection. Chat, streaming, and agents remain
-out of scope until later milestones.
+Completions. A `FakeKnowledgeRetriever` supports local Conversation API wiring until
+Search-backed retrieval is connected; placeholder adapters remain for unfinished Search
+wiring.
+
+`SendConversationMessage` loads conversation history, runs `Reason`, then appends the
+user and assistant turns through `ConversationService`. The Conversation REST API exposes
+create/get conversation, list messages, and send message endpoints under `/conversations`.
+Streaming, WebSockets, and agents remain out of scope until later milestones.
+
 
 # Provider Isolation
 

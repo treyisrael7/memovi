@@ -7,6 +7,7 @@ dependencies = [
     "fastapi",
     "memovi-auth",
     "memovi-documents",
+    "memovi-intelligence",
     "memovi-memory",
     "memovi-search",
     "psycopg[binary]",
@@ -29,5 +30,6 @@ package = true
 [tool.uv.sources]
 memovi-auth = { workspace = true }
 memovi-documents = { workspace = true }
+memovi-intelligence = { workspace = true }
 memovi-memory = { workspace = true }
 memovi-search = { workspace = true }
