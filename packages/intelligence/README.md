@@ -17,9 +17,9 @@ pipeline:
 * `ModelGateway` selects the configured provider and executes prompts with gateway-owned metadata
 * `Reason` command orchestration: retrieve → assemble → prompt → gateway → result
 * Application ports for knowledge retrieval and reasoning providers
-* Deterministic `FakeReasoningProvider` for tests and local wiring
+* Deterministic `FakeReasoningProvider` and production `OpenAIReasoningProvider` adapters
 * Placeholder infrastructure adapters for unfinished Search/LLM integrations
-* Package configuration with provider selection (`provider=fake`; future: openai, anthropic, ollama, gemini)
+* Package configuration with provider selection (`provider=fake|openai`; future: anthropic, ollama, gemini)
 
 It does not yet implement LLM integrations, chat, conversations, streaming, or agents.
 

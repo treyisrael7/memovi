@@ -3,7 +3,9 @@ name = "memovi-intelligence"
 version = "0.1.0"
 description = "Intelligence domain boundary. This package owns AI-facing orchestration, provider boundaries, API contracts, and events while keeping durable knowledge independent from model providers."
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "openai>=1.0",
+]
 
 [build-system]
 requires = ["hatchling"]

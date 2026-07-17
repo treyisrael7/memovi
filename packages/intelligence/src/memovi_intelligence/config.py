@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import os
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -7,7 +10,7 @@ from memovi_intelligence.domain.exceptions import InvalidIntelligenceConfigError
 class ReasoningProviderKind(StrEnum):
     """Known reasoning provider identifiers.
 
-    Only ``fake`` is implemented. Remaining values reserve future adapters.
+    ``fake`` and ``openai`` are implemented. Remaining values reserve future adapters.
     """
 
     FAKE = "fake"
@@ -64,6 +67,25 @@ class IntelligenceConfig:
         if not resolved_model:
             raise InvalidIntelligenceConfigError("model cannot be blank.")
         object.__setattr__(self, "model", resolved_model)
+
+    @classmethod
+    def from_env(cls) -> IntelligenceConfig:
+        """Load provider selection from process environment variables.
+
+        Recognized variables:
+        - ``INTELLIGENCE_PROVIDER`` (default: ``fake``)
+        - ``INTELLIGENCE_MODEL`` (optional override for any provider)
+        - ``OPENAI_MODEL`` (used when provider is ``openai`` and
+          ``INTELLIGENCE_MODEL`` is unset)
+        """
+        provider = os.environ.get(
+            "INTELLIGENCE_PROVIDER",
+            ReasoningProviderKind.FAKE.value,
+        )
+        model = os.environ.get("INTELLIGENCE_MODEL")
+        if model is None and provider.strip().lower() == ReasoningProviderKind.OPENAI.value:
+            model = os.environ.get("OPENAI_MODEL")
+        return cls(provider=provider, model=model)
 
     @property
     def provider_name(self) -> str:

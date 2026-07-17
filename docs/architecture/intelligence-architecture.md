@@ -74,8 +74,8 @@ metadata. It does not encode OpenAI, Anthropic, or Ollama message schemas.
 `ModelGateway` is the single entry point for executing prompts. It selects the configured
 provider from an injected registry, isolates provider lifecycle from the reasoning
 pipeline, and owns execution metadata (`provider`, `model`, `duration`,
-`estimated_tokens`). It does not know HTTP or API keys. Only the `fake` provider is
-wired today; `openai`, `anthropic`, `ollama`, and `gemini` are reserved configuration
+`estimated_tokens`). It does not know HTTP or API keys. Implemented providers today are
+`fake` and `openai`; `anthropic`, `ollama`, and `gemini` remain reserved configuration
 values.
 
 The central use case is the `Reason` command:
@@ -107,9 +107,9 @@ Application ports remain:
 * `KnowledgeRetriever` — future Search-facing retrieval boundary
 * `ReasoningProvider` — future AI provider boundary (`reason(prompt) -> ReasoningResult`)
 
-Infrastructure currently provides a deterministic `FakeReasoningProvider` for tests,
-plus placeholder adapters that raise `NotImplementedError` for unfinished Search/LLM
-wiring.
+Infrastructure currently provides a deterministic `FakeReasoningProvider` for tests and
+an `OpenAIReasoningProvider` adapter that maps provider-agnostic prompts to Chat
+Completions. Placeholder adapters remain for unfinished Search wiring.
 Package configuration supports provider selection. Chat, streaming, and agents remain
 out of scope until later milestones.
 
