@@ -13,6 +13,7 @@ from memovi_intelligence.domain.exceptions import (
     NoRetrievedKnowledgeError,
 )
 from memovi_intelligence.domain.value_objects import (
+    ConversationHistory,
     ExecutionMetrics,
     ExecutionStage,
 )
@@ -39,7 +40,12 @@ class Reason:
         self._model_gateway = model_gateway
         self._prompt_builder = prompt_builder or PromptBuilder()
 
-    def execute(self, request: ReasoningRequest) -> ReasoningResult:
+    def execute(
+        self,
+        request: ReasoningRequest,
+        *,
+        conversation_history: ConversationHistory | None = None,
+    ) -> ReasoningResult:
         tracer = ExecutionTracer()
         limit = (
             request.limit
@@ -56,7 +62,11 @@ class Reason:
 
         with tracer.stage(ExecutionStage.CONTEXT_ASSEMBLY):
             try:
-                context = self._context_assembler.assemble_from(request, retrieved)
+                context = self._context_assembler.assemble_from(
+                    request,
+                    retrieved,
+                    conversation_history=conversation_history,
+                )
             except IntelligenceDomainError:
                 raise
             except Exception as exc:

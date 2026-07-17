@@ -5,6 +5,7 @@ from memovi_intelligence.domain.services import estimate_token_count
 from memovi_intelligence.domain.value_objects import (
     AssembledDocument,
     ContextMetadata,
+    ConversationHistory,
     RetrievedKnowledge,
 )
 
@@ -16,6 +17,8 @@ class ContextAssembler:
 
     Gathers ranked knowledge through KnowledgeRetriever, orders by score, removes
     duplicates, enforces document/chunk/token limits, and assembles document views.
+    Optional conversation history is trimmed to configured turn and token limits and
+    attached without merging into retrieved knowledge.
     """
 
     def __init__(
@@ -31,24 +34,61 @@ class ContextAssembler:
     def config(self) -> IntelligenceConfig:
         return self._config
 
-    def assemble(self, request: ReasoningRequest) -> ReasoningContext:
+    def assemble(
+        self,
+        request: ReasoningRequest,
+        *,
+        conversation_history: ConversationHistory | None = None,
+    ) -> ReasoningContext:
         limit = request.limit if request.limit is not None else self._config.default_retrieval_limit
         retrieved = tuple(self._knowledge_retriever.retrieve(request, limit=limit))
-        return self.assemble_from(request, retrieved)
+        return self.assemble_from(
+            request,
+            retrieved,
+            conversation_history=conversation_history,
+        )
 
     def assemble_from(
         self,
         request: ReasoningRequest,
         retrieved: tuple[RetrievedKnowledge, ...],
+        *,
+        conversation_history: ConversationHistory | None = None,
     ) -> ReasoningContext:
         """Assemble context from already-retrieved knowledge without re-querying."""
+        retained_history = _trim_conversation_history(
+            conversation_history,
+            config=self._config,
+        )
+
         if not retrieved:
-            return ReasoningContext.empty(request)
+            empty = ReasoningContext.empty(request)
+            if retained_history.is_empty:
+                return empty
+            return ReasoningContext(
+                request=request,
+                retrieved_knowledge=(),
+                assembled_documents=(),
+                metadata=empty.metadata,
+                estimated_token_count=retained_history.estimated_token_count,
+                conversation_history=retained_history,
+            )
 
         ordered = _order_by_ranking(retrieved)
         retained, stats = _select_knowledge(ordered, config=self._config)
         assembled_documents = _assemble_documents(retained)
-        estimated_tokens = sum(document.estimated_token_count for document in assembled_documents)
+        knowledge_tokens = sum(document.estimated_token_count for document in assembled_documents)
+
+        # Conversation tokens never bypass the overall estimated-token budget.
+        remaining_tokens = max(0, self._config.max_estimated_tokens - knowledge_tokens)
+        conversation_token_budget = min(
+            self._config.max_conversation_tokens,
+            remaining_tokens,
+        )
+        retained_history = retained_history.trim(
+            max_turns=self._config.max_conversation_turns,
+            max_tokens=conversation_token_budget,
+        )
 
         return ReasoningContext(
             request=request,
@@ -62,7 +102,8 @@ class ContextAssembler:
                 duplicate_chunks_removed=stats.duplicate_chunks_removed,
                 duplicate_documents_skipped=stats.duplicate_documents_skipped,
             ),
-            estimated_token_count=estimated_tokens,
+            estimated_token_count=(knowledge_tokens + retained_history.estimated_token_count),
+            conversation_history=retained_history,
         )
 
 
@@ -77,6 +118,19 @@ class _SelectionStats:
         self.duplicate_chunks_removed = 0
         self.duplicate_documents_skipped = 0
         self.truncated = False
+
+
+def _trim_conversation_history(
+    conversation_history: ConversationHistory | None,
+    *,
+    config: IntelligenceConfig,
+) -> ConversationHistory:
+    if conversation_history is None or conversation_history.is_empty:
+        return ConversationHistory.empty()
+    return conversation_history.trim(
+        max_turns=config.max_conversation_turns,
+        max_tokens=config.max_conversation_tokens,
+    )
 
 
 def _order_by_ranking(

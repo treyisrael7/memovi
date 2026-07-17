@@ -8,6 +8,7 @@ from memovi_intelligence.domain.entities import (
     ReasoningRequest,
     ReasoningResult,
 )
+from memovi_intelligence.domain.value_objects import ConversationHistory
 
 
 class ReasoningService:
@@ -52,11 +53,24 @@ class ReasoningService:
     def model_gateway(self) -> ModelGateway:
         return self._model_gateway
 
-    def prepare_context(self, request: ReasoningRequest) -> ReasoningContext:
+    def prepare_context(
+        self,
+        request: ReasoningRequest,
+        *,
+        conversation_history: ConversationHistory | None = None,
+    ) -> ReasoningContext:
         """Assemble reasoning context from retrieved knowledge."""
-        return self._context_assembler.assemble(request)
+        return self._context_assembler.assemble(
+            request,
+            conversation_history=conversation_history,
+        )
 
-    def reason(self, request: ReasoningRequest) -> ReasoningResult:
+    def reason(
+        self,
+        request: ReasoningRequest,
+        *,
+        conversation_history: ConversationHistory | None = None,
+    ) -> ReasoningResult:
         """Run the full reasoning pipeline for the given request."""
         # Imported lazily to avoid an application.commands ↔ services cycle.
         from memovi_intelligence.application.commands.reason import Reason
@@ -66,4 +80,4 @@ class ReasoningService:
             context_assembler=self._context_assembler,
             model_gateway=self._model_gateway,
             prompt_builder=self._prompt_builder,
-        ).execute(request)
+        ).execute(request, conversation_history=conversation_history)

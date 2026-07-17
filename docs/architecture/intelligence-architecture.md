@@ -57,9 +57,11 @@ Core immutable concepts:
 * `Prompt` — provider-agnostic reasoning prompt (`PromptMessage`, `PromptRole`, `PromptSection`)
 * `ReasoningResult` — immutable reasoning output with a read-only `execution_trace`
 * `ExecutionTrace` — structured stage timings and aggregate metrics for a reasoning request
+* `Conversation` / `ConversationHistory` / `ConversationTurn` — multi-turn conversation memory
 
 `ReasoningContext` includes the originating request, retained retrieved knowledge,
-assembled documents, assembly metadata, and an estimated token count.
+assembled documents, assembly metadata, an estimated token count, and optional
+trimmed conversation history.
 
 `ReasoningResult` is immutable and includes the answer, citations, metadata, provider
 name, execution time, the context that produced it, and an `execution_trace`.
@@ -69,6 +71,12 @@ The `Reason` command records timing for each pipeline stage (`retrieval`,
 populates metrics such as provider, model, estimated input tokens, optional output
 tokens, retrieved knowledge count, document count, and citation count. Timing is
 owned by the command, not by providers.
+
+`ConversationService` creates conversations, appends user and assistant turns, and
+loads history through `ConversationRepository`. `ContextAssembler` may attach recent
+conversation history under configurable turn and token limits; history never bypasses
+those limits or the overall estimated-token budget. `PromptBuilder` renders history as
+its own `conversation_history` section, separate from retrieved knowledge.
 
 `ContextAssembler` builds that context through the `KnowledgeRetriever` port. It orders
 by retrieval ranking, removes duplicate chunks, skips excess documents when limits

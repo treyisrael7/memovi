@@ -135,7 +135,7 @@ def _run(label: str) -> None:
     }
 
     print(f"=== {label} ===")
-    print(f"query = What is Memovi?")
+    print("query = What is Memovi?")
     print(f"config.provider = {config.provider}")
     print(f"config.model = {config.model}")
     print(f"reason_calls_gateway = {gateway.execute_calls == 1}")

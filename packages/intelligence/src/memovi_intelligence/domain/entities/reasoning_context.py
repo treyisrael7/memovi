@@ -1,10 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from memovi_intelligence.domain.entities.reasoning_request import ReasoningRequest
 from memovi_intelligence.domain.exceptions import InvalidReasoningContextError
 from memovi_intelligence.domain.value_objects import (
     AssembledDocument,
     ContextMetadata,
+    ConversationHistory,
     RetrievedKnowledge,
 )
 
@@ -18,6 +19,9 @@ class ReasoningContext:
     assembled_documents: tuple[AssembledDocument, ...]
     metadata: ContextMetadata
     estimated_token_count: int
+    conversation_history: ConversationHistory = field(
+        default_factory=ConversationHistory.empty,
+    )
 
     def __post_init__(self) -> None:
         if any(not isinstance(item, RetrievedKnowledge) for item in self.retrieved_knowledge):
@@ -32,6 +36,10 @@ class ReasoningContext:
             )
         if self.estimated_token_count < 0:
             raise InvalidReasoningContextError("estimated_token_count cannot be negative.")
+        if not isinstance(self.conversation_history, ConversationHistory):
+            raise InvalidReasoningContextError(
+                "conversation_history must be a ConversationHistory.",
+            )
 
         object.__setattr__(self, "retrieved_knowledge", tuple(self.retrieved_knowledge))
         object.__setattr__(self, "assembled_documents", tuple(self.assembled_documents))
@@ -49,6 +57,7 @@ class ReasoningContext:
                 truncated=False,
             ),
             estimated_token_count=0,
+            conversation_history=ConversationHistory.empty(),
         )
 
     @property

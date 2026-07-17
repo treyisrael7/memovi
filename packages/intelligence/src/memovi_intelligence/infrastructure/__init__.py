@@ -1,3 +1,4 @@
+from memovi_intelligence.infrastructure.conversations import InMemoryConversationRepository
 from memovi_intelligence.infrastructure.providers import (
     FakeReasoningProvider,
     OpenAIProviderSettings,
@@ -10,6 +11,7 @@ from memovi_intelligence.infrastructure.retrieval import PlaceholderKnowledgeRet
 
 __all__ = [
     "FakeReasoningProvider",
+    "InMemoryConversationRepository",
     "OpenAIProviderSettings",
     "OpenAIReasoningProvider",
     "PlaceholderKnowledgeRetriever",

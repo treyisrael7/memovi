@@ -42,6 +42,18 @@ class InvalidCitationError(IntelligenceDomainError):
     """Raised when a citation violates domain constraints."""
 
 
+class InvalidConversationIdError(IntelligenceDomainError):
+    """Raised when a conversation identifier is malformed."""
+
+
+class InvalidConversationError(IntelligenceDomainError):
+    """Raised when a conversation, turn, or history violates domain constraints."""
+
+
+class ConversationNotFoundError(IntelligenceDomainError):
+    """Raised when a conversation cannot be found in the repository."""
+
+
 class InvalidPromptError(IntelligenceDomainError):
     """Raised when a prompt or prompt component violates domain constraints."""
 

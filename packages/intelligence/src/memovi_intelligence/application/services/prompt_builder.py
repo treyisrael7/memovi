@@ -2,6 +2,8 @@ from memovi_intelligence.domain.entities import ReasoningContext
 from memovi_intelligence.domain.exceptions import InvalidPromptError
 from memovi_intelligence.domain.value_objects import (
     Citation,
+    ConversationHistory,
+    ConversationTurn,
     Prompt,
     PromptMessage,
     PromptRole,
@@ -17,6 +19,7 @@ SYSTEM_INSTRUCTIONS = (
 
 SECTION_SYSTEM_INSTRUCTIONS = "system_instructions"
 SECTION_USER_REQUEST = "user_request"
+SECTION_CONVERSATION_HISTORY = "conversation_history"
 SECTION_RETRIEVED_KNOWLEDGE = "retrieved_knowledge"
 SECTION_CITATIONS = "citations"
 SECTION_METADATA = "metadata"
@@ -30,33 +33,7 @@ class PromptBuilder:
             raise InvalidPromptError("Cannot build a prompt from an empty reasoning context.")
 
         citations = _citations_from_context(context)
-        sections = (
-            PromptSection(
-                name=SECTION_SYSTEM_INSTRUCTIONS,
-                content=SYSTEM_INSTRUCTIONS,
-                order=0,
-            ),
-            PromptSection(
-                name=SECTION_USER_REQUEST,
-                content=context.query,
-                order=1,
-            ),
-            PromptSection(
-                name=SECTION_RETRIEVED_KNOWLEDGE,
-                content=_format_retrieved_knowledge(context),
-                order=2,
-            ),
-            PromptSection(
-                name=SECTION_CITATIONS,
-                content=_format_citations(citations),
-                order=3,
-            ),
-            PromptSection(
-                name=SECTION_METADATA,
-                content=_format_metadata(context),
-                order=4,
-            ),
-        )
+        sections = _build_sections(context, citations)
         messages = (
             PromptMessage(role=PromptRole.SYSTEM, content=sections[0].content),
             PromptMessage(
@@ -72,6 +49,55 @@ class PromptBuilder:
         )
 
 
+def _build_sections(
+    context: ReasoningContext,
+    citations: tuple[Citation, ...],
+) -> tuple[PromptSection, ...]:
+    sections: list[PromptSection] = [
+        PromptSection(
+            name=SECTION_SYSTEM_INSTRUCTIONS,
+            content=SYSTEM_INSTRUCTIONS,
+            order=0,
+        ),
+        PromptSection(
+            name=SECTION_USER_REQUEST,
+            content=context.query,
+            order=1,
+        ),
+    ]
+    next_order = 2
+    if not context.conversation_history.is_empty:
+        sections.append(
+            PromptSection(
+                name=SECTION_CONVERSATION_HISTORY,
+                content=_format_conversation_history(context.conversation_history),
+                order=next_order,
+            ),
+        )
+        next_order += 1
+
+    sections.extend(
+        (
+            PromptSection(
+                name=SECTION_RETRIEVED_KNOWLEDGE,
+                content=_format_retrieved_knowledge(context),
+                order=next_order,
+            ),
+            PromptSection(
+                name=SECTION_CITATIONS,
+                content=_format_citations(citations),
+                order=next_order + 1,
+            ),
+            PromptSection(
+                name=SECTION_METADATA,
+                content=_format_metadata(context),
+                order=next_order + 2,
+            ),
+        )
+    )
+    return tuple(sections)
+
+
 def _citations_from_context(context: ReasoningContext) -> tuple[Citation, ...]:
     return tuple(
         Citation(
@@ -82,6 +108,20 @@ def _citations_from_context(context: ReasoningContext) -> tuple[Citation, ...]:
         )
         for item in context.retrieved_knowledge
     )
+
+
+def _format_conversation_history(history: ConversationHistory) -> str:
+    return "\n\n".join(_format_conversation_turn(turn) for turn in history.turns)
+
+
+def _format_conversation_turn(turn: ConversationTurn) -> str:
+    header = f"{turn.role.value.upper()} ({turn.timestamp.isoformat()})"
+    if not turn.citations:
+        return f"{header}\n{turn.content}"
+    citation_ids = ", ".join(
+        f"{citation.document_id}/{citation.chunk_id}" for citation in turn.citations
+    )
+    return f"{header}\n{turn.content}\ncitations: {citation_ids}"
 
 
 def _format_retrieved_knowledge(context: ReasoningContext) -> str:
@@ -110,18 +150,19 @@ def _format_citations(citations: tuple[Citation, ...]) -> str:
 
 def _format_metadata(context: ReasoningContext) -> str:
     metadata = context.metadata
-    return "\n".join(
-        (
-            f"request_id={context.request.id.value}",
-            f"retrieved_count={metadata.retrieved_count}",
-            f"retained_chunk_count={metadata.retained_chunk_count}",
-            f"retained_document_count={metadata.retained_document_count}",
-            f"truncated={str(metadata.truncated).lower()}",
-            f"duplicate_chunks_removed={metadata.duplicate_chunks_removed}",
-            f"duplicate_documents_skipped={metadata.duplicate_documents_skipped}",
-            f"estimated_token_count={context.estimated_token_count}",
-        )
-    )
+    lines = [
+        f"request_id={context.request.id.value}",
+        f"retrieved_count={metadata.retrieved_count}",
+        f"retained_chunk_count={metadata.retained_chunk_count}",
+        f"retained_document_count={metadata.retained_document_count}",
+        f"truncated={str(metadata.truncated).lower()}",
+        f"duplicate_chunks_removed={metadata.duplicate_chunks_removed}",
+        f"duplicate_documents_skipped={metadata.duplicate_documents_skipped}",
+        f"estimated_token_count={context.estimated_token_count}",
+        f"conversation_turn_count={len(context.conversation_history.turns)}",
+        f"conversation_token_count={context.conversation_history.estimated_token_count}",
+    ]
+    return "\n".join(lines)
 
 
 def _format_user_message(sections: tuple[PromptSection, ...]) -> str:
