@@ -1,360 +1,469 @@
-# Memovi Roadmap
+# Memovi Roadmap v2
 
-> **This roadmap describes the long-term evolution of Memovi. It is organized around engineering milestones rather than release dates.**
+> Engineering roadmap for Memovi as an AI-native knowledge operating system.
+> Organized by capability milestones, not release dates.
 
 ---
 
-# Roadmap Philosophy
+# Philosophy
 
-Memovi is built as a platform, not a collection of isolated features.
+Memovi is an AI-native knowledge operating system.
 
-Each milestone expands the capabilities of the platform while reinforcing the architecture established in the project's philosophy and architecture documentation.
+It is not a chatbot wrapper, a document viewer, or a pile of AI features.
 
-The roadmap is intentionally outcome-driven rather than time-driven.
+The platform is built around one rule:
 
-Features may move between milestones as the project evolves, but the overall progression should remain stable.
+**Knowledge is the product. Memory is the architecture. AI is a consumer of memory—not its owner.**
 
-Every milestone should leave the platform in a usable, production-quality state.
+AI is an expensive computational resource. It should run only when cheaper layers cannot answer.
+
+Cost efficiency is a first-class architectural goal:
+
+* Every expensive operation should have a cheaper alternative.
+* Every platform layer should reduce future AI cost.
+* Retrieval, memory, and caching should absorb work before models are invoked.
 
 ---
 
 # Guiding Principles
 
-The roadmap follows several principles:
-
-* Build the foundation before advanced features.
-* Deliver complete vertical slices rather than partial systems.
-* Prioritize maintainability over feature count.
-* Introduce operational complexity only when justified.
-* Validate architectural decisions before expanding the platform.
+* **Platform before products** — shared capabilities come before client-specific features.
+* **Architecture before features** — boundaries and ownership stay clear as scope grows.
+* **Cost-aware by default** — prefer local, cached, and retrieved answers before generation.
+* **AI as a last resort** — use models when reasoning or synthesis is required, not by habit.
+* **Layered memory over flat retrieval** — organize knowledge by purpose and lifetime.
+* **Vendor independence** — providers are adapters; the knowledge model is not.
+* **Modular architecture** — domains stay extractable without premature microservices.
+* **Production-ready vertical slices** — ship complete, operable paths, not stubs.
+* **Simplicity over cleverness** — prefer explicit, boring systems that stay maintainable.
 
 ---
 
-# Milestone 0 — Foundation
+# Memory Philosophy
 
-**Status**
+Memovi treats memory as layered architecture, not a single store.
 
-Complete — 2026-06-27
+## Raw Memory
+
+Unprocessed source material.
+
+* Documents
+* Files
+* Artifacts
+
+## Structured Memory
+
+Normalized, owned, durable knowledge.
+
+* Metadata
+* Ownership
+* Versions
+* Relationships
+
+## Semantic Memory
+
+Meaning derived from structured knowledge.
+
+* Embeddings
+* Concepts
+* Summaries
+
+## Working Memory
+
+Short-lived context for an active task.
+
+* Active conversation
+* Current task
+* Temporary context
+
+## Reasoning Memory
+
+Artifacts produced by AI workflows.
+
+* Prompts
+* Execution traces
+* Tool outputs
+
+## Future Memory Research
+
+Not committed deliverables. Candidates for later exploration:
+
+* Episodic memory
+* Procedural memory
+* Long-term memory consolidation
+* Knowledge graph representations
+
+---
+
+# Retrieval Philosophy
+
+Retrieval should become increasingly intelligent over time.
+
+Memovi calls this **Retrieval Intelligence**: the system that decides what knowledge to fetch, how to fetch it, and how much context to spend before reasoning.
+
+Responsibilities include:
+
+* Keyword retrieval
+* Semantic retrieval
+* Hybrid retrieval
+* Metadata filtering
+* Query planning
+* Reranking
+* Context budgeting
+* Summary lookup
+* Cache lookup
+
+Retrieval should attempt the least expensive path first.
+
+Example progression:
+
+1. Exact or cached answer
+2. Metadata / structured lookup
+3. Keyword retrieval
+4. Semantic or hybrid retrieval
+5. Summaries or compressed context
+6. Model reasoning only when required
+
+---
+
+# Cost Intelligence
+
+Cost Intelligence is an architectural concern, not a set of micro-optimizations.
+
+The goal is to minimize AI spend while preserving answer quality and provenance.
+
+Capabilities include:
+
+* Hierarchical summaries
+* Embedding lifecycle management
+* Prompt caching
+* Response caching
+* Semantic caching
+* Repository caching
+* Selective embedding
+* Adaptive chunking
+* Model routing
+* Token budgeting
+* Context compression
+
+These capabilities should shape package boundaries, data flow, and APIs. They are not after-the-fact tuning knobs.
+
+---
+
+# Connector Philosophy
+
+Connectors normalize external information into Memovi's knowledge model.
+
+They should support:
+
+* Incremental synchronization
+* Change detection
+* Selective embedding
+* Metadata preservation
+
+Connectors must not encode product-specific business logic.
+
+Once data is normalized, downstream ingestion, memory, retrieval, and reasoning should not need to know the source system.
+
+---
+
+# Roadmap
+
+## Milestone 0 — Foundation
 
 **Objective**
 
-Establish the engineering foundation that every future feature depends on.
+Establish the engineering base every later milestone depends on.
 
-**Deliverables**
+**Primary Deliverables**
 
-* Repository structure
-* Python workspace
-* Frontend workspace
-* Local Docker Compose infrastructure
-* GitHub Actions validation
-* Code quality tooling
-* Pre-commit hooks
-* VS Code Dev Container
-* Task runner
-* Project documentation
+* Repository and workspace layout
+* Local infrastructure
+* CI, quality tooling, and documentation
 
 **Success Criteria**
 
-* A new developer can clone the repository and start the project with minimal setup.
-* Development tooling is consistent across the project.
-* Architecture is reflected in the repository structure.
+* A new engineer can clone, run, and contribute with minimal setup.
+* Architecture is visible in repository structure.
 
 ---
 
-# Milestone 1 — Platform Skeleton
-
-**Status**
-
-In progress — core platform operational; architecture validation and observability remain.
+## Milestone 1 — Platform
 
 **Objective**
 
-Establish the backend platform that future business domains build upon.
+Establish the backend composition root and cross-cutting platform services.
 
-**Deliverables**
+**Primary Deliverables**
 
-* Backend composition root — **done**
-* FastAPI application bootstrap — **done**
-* Domain package scaffolding — **partial** (`auth` and `documents` implemented; other domains scaffolded)
-* Configuration system — **partial** (environment-based settings; typed `memovi_config` package not yet wired)
-* Dependency injection — **done**
-* Structured logging — **partial** (application logging; structured/JSON logging not yet implemented)
-* Observability foundation — **partial** (`packages/observability` scaffolded; tracing and metrics not yet implemented)
-* Router registration — **done**
-* Health endpoint — **done**
-* Architecture tests — **not started**
+* FastAPI composition root
+* Domain package boundaries
+* Configuration, dependency injection, logging
+* Health and router registration
+* Observability foundation
 
 **Success Criteria**
 
-* The backend boots successfully. — **met**
-* All domain packages follow a consistent architecture. — **partial** (implemented domains follow boundaries; others are scaffolds)
-* Cross-cutting concerns are centralized. — **met**
-* Every future business domain can plug into the platform without modifying its core. — **met**
-* The architecture is validated through automated architecture tests. — **not met**
+* The backend boots reliably.
+* New domains can plug in without rewriting the core.
 
 ---
 
-# Milestone 2 — Local Identity & Ownership
-
-**Status**
-
-In progress — local authentication works; ownership is not yet enforced on knowledge domains.
+## Milestone 2 — Identity & Ownership
 
 **Objective**
 
-Build the local authentication layer that establishes ownership of knowledge in a
-self-hosted Memovi instance.
+Make knowledge ownership explicit for a self-hosted instance.
 
-**Deliverables**
+**Primary Deliverables**
 
-* User registration — **done**
-* Secure local login — **done**
-* HTTP-only session cookies — **done**
-* Session persistence and logout — **done**
-* Current-user API boundary — **done**
-* Ownership-aware request context — **not started** (documents ingestion is not yet user-scoped)
-* Audit logging for ownership-sensitive actions — **not started**
+* Local registration and authentication
+* Session-based identity
+* Ownership-aware request context
+* Audit trail for ownership-sensitive actions
 
 **Success Criteria**
 
-* Users can securely authenticate with local credentials. — **met**
-* Every ownership-sensitive request can identify the current user. — **partial** (auth boundary exists; knowledge APIs do not yet require it)
-* Authentication is isolated from knowledge domains. — **met**
-* Memovi does not depend on JWT, OAuth, RBAC, or API keys for the local foundation. — **met**
+* Every ownership-sensitive request can identify the acting user.
+* Auth remains isolated from knowledge domains.
 
 ---
 
-# Milestone 3 — Knowledge Ingestion
-
-**Status**
-
-In progress — upload-to-processing pipeline is operational locally; enrichment stages remain.
+## Milestone 3 — Knowledge Ingestion
 
 **Objective**
 
-Allow information to enter the platform through a unified ingestion pipeline.
+Bring external information into the platform through one pipeline.
 
-**Deliverables**
+**Primary Deliverables**
 
-* Document uploads — **done** (`POST /documents`, 202 Accepted)
-* Local file connector — **partial** (upload ingest path via `IngestLocalDocument`; connector framework not yet built)
-* Object storage — **done** (MinIO-backed immutable artifact storage)
-* Metadata extraction — **partial** (filename, MIME type, source type at ingest; text extraction and normalization during processing)
-* Document versioning — **partial** (version model and initial version on upload; no re-upload or new-version workflow yet)
-* Document processing engine — **done** (synchronous `ProcessDocument` pipeline for PDF, Markdown, and plain text)
-* Processing queue — **done** (application-layer queue abstraction with in-memory implementation for local development)
-* Background document processing — **done** (worker polls queue, executes processing engine, updates job status, publishes events, retries transient failures)
-* OCR pipeline — **not started**
-* Chunk generation — **not started**
+* Document upload and object storage
+* Processing jobs and background workers
+* Text extraction and normalization
+* Chunk generation
+* Event-driven handoff into Memory
 
 **Success Criteria**
 
-* Documents are stored reliably. — **met**
-* Every uploaded document enters the knowledge pipeline. — **met**
-* Processing occurs asynchronously. — **met**
+* Uploaded documents enter the knowledge pipeline asynchronously.
+* Processing failures are visible and recoverable.
 
 ---
 
-# Milestone 4 — Knowledge Platform
-
-**Status**
-
-In progress — memory domain scaffolding established; knowledge workflows remain.
+## Milestone 4 — Knowledge Platform
 
 **Objective**
 
-Transform processed documents into structured knowledge.
+Turn processed artifacts into durable, organized knowledge.
 
-**Deliverables**
+**Primary Deliverables**
 
-* Memory domain — **partial** (entities, events, repositories, and persistence scaffold)
-* Collections — **not started**
-* Tags — **not started**
-* Version history — **not started**
-* Knowledge relationships — **not started**
-* Metadata management — **not started**
-* Processing status tracking — **not started**
+* Memory domain ownership of knowledge items
+* Metadata and versioning foundations
+* Collections and tags
+* Processing status as a knowledge concern
+* Knowledge independent of AI providers
 
 **Success Criteria**
 
-* Knowledge is independent from AI providers. — **not met**
-* The platform can organize and manage information at scale. — **not met**
+* Knowledge remains useful with no language model available.
+* Organization and ownership are first-class, not bolted on.
 
 ---
 
-# Milestone 5 — Search & Retrieval
+## Milestone 5 — Retrieval Intelligence
 
 **Objective**
 
-Provide fast, accurate retrieval across the knowledge platform.
+Provide fast, cost-aware retrieval across knowledge.
 
-**Deliverables**
+**Primary Deliverables**
 
-* Full-text search — **done**
-* Vector search — **done** (pgvector storage, HNSW cosine index, semantic mode)
-* Hybrid retrieval — **done** (unified `RetrievalEngine` with Reciprocal Rank Fusion)
-* Metadata filtering — **done** (applied after retrieval/fusion)
-* Semantic ranking — **partial** (score normalization + RRF; no learned reranker)
-* Search APIs — **done** (`GET /search` with `mode=keyword|semantic|hybrid`; `/search/semantic` deprecated)
-* Query optimization
+* Keyword, semantic, and hybrid retrieval
+* Metadata filtering
+* Query planning and context budgeting
+* Cache and summary lookup paths
+* Stable search APIs
 
 **Success Criteria**
 
-* Users can reliably retrieve relevant knowledge.
-* Search supports multiple retrieval strategies without changing client behavior.
+* Relevant knowledge can be retrieved without invoking a model.
+* Clients can change retrieval mode without changing product contracts.
 
 ---
 
-# Milestone 6 — Intelligence
+## Milestone 6 — Reasoning Engine
 
 **Objective**
 
-Enable intelligent interaction with stored knowledge.
+Enable controlled reasoning over retrieved knowledge.
 
-**Deliverables**
+**Primary Deliverables**
 
-* Chat interface
-* Retrieval-Augmented Generation (RAG)
-* Provider abstraction
-* Prompt management
-* AI summaries
-* Tool calling
-* Provider routing
+* Reasoning pipeline (retrieve → assemble → prompt → provider)
+* Provider abstraction and routing
+* Conversation memory and Conversation API
+* Execution traces and citations
+* Tool execution framework
+* Cost-aware model selection
 
 **Success Criteria**
 
-* AI consumes platform knowledge without owning it.
-* AI providers remain interchangeable.
+* AI consumes memory; it does not own it.
+* Providers are interchangeable behind one gateway.
+* Reasoning results remain explainable through traces and citations.
 
 ---
 
-# Milestone 7 — Connector Ecosystem
+## Milestone 7 — Memory Intelligence
 
 **Objective**
 
-Expand the platform beyond local documents.
+Make memory actively reduce retrieval and AI cost.
 
-**Deliverables**
+**Primary Deliverables**
 
-* GitHub connector
-* Google Drive connector
-* Gmail connector
-* Slack connector
-* Notion connector
-* Obsidian connector
-* Connector SDK
-* Synchronization scheduling
+* Hierarchical summaries
+* Semantic and response caching
+* Embedding lifecycle policies
+* Selective embedding and adaptive chunking
+* Context compression for reasoning
 
 **Success Criteria**
 
-* New connectors follow a consistent interface.
-* External systems integrate through normalization rather than custom logic.
+* Common questions are answered from memory or cache before generation.
+* Embedding and context spend are intentional, not unbounded.
 
 ---
 
-# Milestone 8 — Platform Maturity
+## Milestone 8 — Connector Ecosystem
 
 **Objective**
 
-Strengthen the platform through operational and architectural improvements.
+Expand knowledge intake beyond local uploads.
 
-**Deliverables**
+**Primary Deliverables**
 
-* Knowledge graph
-* Temporal memory
+* Connector SDK and contracts
+* Priority source connectors
+* Incremental sync and change detection
+* Selective embedding at the connector boundary
+
+**Success Criteria**
+
+* New connectors follow one normalization interface.
+* Source-specific logic stops at the connector edge.
+
+---
+
+## Milestone 9 — Platform Maturity
+
+**Objective**
+
+Harden the operating system for production scale.
+
+**Primary Deliverables**
+
 * Advanced observability
-* Distributed workers
-* Background scheduling
-* Performance optimization
-* Advanced caching
+* Distributed workers and scheduling
+* Performance and cache maturity
 * Backup and recovery improvements
+* Optional knowledge graph foundations
 
 **Success Criteria**
 
 * The platform scales without architectural redesign.
-* Operational visibility supports production deployments.
+* Operators can explain failures, cost, and latency from telemetry.
 
 ---
 
-# Milestone 9 — Multi-Client Platform
+## Milestone 10 — Applications
 
 **Objective**
 
-Deliver Memovi across multiple user experiences.
+Expose the same platform capabilities through multiple clients.
 
-**Deliverables**
+**Primary Deliverables**
 
-* Desktop application
-* Browser extension
-* Mobile application
-* Public API
-* CLI
-* SDKs
+* Web application and chat UI
+* CLI and public API surface
+* Desktop / extension / mobile as needed
+* SDKs over stable contracts
 
 **Success Criteria**
 
-* Every client consumes the same platform capabilities.
-* Business logic remains centralized.
+* Clients share one platform; business logic stays centralized.
+* Application features compose pipeline capabilities instead of bypassing them.
 
 ---
 
 # Future Vision
 
-Potential long-term capabilities include:
+Exploratory. Not committed milestone scope.
 
+* Local model runtimes
+* Knowledge graphs and graph traversal
 * Multi-user workspaces
-* Team knowledge sharing
-* Plugin marketplace
-* Agent runtime
+* Collaborative knowledge
 * Workflow automation
-* Knowledge graph visualization
-* Federated search
-* Enterprise deployment
-* Real-time collaboration
+* Agent orchestration
 * Offline synchronization
+* Distributed / multi-node deployments
+* Federated search
+* Enterprise packaging
 
-These initiatives are intentionally exploratory and may evolve as the platform matures.
+These ideas may enter the roadmap only after architecture and cost constraints justify them.
 
 ---
 
-# What We Will Not Optimize For
+# What Memovi Optimizes For
 
-Memovi intentionally avoids:
+* Long-term maintainability
+* Low operational and AI cost
+* Explainable reasoning
+* Provider independence
+* Scalable knowledge organization
+* Reusable modular architecture
+* Clear ownership and provenance
+* Production-quality vertical slices
 
+---
+
+# What Memovi Does Not Optimize For
+
+* Unnecessary AI calls
 * Premature microservices
-* Feature quantity over quality
+* Feature quantity over platform quality
 * Vendor lock-in
-* AI provider dependence
-* Unnecessary architectural complexity
-* Short-term optimizations that compromise long-term maintainability
+* Hidden platform behavior
+* Tightly coupled AI providers
+* Demo-driven architecture
+* Clever abstractions that obscure data flow
 
 ---
 
 # Measuring Progress
 
-Progress is measured by platform maturity rather than the number of completed features.
+A milestone is complete when:
 
-A milestone is considered complete when:
+* Architecture remains consistent with this roadmap
+* The capability is operable, tested, and documented
+* Cost and failure modes are visible
+* Later milestones become easier, not harder
 
-* The architecture remains consistent.
-* The feature is production-ready.
-* Documentation has been updated.
-* Tests are comprehensive.
-* Operational visibility exists.
-* Future milestones become easier to build.
+Progress is platform maturity, not feature count.
 
 ---
 
 # Living Document
 
-This roadmap is expected to evolve.
+This roadmap will change.
 
-New ideas will emerge.
+Capabilities may move between milestones.
 
-Priorities will change.
+The philosophy should not:
 
-Architecture will mature.
-
-Changes should preserve the long-term vision of Memovi while remaining grounded in practical engineering decisions.
-
-The roadmap is a guide for the platform's evolution—not a promise of fixed delivery dates.
+* Knowledge remains the product
+* Memory remains the architecture
+* AI remains a consumer
+* Cost efficiency remains a design constraint

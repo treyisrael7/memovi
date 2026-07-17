@@ -1,5 +1,5 @@
 import logging
-from importlib.metadata import PackageNotFoundError, metadata, version
+from importlib.metadata import PackageNotFoundError, metadata
 
 PROJECT_DISTRIBUTION = "memovi-api"
 LOGGER_NAME = "memovi.api"
@@ -17,22 +17,23 @@ def validate_configuration() -> None:
 
 
 def project_metadata() -> dict[str, str]:
+    fallback = {
+        "title": "Memovi API",
+        "description": "Backend composition root for the Memovi platform.",
+        "version": "0.1.0",
+    }
     try:
         package_metadata = metadata(PROJECT_DISTRIBUTION)
-        project_version = version(PROJECT_DISTRIBUTION)
     except PackageNotFoundError:
-        return {
-            "title": "Memovi API",
-            "description": "Backend composition root for the Memovi platform.",
-            "version": "0.1.0",
-        }
+        return fallback
 
-    project_description = (
-        package_metadata.get("Summary") or "Backend composition root for the Memovi platform."
-    )
+    # Prefer Message.get over version(): incomplete editable installs can expose
+    # a distribution whose Version key is missing (None), which warns under 3.14+.
+    project_version = package_metadata.get("Version") or fallback["version"]
+    project_description = package_metadata.get("Summary") or fallback["description"]
 
     return {
-        "title": "Memovi API",
+        "title": fallback["title"],
         "description": project_description,
         "version": project_version,
     }

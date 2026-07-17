@@ -3,6 +3,7 @@ from auth.api.router import router as auth_router
 from documents.api.dependencies import get_database_session as get_documents_database_session
 from documents.api.router import router as documents_router
 from fastapi import FastAPI
+from memovi_intelligence.api.dependencies import get_knowledge_retriever
 from memovi_intelligence.api.router import router as conversations_router
 from memovi_search.api.dependencies import get_database_session as get_search_database_session
 from memovi_search.api.router import router as search_router
@@ -10,6 +11,7 @@ from memovi_search.api.router import router as search_router
 from api.database import database_session
 from api.documents_session import build_documents_database_session
 from api.health import router as health_router
+from api.intelligence_integration import get_search_knowledge_retriever
 
 
 def register_routers(app: FastAPI) -> None:
@@ -18,6 +20,7 @@ def register_routers(app: FastAPI) -> None:
         database_session
     )
     app.dependency_overrides[get_search_database_session] = database_session
+    app.dependency_overrides[get_knowledge_retriever] = get_search_knowledge_retriever
     app.include_router(auth_router)
     app.include_router(documents_router)
     app.include_router(conversations_router)
