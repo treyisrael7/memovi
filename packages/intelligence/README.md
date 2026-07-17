@@ -10,12 +10,13 @@ This package establishes Intelligence domain boundaries and the core reasoning
 pipeline:
 
 * Immutable reasoning concepts (`ReasoningRequest`, `ReasoningContext`, `ReasoningResult`)
+* Read-only execution tracing (`ExecutionTrace`, `ExecutionStage`, `StageTiming`, `ExecutionMetrics`)
 * Provider-agnostic prompt construction (`Prompt`, `PromptMessage`, `PromptRole`, `PromptSection`)
 * Citations attached to reasoning answers
 * Context assembly via `ContextAssembler` (ordering, deduplication, document/chunk/token limits)
 * `PromptBuilder` transforms assembled context into deterministic prompts
 * `ModelGateway` selects the configured provider and executes prompts with gateway-owned metadata
-* `Reason` command orchestration: retrieve → assemble → prompt → gateway → result
+* `Reason` command orchestration: retrieve → assemble → prompt → gateway → result, with per-stage timing
 * Application ports for knowledge retrieval and reasoning providers
 * Deterministic `FakeReasoningProvider` and production `OpenAIReasoningProvider` adapters
 * Placeholder infrastructure adapters for unfinished Search/LLM integrations

@@ -5,9 +5,13 @@ from memovi_intelligence.domain.entities import (
 )
 from memovi_intelligence.domain.services import estimate_token_count
 from memovi_intelligence.domain.value_objects import (
+    PIPELINE_STAGE_ORDER,
     AssembledDocument,
     Citation,
     ContextMetadata,
+    ExecutionMetrics,
+    ExecutionStage,
+    ExecutionTrace,
     Prompt,
     PromptMessage,
     PromptRole,
@@ -15,12 +19,17 @@ from memovi_intelligence.domain.value_objects import (
     ReasoningQuery,
     ReasoningRequestId,
     RetrievedKnowledge,
+    StageTiming,
 )
 
 __all__ = [
+    "PIPELINE_STAGE_ORDER",
     "AssembledDocument",
     "Citation",
     "ContextMetadata",
+    "ExecutionMetrics",
+    "ExecutionStage",
+    "ExecutionTrace",
     "Prompt",
     "PromptMessage",
     "PromptRole",
@@ -31,5 +40,6 @@ __all__ = [
     "ReasoningRequestId",
     "ReasoningResult",
     "RetrievedKnowledge",
+    "StageTiming",
     "estimate_token_count",
 ]

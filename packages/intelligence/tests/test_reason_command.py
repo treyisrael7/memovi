@@ -8,7 +8,11 @@ from memovi_intelligence.domain.exceptions import (
     NoRetrievedKnowledgeError,
     ReasoningProviderError,
 )
-from memovi_intelligence.domain.value_objects import Prompt, RetrievedKnowledge
+from memovi_intelligence.domain.value_objects import (
+    PIPELINE_STAGE_ORDER,
+    Prompt,
+    RetrievedKnowledge,
+)
 from memovi_intelligence.infrastructure import FakeReasoningProvider
 
 
@@ -100,6 +104,10 @@ def test_reason_successful_pipeline() -> None:
     assert result.metadata["section_count"] == 5
     assert result.context.retrieved_knowledge == (item,)
     assert retriever.calls == 1
+    assert result.execution_trace.stage_names == PIPELINE_STAGE_ORDER
+    assert result.execution_trace.metrics.retrieved_knowledge_count == 1
+    assert result.execution_trace.metrics.citation_count == 1
+    assert result.execution_trace.metrics.provider == "fake"
 
 
 def test_reason_raises_when_retrieval_is_empty() -> None:

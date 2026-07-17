@@ -53,16 +53,26 @@ def _run(label: str) -> None:
         def __init__(self, gateway: ModelGateway) -> None:
             self._gateway = gateway
             self.execute_calls = 0
+            self.resolve_calls = 0
             self.resolved_provider_type: str | None = None
 
         def __getattr__(self, name: str) -> Any:
             return getattr(self._gateway, name)
 
-        def execute(self, prompt: Prompt) -> ReasoningResult:
-            self.execute_calls += 1
-            provider = self._gateway._resolve_provider()
+        def resolve_provider(self) -> Any:
+            self.resolve_calls += 1
+            provider = self._gateway.resolve_provider()
             self.resolved_provider_type = type(provider).__name__
-            return self._gateway.execute(prompt)
+            return provider
+
+        def execute(
+            self,
+            prompt: Prompt,
+            *,
+            provider: Any | None = None,
+        ) -> ReasoningResult:
+            self.execute_calls += 1
+            return self._gateway.execute(prompt, provider=provider)
 
     class StubRetriever:
         def __init__(self, items: tuple[RetrievedKnowledge, ...]) -> None:
@@ -115,11 +125,21 @@ def _run(label: str) -> None:
     prompt = builder.build(assembler.assemble(request))
     messages = serialize_prompt_messages(prompt)
     result = command.execute(request)
+    trace = result.execution_trace
+    stage_labels = {
+        "retrieval": "Retrieval",
+        "context_assembly": "Context Assembly",
+        "prompt_build": "Prompt Build",
+        "provider_resolution": "Provider Resolution",
+        "model_execution": "Model Execution",
+    }
 
     print(f"=== {label} ===")
+    print(f"query = What is Memovi?")
     print(f"config.provider = {config.provider}")
     print(f"config.model = {config.model}")
     print(f"reason_calls_gateway = {gateway.execute_calls == 1}")
+    print(f"reason_resolves_provider = {gateway.resolve_calls == 1}")
     print(f"resolved_provider = {gateway.resolved_provider_type}")
     print(f"serialized_roles = {[message['role'] for message in messages]}")
     print(f"result.provider = {result.provider}")
@@ -132,7 +152,26 @@ def _run(label: str) -> None:
     print(f"citation_count = {len(result.citations)}")
     print(f"citations_match_prompt = {result.citations == prompt.citations}")
     print(f"answer_preview = {result.answer[:200].replace(chr(10), ' ')}")
+    print("--- execution_trace stages ---")
+    print(f"{'Stage':<22} {'Recorded':<10} {'Duration (s)'}")
+    for stage_name, label_name in stage_labels.items():
+        timing = next(
+            (item for item in trace.stages if item.stage.value == stage_name),
+            None,
+        )
+        recorded = "OK" if timing is not None else "MISSING"
+        duration = f"{timing.duration:.6f}" if timing is not None else "-"
+        print(f"{label_name:<22} {recorded:<10} {duration}")
+    print("--- execution_trace metrics ---")
+    print(f"provider = {trace.metrics.provider}")
+    print(f"model = {trace.metrics.model}")
+    print(f"estimated_input_tokens = {trace.metrics.estimated_input_tokens}")
+    print(f"output_tokens = {trace.metrics.output_tokens}")
+    print(f"retrieved_knowledge_count = {trace.metrics.retrieved_knowledge_count}")
+    print(f"document_count = {trace.metrics.document_count}")
+    print(f"citation_count = {trace.metrics.citation_count}")
     assert gateway.execute_calls == 1
+    assert gateway.resolve_calls == 1
     assert not hasattr(command, "_reasoning_provider")
     if config.provider == "openai":
         assert gateway.resolved_provider_type == OpenAIReasoningProvider.__name__
@@ -144,6 +183,13 @@ def _run(label: str) -> None:
     assert result.citations == prompt.citations
     assert result.execution_time >= 0.0
     assert result.answer
+    assert [timing.stage.value for timing in trace.stages] == list(stage_labels)
+    assert all(timing.duration >= 0.0 for timing in trace.stages)
+    assert trace.metrics.provider
+    assert trace.metrics.model
+    assert trace.metrics.retrieved_knowledge_count == 3
+    assert trace.metrics.document_count == 2
+    assert trace.metrics.citation_count == 3
 
 
 def main() -> None:

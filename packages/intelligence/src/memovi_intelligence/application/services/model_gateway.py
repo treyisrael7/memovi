@@ -19,6 +19,8 @@ class ModelGateway:
 
     Selects the configured provider from an injected registry, measures execution,
     and attaches gateway-owned metadata. Knows nothing about HTTP or API keys.
+    Timing of pipeline stages is owned by Reason; this gateway only records the
+    duration of the provider call itself in result metadata.
     """
 
     def __init__(
@@ -44,11 +46,20 @@ class ModelGateway:
             raise RuntimeError("IntelligenceConfig.model was not resolved.")
         return self._config.model
 
-    def execute(self, prompt: Prompt) -> ReasoningResult:
-        provider = self._resolve_provider()
+    def resolve_provider(self) -> ReasoningProvider:
+        """Resolve the configured provider without executing a prompt."""
+        return self._resolve_provider()
+
+    def execute(
+        self,
+        prompt: Prompt,
+        *,
+        provider: ReasoningProvider | None = None,
+    ) -> ReasoningResult:
+        resolved = provider if provider is not None else self._resolve_provider()
         started = perf_counter()
         try:
-            result = provider.reason(prompt)
+            result = resolved.reason(prompt)
         except TimeoutError as exc:
             raise ReasoningProviderTimeoutError(
                 f"Reasoning provider '{self.provider_name}' timed out.",
@@ -75,6 +86,7 @@ class ModelGateway:
             provider=self.provider_name,
             execution_time=duration,
             context=result.context,
+            execution_trace=result.execution_trace,
         )
 
     def _resolve_provider(self) -> ReasoningProvider:

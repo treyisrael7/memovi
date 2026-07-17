@@ -34,6 +34,10 @@ class InvalidReasoningResultError(IntelligenceDomainError):
     """Raised when a reasoning result violates its invariants."""
 
 
+class InvalidExecutionTraceError(IntelligenceDomainError):
+    """Raised when execution tracing value objects violate domain constraints."""
+
+
 class InvalidCitationError(IntelligenceDomainError):
     """Raised when a citation violates domain constraints."""
 

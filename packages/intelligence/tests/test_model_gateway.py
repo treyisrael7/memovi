@@ -164,10 +164,20 @@ def test_what_is_memovi_reason_uses_gateway_not_provider_directly() -> None:
         def __init__(self, **kwargs: object) -> None:
             super().__init__(**kwargs)  # type: ignore[arg-type]
             self.execute_calls = 0
+            self.resolve_calls = 0
 
-        def execute(self, prompt: Prompt) -> ReasoningResult:
+        def resolve_provider(self) -> ReasoningProvider:
+            self.resolve_calls += 1
+            return super().resolve_provider()
+
+        def execute(
+            self,
+            prompt: Prompt,
+            *,
+            provider: ReasoningProvider | None = None,
+        ) -> ReasoningResult:
             self.execute_calls += 1
-            return super().execute(prompt)
+            return super().execute(prompt, provider=provider)
 
     provider = RecordingFakeProvider()
     gateway = RecordingGateway(
@@ -188,6 +198,7 @@ def test_what_is_memovi_reason_uses_gateway_not_provider_directly() -> None:
 
     result = command.execute(ReasoningRequest.create(query="What is Memovi?"))
 
+    assert gateway.resolve_calls == 1
     assert gateway.execute_calls == 1
     assert provider.calls == 1
     assert result.provider == "fake"
@@ -195,8 +206,13 @@ def test_what_is_memovi_reason_uses_gateway_not_provider_directly() -> None:
     assert result.metadata["model"] == "fake-reasoning-v1"
     assert isinstance(result.metadata["duration"], float)
     assert result.metadata["duration"] >= 0.0
-    assert result.execution_time == result.metadata["duration"]
+    assert result.execution_time >= result.metadata["duration"]
+    assert result.execution_time == result.execution_trace.total_duration
     assert result.metadata["estimated_tokens"] == result.context.estimated_token_count
     assert result.metadata["estimated_tokens"] > 0
     assert "What is Memovi?" in result.answer
     assert "Memovi is a self-hosted knowledge platform." in result.answer
+    assert len(result.execution_trace.stages) == 5
+    assert result.execution_trace.metrics.document_count == 2
+    assert result.execution_trace.metrics.retrieved_knowledge_count == 3
+    assert result.execution_trace.metrics.citation_count == 3

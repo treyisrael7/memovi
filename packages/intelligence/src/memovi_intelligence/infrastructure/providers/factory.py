@@ -31,8 +31,7 @@ def build_model_gateway(config: IntelligenceConfig | None = None) -> ModelGatewa
     api_key = os.environ.get("OPENAI_API_KEY")
     if api_key and api_key.strip():
         openai_model = (
-            os.environ.get("OPENAI_MODEL")
-            or DEFAULT_MODELS[ReasoningProviderKind.OPENAI]
+            os.environ.get("OPENAI_MODEL") or DEFAULT_MODELS[ReasoningProviderKind.OPENAI]
         )
         settings = OpenAIProviderSettings(
             api_key=api_key,

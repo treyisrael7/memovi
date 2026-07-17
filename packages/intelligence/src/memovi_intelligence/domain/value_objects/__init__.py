@@ -1,6 +1,12 @@
 from memovi_intelligence.domain.value_objects.assembled_document import AssembledDocument
 from memovi_intelligence.domain.value_objects.citation import Citation
 from memovi_intelligence.domain.value_objects.context_metadata import ContextMetadata
+from memovi_intelligence.domain.value_objects.execution_metrics import ExecutionMetrics
+from memovi_intelligence.domain.value_objects.execution_stage import (
+    PIPELINE_STAGE_ORDER,
+    ExecutionStage,
+)
+from memovi_intelligence.domain.value_objects.execution_trace import ExecutionTrace
 from memovi_intelligence.domain.value_objects.prompt import Prompt
 from memovi_intelligence.domain.value_objects.prompt_message import PromptMessage
 from memovi_intelligence.domain.value_objects.prompt_role import PromptRole
@@ -8,11 +14,16 @@ from memovi_intelligence.domain.value_objects.prompt_section import PromptSectio
 from memovi_intelligence.domain.value_objects.reasoning_query import ReasoningQuery
 from memovi_intelligence.domain.value_objects.reasoning_request_id import ReasoningRequestId
 from memovi_intelligence.domain.value_objects.retrieved_knowledge import RetrievedKnowledge
+from memovi_intelligence.domain.value_objects.stage_timing import StageTiming
 
 __all__ = [
+    "PIPELINE_STAGE_ORDER",
     "AssembledDocument",
     "Citation",
     "ContextMetadata",
+    "ExecutionMetrics",
+    "ExecutionStage",
+    "ExecutionTrace",
     "Prompt",
     "PromptMessage",
     "PromptRole",
@@ -20,4 +31,5 @@ __all__ = [
     "ReasoningQuery",
     "ReasoningRequestId",
     "RetrievedKnowledge",
+    "StageTiming",
 ]

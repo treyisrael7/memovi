@@ -103,8 +103,12 @@ def test_reasoning_result_create_trims_answer_and_freezes_metadata() -> None:
     assert result.execution_time == 0.01
     assert result.context is context
     assert result.metadata["source"] == "test"
+    assert result.execution_trace.stages == ()
+    assert result.execution_trace.metrics.provider == "fake"
     with pytest.raises(TypeError):
         result.metadata["source"] = "changed"  # type: ignore[index]
+    with pytest.raises(AttributeError):
+        result.execution_trace = result.execution_trace  # type: ignore[misc]
 
 
 def test_reasoning_result_rejects_blank_answer() -> None:

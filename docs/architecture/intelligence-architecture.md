@@ -55,13 +55,20 @@ Core immutable concepts:
 * `ReasoningRequest` — intent to reason over retrieved knowledge
 * `ReasoningContext` — assembled knowledge context for prompt construction
 * `Prompt` — provider-agnostic reasoning prompt (`PromptMessage`, `PromptRole`, `PromptSection`)
-* `ReasoningResult` — immutable reasoning output
+* `ReasoningResult` — immutable reasoning output with a read-only `execution_trace`
+* `ExecutionTrace` — structured stage timings and aggregate metrics for a reasoning request
 
 `ReasoningContext` includes the originating request, retained retrieved knowledge,
 assembled documents, assembly metadata, and an estimated token count.
 
 `ReasoningResult` is immutable and includes the answer, citations, metadata, provider
-name, execution time, and the context that produced it.
+name, execution time, the context that produced it, and an `execution_trace`.
+
+The `Reason` command records timing for each pipeline stage (`retrieval`,
+`context_assembly`, `prompt_build`, `provider_resolution`, `model_execution`) and
+populates metrics such as provider, model, estimated input tokens, optional output
+tokens, retrieved knowledge count, document count, and citation count. Timing is
+owned by the command, not by providers.
 
 `ContextAssembler` builds that context through the `KnowledgeRetriever` port. It orders
 by retrieval ranking, removes duplicate chunks, skips excess documents when limits
