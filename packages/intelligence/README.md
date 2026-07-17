@@ -14,11 +14,12 @@ pipeline:
 * Citations attached to reasoning answers
 * Context assembly via `ContextAssembler` (ordering, deduplication, document/chunk/token limits)
 * `PromptBuilder` transforms assembled context into deterministic prompts
-* `Reason` command orchestration: retrieve → assemble → prompt → reason → result
+* `ModelGateway` selects the configured provider and executes prompts with gateway-owned metadata
+* `Reason` command orchestration: retrieve → assemble → prompt → gateway → result
 * Application ports for knowledge retrieval and reasoning providers
 * Deterministic `FakeReasoningProvider` for tests and local wiring
 * Placeholder infrastructure adapters for unfinished Search/LLM integrations
-* Package configuration without provider selection
+* Package configuration with provider selection (`provider=fake`; future: openai, anthropic, ollama, gemini)
 
 It does not yet implement LLM integrations, chat, conversations, streaming, or agents.
 

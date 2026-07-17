@@ -50,5 +50,17 @@ class ReasoningProviderError(IntelligenceDomainError):
     """Raised when a reasoning provider fails during execution."""
 
 
+class UnknownReasoningProviderError(IntelligenceDomainError):
+    """Raised when the configured reasoning provider is not recognized."""
+
+
+class ReasoningProviderUnavailableError(IntelligenceDomainError):
+    """Raised when a known reasoning provider is not registered or ready."""
+
+
+class ReasoningProviderTimeoutError(IntelligenceDomainError):
+    """Raised when a reasoning provider exceeds its allotted execution time."""
+
+
 class InvalidIntelligenceConfigError(IntelligenceDomainError):
     """Raised when intelligence package configuration is invalid."""

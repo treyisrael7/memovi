@@ -71,6 +71,13 @@ require it, and trims to configurable document, chunk, and estimated-token budge
 sections for system instructions, user request, retrieved knowledge, citations, and
 metadata. It does not encode OpenAI, Anthropic, or Ollama message schemas.
 
+`ModelGateway` is the single entry point for executing prompts. It selects the configured
+provider from an injected registry, isolates provider lifecycle from the reasoning
+pipeline, and owns execution metadata (`provider`, `model`, `duration`,
+`estimated_tokens`). It does not know HTTP or API keys. Only the `fake` provider is
+wired today; `openai`, `anthropic`, `ollama`, and `gemini` are reserved configuration
+values.
+
 The central use case is the `Reason` command:
 
 ```text
@@ -84,6 +91,9 @@ ContextAssembler
     │
     ▼
 PromptBuilder
+    │
+    ▼
+ModelGateway
     │
     ▼
 ReasoningProvider
@@ -100,8 +110,8 @@ Application ports remain:
 Infrastructure currently provides a deterministic `FakeReasoningProvider` for tests,
 plus placeholder adapters that raise `NotImplementedError` for unfinished Search/LLM
 wiring.
-Package configuration exists without provider selection. Chat, streaming, and agents
-remain out of scope until later milestones.
+Package configuration supports provider selection. Chat, streaming, and agents remain
+out of scope until later milestones.
 
 # Provider Isolation
 

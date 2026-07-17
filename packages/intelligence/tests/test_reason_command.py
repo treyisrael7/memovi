@@ -1,6 +1,7 @@
 import pytest
 from memovi_intelligence.application.commands import Reason
-from memovi_intelligence.application.services import ContextAssembler, PromptBuilder
+from memovi_intelligence.application.services import ContextAssembler, ModelGateway, PromptBuilder
+from memovi_intelligence.config import IntelligenceConfig
 from memovi_intelligence.domain.entities import ReasoningRequest, ReasoningResult
 from memovi_intelligence.domain.exceptions import (
     InvalidPromptError,
@@ -59,13 +60,19 @@ def _reason(
     | FailingReasoningProvider
     | InvalidPromptReasoningProvider
     | None = None,
+    config: IntelligenceConfig | None = None,
 ) -> tuple[Reason, StubKnowledgeRetriever]:
     retriever = StubKnowledgeRetriever(items)
     assembler = ContextAssembler(knowledge_retriever=retriever)
+    resolved_config = config or IntelligenceConfig(provider="fake")
+    gateway = ModelGateway(
+        providers={resolved_config.provider: provider or FakeReasoningProvider()},
+        config=resolved_config,
+    )
     command = Reason(
         knowledge_retriever=retriever,
         context_assembler=assembler,
-        reasoning_provider=provider or FakeReasoningProvider(),
+        model_gateway=gateway,
         prompt_builder=PromptBuilder(),
     )
     return command, retriever
@@ -80,7 +87,10 @@ def test_reason_successful_pipeline() -> None:
 
     assert isinstance(result, ReasoningResult)
     assert result.provider == "fake"
-    assert result.execution_time == 0.0
+    assert result.execution_time >= 0.0
+    assert result.metadata["provider"] == "fake"
+    assert result.metadata["model"] == "fake-reasoning-v1"
+    assert result.metadata["estimated_tokens"] == result.context.estimated_token_count
     assert "What was decided?" in result.answer
     assert "Decision recorded in meeting notes." in result.answer
     assert len(result.citations) == 1
@@ -104,7 +114,7 @@ def test_reason_raises_when_provider_fails() -> None:
     command, _ = _reason(items=(_knowledge(),), provider=FailingReasoningProvider())
     request = ReasoningRequest.create(query="What failed?")
 
-    with pytest.raises(ReasoningProviderError, match="Reasoning provider failed"):
+    with pytest.raises(ReasoningProviderError, match="failed while producing a result"):
         command.execute(request)
 
 

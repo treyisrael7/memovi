@@ -1,6 +1,7 @@
 import pytest
 from memovi_intelligence.application import (
     ContextAssembler,
+    ModelGateway,
     PromptBuilder,
     Reason,
     ReasoningService,
@@ -37,10 +38,11 @@ def test_reasoning_service_initializes_with_ports_and_default_config() -> None:
     )
 
     assert service.config == IntelligenceConfig()
+    assert service.model_gateway.provider_name == "fake"
 
 
 def test_reasoning_service_accepts_explicit_config() -> None:
-    config = IntelligenceConfig(default_retrieval_limit=2, max_chunks=4)
+    config = IntelligenceConfig(default_retrieval_limit=2, max_chunks=4, provider="fake")
     service = ReasoningService(
         knowledge_retriever=PlaceholderKnowledgeRetriever(),
         reasoning_provider=PlaceholderReasoningProvider(),
@@ -87,6 +89,7 @@ def test_reasoning_service_reason_delegates_to_reason_command() -> None:
 
     assert isinstance(result, ReasoningResult)
     assert result.provider == "fake"
+    assert result.metadata["model"] == "fake-reasoning-v1"
     assert "Service delegates successfully." in result.answer
 
 
@@ -111,13 +114,14 @@ def test_placeholder_adapters_raise_not_implemented() -> None:
         provider.reason(prompt)
 
 
-def test_context_assembler_prompt_builder_and_reason_are_exported() -> None:
+def test_context_assembler_prompt_builder_gateway_and_reason_are_exported() -> None:
     assert ContextAssembler is not None
     assert PromptBuilder is not None
+    assert ModelGateway is not None
     assert Reason is ReasonCommand
 
 
-def test_integration_request_retrieve_context_prompt_reason_result() -> None:
+def test_integration_reason_prompt_gateway_fake_provider_result() -> None:
     items = (
         RetrievedKnowledge(
             chunk_id="chunk-a",
@@ -137,10 +141,15 @@ def test_integration_request_retrieve_context_prompt_reason_result() -> None:
     retriever = StubKnowledgeRetriever(items)
     assembler = ContextAssembler(knowledge_retriever=retriever)
     builder = PromptBuilder()
+    config = IntelligenceConfig(provider="fake")
+    gateway = ModelGateway(
+        providers={"fake": FakeReasoningProvider()},
+        config=config,
+    )
     command = Reason(
         knowledge_retriever=retriever,
         context_assembler=assembler,
-        reasoning_provider=FakeReasoningProvider(),
+        model_gateway=gateway,
         prompt_builder=builder,
     )
     request = ReasoningRequest.create(query="Summarize the decisions.", limit=2)
@@ -157,14 +166,16 @@ def test_integration_request_retrieve_context_prompt_reason_result() -> None:
         "citations",
         "metadata",
     ]
-    assert prompt.messages[0].role.value == "system"
-    assert prompt.messages[1].role.value == "user"
     assert isinstance(result, ReasoningResult)
     assert result.context.request is request
     assert len(result.citations) == 2
     assert result.citations[0].document_id == "doc-a"
     assert result.metadata["document_count"] == 2
     assert result.metadata["section_count"] == 5
+    assert result.metadata["provider"] == "fake"
+    assert result.metadata["model"] == "fake-reasoning-v1"
+    assert result.metadata["estimated_tokens"] == prompt.context.estimated_token_count
+    assert result.execution_time >= 0.0
     assert "Summarize the decisions." in result.answer
     assert "Alpha decision from notes." in result.answer
     assert "Beta follow-up detail." in result.answer
@@ -173,10 +184,14 @@ def test_integration_request_retrieve_context_prompt_reason_result() -> None:
 def test_integration_empty_retrieval_stops_before_provider() -> None:
     retriever = StubKnowledgeRetriever(())
     assembler = ContextAssembler(knowledge_retriever=retriever)
+    gateway = ModelGateway(
+        providers={"fake": FakeReasoningProvider()},
+        config=IntelligenceConfig(provider="fake"),
+    )
     command = Reason(
         knowledge_retriever=retriever,
         context_assembler=assembler,
-        reasoning_provider=FakeReasoningProvider(),
+        model_gateway=gateway,
     )
 
     with pytest.raises(NoRetrievedKnowledgeError):
