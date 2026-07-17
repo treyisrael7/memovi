@@ -116,6 +116,8 @@ class Reason:
             execution_time=execution_trace.total_duration,
             context=result.context,
             execution_trace=execution_trace,
+            tool_calls=result.tool_calls,
+            tool_results=result.tool_results,
         )
 
 

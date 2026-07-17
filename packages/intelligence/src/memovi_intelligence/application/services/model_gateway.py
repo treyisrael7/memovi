@@ -87,6 +87,8 @@ class ModelGateway:
             execution_time=duration,
             context=result.context,
             execution_trace=result.execution_trace,
+            tool_calls=result.tool_calls,
+            tool_results=result.tool_results,
         )
 
     def _resolve_provider(self) -> ReasoningProvider:

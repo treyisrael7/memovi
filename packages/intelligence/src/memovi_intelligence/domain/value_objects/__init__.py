@@ -19,6 +19,10 @@ from memovi_intelligence.domain.value_objects.reasoning_query import ReasoningQu
 from memovi_intelligence.domain.value_objects.reasoning_request_id import ReasoningRequestId
 from memovi_intelligence.domain.value_objects.retrieved_knowledge import RetrievedKnowledge
 from memovi_intelligence.domain.value_objects.stage_timing import StageTiming
+from memovi_intelligence.domain.value_objects.tool_call import ToolCall
+from memovi_intelligence.domain.value_objects.tool_definition import ToolDefinition
+from memovi_intelligence.domain.value_objects.tool_parameter import ToolParameter
+from memovi_intelligence.domain.value_objects.tool_result import ToolResult
 
 __all__ = [
     "PIPELINE_STAGE_ORDER",
@@ -40,4 +44,8 @@ __all__ = [
     "ReasoningRequestId",
     "RetrievedKnowledge",
     "StageTiming",
+    "ToolCall",
+    "ToolDefinition",
+    "ToolParameter",
+    "ToolResult",
 ]

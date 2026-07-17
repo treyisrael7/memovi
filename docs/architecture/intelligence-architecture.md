@@ -58,13 +58,15 @@ Core immutable concepts:
 * `ReasoningResult` — immutable reasoning output with a read-only `execution_trace`
 * `ExecutionTrace` — structured stage timings and aggregate metrics for a reasoning request
 * `Conversation` / `ConversationHistory` / `ConversationTurn` — multi-turn conversation memory
+* `Tool` / `ToolDefinition` / `ToolCall` / `ToolResult` — first-class tool execution contracts
 
 `ReasoningContext` includes the originating request, retained retrieved knowledge,
 assembled documents, assembly metadata, an estimated token count, and optional
 trimmed conversation history.
 
 `ReasoningResult` is immutable and includes the answer, citations, metadata, provider
-name, execution time, the context that produced it, and an `execution_trace`.
+name, execution time, the context that produced it, an `execution_trace`, and optional
+`tool_calls` / `tool_results`.
 
 The `Reason` command records timing for each pipeline stage (`retrieval`,
 `context_assembly`, `prompt_build`, `provider_resolution`, `model_execution`) and
@@ -77,6 +79,12 @@ loads history through `ConversationRepository`. `ContextAssembler` may attach re
 conversation history under configurable turn and token limits; history never bypasses
 those limits or the overall estimated-token budget. `PromptBuilder` renders history as
 its own `conversation_history` section, separate from retrieved knowledge.
+
+`ToolRegistry` registers and discovers tools without executing them. `ToolExecutor`
+validates tool identity and arguments, executes the resolved tool, captures execution
+metadata, and returns an immutable `ToolResult`. Domain errors cover unknown tools,
+invalid arguments, execution failures, and timeouts. Concrete product tools and agent
+loops are out of scope for this foundation.
 
 `ContextAssembler` builds that context through the `KnowledgeRetriever` port. It orders
 by retrieval ranking, removes duplicate chunks, skips excess documents when limits

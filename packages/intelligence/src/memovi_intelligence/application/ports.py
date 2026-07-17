@@ -6,6 +6,7 @@ from memovi_intelligence.domain.value_objects import (
     ConversationTurn,
     Prompt,
     RetrievedKnowledge,
+    ToolDefinition,
 )
 
 
@@ -45,4 +46,20 @@ class ConversationRepository(Protocol):
         raise NotImplementedError
 
     def list_turns(self, conversation_id: ConversationId) -> tuple[ConversationTurn, ...]:
+        raise NotImplementedError
+
+
+class Tool(Protocol):
+    """Executable capability that can be discovered and invoked by Intelligence."""
+
+    def name(self) -> str:
+        raise NotImplementedError
+
+    def description(self) -> str:
+        raise NotImplementedError
+
+    def schema(self) -> ToolDefinition:
+        raise NotImplementedError
+
+    def execute(self, arguments: dict[str, object]) -> object:
         raise NotImplementedError

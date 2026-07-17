@@ -11,6 +11,7 @@ pipeline:
 
 * Immutable reasoning concepts (`ReasoningRequest`, `ReasoningContext`, `ReasoningResult`)
 * Conversation memory (`Conversation`, `ConversationTurn`, `ConversationHistory`, `ConversationId`)
+* Tool execution framework (`Tool`, `ToolRegistry`, `ToolExecutor`, `ToolCall`, `ToolResult`, `ToolDefinition`)
 * Read-only execution tracing (`ExecutionTrace`, `ExecutionStage`, `StageTiming`, `ExecutionMetrics`)
 * Provider-agnostic prompt construction (`Prompt`, `PromptMessage`, `PromptRole`, `PromptSection`)
 * Citations attached to reasoning answers
@@ -24,7 +25,7 @@ pipeline:
 * Placeholder infrastructure adapters for unfinished Search/LLM integrations
 * Package configuration with provider selection (`provider=fake|openai`; future: anthropic, ollama, gemini)
 
-It does not yet implement LLM integrations, chat, conversations, streaming, or agents.
+It does not yet implement concrete product tools, LLM chat endpoints, streaming, or agents.
 
 ## Layout
 

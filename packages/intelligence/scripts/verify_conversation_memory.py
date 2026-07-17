@@ -10,31 +10,35 @@ SRC = ROOT / "packages" / "intelligence" / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from memovi_intelligence.application.commands import Reason
-from memovi_intelligence.application.services import (
-    ContextAssembler,
-    ConversationService,
-    ModelGateway,
-    PromptBuilder,
-)
-from memovi_intelligence.config import IntelligenceConfig
-from memovi_intelligence.domain.entities import ReasoningRequest
-from memovi_intelligence.domain.value_objects import RetrievedKnowledge
-from memovi_intelligence.infrastructure import (
-    FakeReasoningProvider,
-    InMemoryConversationRepository,
-)
-
-
-class StubRetriever:
-    def __init__(self, items: tuple[RetrievedKnowledge, ...]) -> None:
-        self._items = items
-
-    def retrieve(self, request: ReasoningRequest, *, limit: int) -> tuple[RetrievedKnowledge, ...]:
-        return self._items[:limit]
-
 
 def main() -> None:
+    from memovi_intelligence.application.commands import Reason
+    from memovi_intelligence.application.services import (
+        ContextAssembler,
+        ConversationService,
+        ModelGateway,
+        PromptBuilder,
+    )
+    from memovi_intelligence.config import IntelligenceConfig
+    from memovi_intelligence.domain.entities import ReasoningRequest
+    from memovi_intelligence.domain.value_objects import RetrievedKnowledge
+    from memovi_intelligence.infrastructure import (
+        FakeReasoningProvider,
+        InMemoryConversationRepository,
+    )
+
+    class StubRetriever:
+        def __init__(self, items: tuple[RetrievedKnowledge, ...]) -> None:
+            self._items = items
+
+        def retrieve(
+            self,
+            request: ReasoningRequest,
+            *,
+            limit: int,
+        ) -> tuple[RetrievedKnowledge, ...]:
+            return self._items[:limit]
+
     knowledge = (
         RetrievedKnowledge(
             chunk_id="chunk-memovi",
@@ -69,7 +73,6 @@ def main() -> None:
     conversation = conversations.create_conversation()
     print(f"conversation_id = {conversation.id.value}")
 
-    # --- Turn 1 ---
     q1 = "What is Memovi?"
     result1 = reason.execute(ReasoningRequest.create(query=q1))
     conversations.append_user_turn(conversation.id, q1)
@@ -82,7 +85,6 @@ def main() -> None:
     print(f"user = {q1}")
     print(f"assistant_preview = {result1.answer[:180].replace(chr(10), ' ')}")
 
-    # --- Turn 2 ---
     q2 = "Who built it?"
     history2 = conversations.load_history(conversation.id)
     result2 = reason.execute(
@@ -139,7 +141,6 @@ def main() -> None:
     assert "Memovi is a self-hosted knowledge platform." in knowledge_text
     assert q1 not in knowledge_text
 
-    # --- Follow-up: What did I ask first? ---
     q3 = "What did I ask first?"
     history3 = conversations.load_history(conversation.id)
     result3 = reason.execute(
