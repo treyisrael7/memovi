@@ -1,13 +1,19 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, status
 from pydantic import AfterValidator
 
-from memovi_search.api.dependencies import get_search_knowledge
+from memovi_search.api.dependencies import get_retrieve_knowledge, get_semantic_search
 from memovi_search.api.schemas import SearchResponse, SearchResultItemResponse
-from memovi_search.application.dto import SearchFilters
-from memovi_search.application.queries import SearchKnowledge, SearchKnowledgeQuery
+from memovi_search.application.dto import SearchFilters, SearchResultDto
+from memovi_search.application.queries import (
+    RetrieveKnowledge,
+    RetrieveKnowledgeQuery,
+    SemanticSearch,
+    SemanticSearchQuery,
+)
+from memovi_search.application.services import RetrievalMode
 
 
 def _require_non_blank_query(value: str) -> str:
@@ -18,8 +24,26 @@ def _require_non_blank_query(value: str) -> str:
 
 
 NonBlankSearchQuery = Annotated[str, AfterValidator(_require_non_blank_query)]
+SearchMode = Literal["keyword", "semantic", "hybrid"]
 
 router = APIRouter(prefix="/search", tags=["search"])
+
+
+def _to_response(*, query: str, results: list[SearchResultDto]) -> SearchResponse:
+    return SearchResponse(
+        query=query,
+        count=len(results),
+        results=[
+            SearchResultItemResponse(
+                search_document_id=result.search_document_id,
+                knowledge_item_id=result.knowledge_item_id,
+                document_id=result.document_id,
+                score=result.relevance_score,
+                text=result.searchable_text,
+            )
+            for result in results
+        ],
+    )
 
 
 @router.get(
@@ -28,9 +52,10 @@ router = APIRouter(prefix="/search", tags=["search"])
     status_code=status.HTTP_200_OK,
     summary="Search indexed knowledge",
     description=(
-        "Run a ranked full-text search over indexed searchable documents. "
-        "Optional metadata filters narrow results before ranking. "
-        "Does not perform vector, hybrid, or AI-assisted retrieval."
+        "Run unified retrieval over indexed knowledge. "
+        "Supported modes: keyword (full-text), semantic (vector similarity), "
+        "and hybrid (Reciprocal Rank Fusion of both). Hybrid is the default. "
+        "Optional metadata filters are applied after retrieval and fusion."
     ),
     responses={
         200: {"description": "Ranked search results for the query."},
@@ -42,10 +67,16 @@ def search(
         NonBlankSearchQuery,
         Query(
             min_length=1,
-            description="Full-text search query. Required and must be non-empty.",
+            description="Search query. Required and must be non-empty.",
         ),
     ],
-    use_case: Annotated[SearchKnowledge, Depends(get_search_knowledge)],
+    use_case: Annotated[RetrieveKnowledge, Depends(get_retrieve_knowledge)],
+    mode: Annotated[
+        SearchMode,
+        Query(
+            description=("Retrieval mode: keyword, semantic, or hybrid (default hybrid)."),
+        ),
+    ] = "hybrid",
     document_id: Annotated[
         str | None,
         Query(description="Restrict results to a single document ID."),
@@ -83,8 +114,9 @@ def search(
     ] = 0,
 ) -> SearchResponse:
     results = use_case.execute(
-        SearchKnowledgeQuery(
+        RetrieveKnowledgeQuery(
             query=q,
+            mode=RetrievalMode(mode),
             limit=limit,
             offset=offset,
             filters=SearchFilters(
@@ -96,17 +128,46 @@ def search(
             ),
         )
     )
-    return SearchResponse(
-        query=q,
-        count=len(results),
-        results=[
-            SearchResultItemResponse(
-                search_document_id=result.search_document_id,
-                knowledge_item_id=result.knowledge_item_id,
-                document_id=result.document_id,
-                score=result.relevance_score,
-                text=result.searchable_text,
-            )
-            for result in results
-        ],
+    return _to_response(query=q, results=results)
+
+
+@router.get(
+    "/semantic",
+    response_model=SearchResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Semantic search indexed knowledge (deprecated)",
+    description=(
+        "Deprecated. Prefer GET /search?mode=semantic. "
+        "Routes through the unified RetrievalEngine in semantic mode."
+    ),
+    responses={
+        200: {"description": "Ranked semantic search results for the query."},
+        422: {"description": "Invalid or missing query parameters."},
+    },
+    deprecated=True,
+)
+def semantic_search(
+    q: Annotated[
+        NonBlankSearchQuery,
+        Query(
+            min_length=1,
+            description="Semantic search query. Required and must be non-empty.",
+        ),
+    ],
+    use_case: Annotated[SemanticSearch, Depends(get_semantic_search)],
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=100,
+            description="Maximum number of results to return (default 25, max 100).",
+        ),
+    ] = 25,
+) -> SearchResponse:
+    results = use_case.execute(
+        SemanticSearchQuery(
+            query=q,
+            limit=limit,
+        )
     )
+    return _to_response(query=q, results=results)

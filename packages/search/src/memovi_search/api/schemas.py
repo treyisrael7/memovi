@@ -33,7 +33,7 @@ class SearchDocumentListResponse(BaseModel):
 
 
 class SearchResultItemResponse(BaseModel):
-    """A single ranked full-text search match."""
+    """A single ranked search match."""
 
     search_document_id: str
     knowledge_item_id: str
@@ -43,7 +43,7 @@ class SearchResultItemResponse(BaseModel):
 
 
 class SearchResponse(BaseModel):
-    """Ranked full-text search response for indexed knowledge."""
+    """Ranked search response for indexed knowledge."""
 
     query: str
     count: int = Field(ge=0)

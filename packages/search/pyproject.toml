@@ -5,6 +5,7 @@ description = "Search and retrieval domain boundary."
 requires-python = ">=3.14"
 dependencies = [
     "fastapi",
+    "pgvector",
     "sqlalchemy>=2",
 ]
 

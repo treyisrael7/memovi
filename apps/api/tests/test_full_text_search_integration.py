@@ -6,7 +6,7 @@ from api.app import create_app
 from api.document_processing import configure_document_processing
 from api.documents_session import build_documents_database_session
 from api.events import InProcessEventDispatcher
-from api.search_integration import build_search_knowledge
+from api.search_integration import build_retrieve_knowledge
 from auth.api.dependencies import get_database_session as get_auth_database_session
 from auth.infrastructure.persistence import Base as AuthBase
 from documents.api.dependencies import (
@@ -22,10 +22,11 @@ from documents.infrastructure.persistence.models import ProcessingJobRecord
 from documents.infrastructure.queue import InMemoryProcessingJobQueue
 from fastapi.testclient import TestClient
 from memovi_memory.infrastructure.persistence.models import Base as MemoryBase
-from memovi_search.application.queries import SearchKnowledgeQuery
+from memovi_search.application.queries import RetrieveKnowledgeQuery
+from memovi_search.application.services import RetrievalMode
 from memovi_search.infrastructure.persistence.models import Base as SearchBase
 from memovi_search.infrastructure.persistence.models import SearchDocumentRecord
-from postgres_support import postgres_available, postgres_database_url
+from postgres_support import ensure_pgvector_extension, postgres_available, postgres_database_url
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -96,6 +97,7 @@ def full_text_search_client() -> Iterator[tuple[TestClient, Engine, InProcessEve
 
     object_storage = InMemoryObjectStorage()
     engine = create_engine(postgres_database_url(), pool_pre_ping=True)
+    ensure_pgvector_extension(engine)
     AuthBase.metadata.drop_all(engine)
     DocumentsBase.metadata.drop_all(engine)
     MemoryBase.metadata.drop_all(engine)
@@ -172,10 +174,11 @@ def test_upload_process_and_search_returns_memovi_document(
     _wait_for_search_documents(engine)
 
     with Session(engine) as session:
-        search = build_search_knowledge(session)
+        search = build_retrieve_knowledge(session)
         results = search.execute(
-            SearchKnowledgeQuery(
+            RetrieveKnowledgeQuery(
                 query="Memovi",
+                mode=RetrievalMode.KEYWORD,
                 limit=10,
                 offset=0,
             )
@@ -187,8 +190,9 @@ def test_upload_process_and_search_returns_memovi_document(
         assert results[0].relevance_score > 0
 
         missing_results = search.execute(
-            SearchKnowledgeQuery(
+            RetrieveKnowledgeQuery(
                 query="missing-term",
+                mode=RetrievalMode.KEYWORD,
                 limit=10,
                 offset=0,
             )

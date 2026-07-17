@@ -1,9 +1,12 @@
 from datetime import datetime
 from typing import Any
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+from memovi_search.infrastructure.persistence.vector import EMBEDDING_VECTOR_DIMENSIONS
 
 
 class Base(DeclarativeBase):
@@ -54,7 +57,10 @@ class SearchEmbeddingRecord(Base):
     provider: Mapped[str] = mapped_column(String(128), nullable=False)
     model: Mapped[str] = mapped_column(String(128), nullable=False)
     dimensions: Mapped[int] = mapped_column(Integer, nullable=False)
-    vector: Mapped[list[float]] = mapped_column(JSON, nullable=False)
+    vector: Mapped[list[float]] = mapped_column(
+        Vector(EMBEDDING_VECTOR_DIMENSIONS).with_variant(JSON(), "sqlite"),
+        nullable=False,
+    )
 
     __table_args__ = (
         UniqueConstraint(

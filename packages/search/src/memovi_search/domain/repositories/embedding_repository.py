@@ -1,7 +1,7 @@
 from typing import Protocol
 
-from memovi_search.domain.entities import Embedding
-from memovi_search.domain.value_objects import EmbeddingId, SearchDocumentId
+from memovi_search.domain.entities import Embedding, RankedSearchDocument
+from memovi_search.domain.value_objects import EmbeddingId, EmbeddingVector, SearchDocumentId
 
 
 class EmbeddingRepository(Protocol):
@@ -17,4 +17,13 @@ class EmbeddingRepository(Protocol):
         raise NotImplementedError
 
     def delete(self, embedding_id: EmbeddingId) -> None:
+        raise NotImplementedError
+
+    def similarity_search(
+        self,
+        query_vector: EmbeddingVector,
+        limit: int,
+    ) -> list[RankedSearchDocument]:
+        """Return search documents ordered by cosine similarity to the query vector."""
+
         raise NotImplementedError

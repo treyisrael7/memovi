@@ -75,9 +75,10 @@ If you are not using Task, the equivalent commands are documented in
 ```
 
 The API app currently contains the backend composition root, health endpoint,
-local authentication endpoints, and full-text search. Auth owns its domain
+local authentication endpoints, and search. Auth owns its domain
 model, use cases, SQLAlchemy repositories, Alembic migration, and tests inside
-`packages/auth`. Search owns ranked full-text retrieval and exposes `GET /search`.
+`packages/auth`. Search owns ranked full-text, semantic, and hybrid retrieval and exposes
+`GET /search` with `mode=keyword|semantic|hybrid` (hybrid default).
 
 ## Development Workflow
 
@@ -101,7 +102,7 @@ task backend
 
 The API health endpoint is available at `http://localhost:8000/health`.
 Local authentication endpoints are available under `http://localhost:8000/auth`.
-Full-text search is available at `http://localhost:8000/search`.
+Full-text, semantic, and hybrid search are available at `http://localhost:8000/search`.
 
 Run validation before opening a pull request:
 

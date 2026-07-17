@@ -7,53 +7,47 @@ consume indexed knowledge.
 ## Current scope
 
 This package provides the search domain model, materialization workflow, and
-first retrieval capability:
+unified retrieval:
 
-- Domain entities: `SearchDocument` and `Embedding` with enforced invariants
+- Domain entities: `SearchDocument`, `Embedding`, and `SearchResult`
 - Value objects: `SearchDocumentId`, `EmbeddingId`, and `EmbeddingVector`
+- Retrievers: `KeywordRetriever` and `SemanticRetriever` behind a shared
+  `Retriever` protocol
+- Ranking: Reciprocal Rank Fusion (`RankFusion`) and `ScoreNormalizer`
+- Application service: `RetrievalEngine` orchestrates retrieval, fusion,
+  filtering, normalization, and pagination
+- Application query: `RetrieveKnowledge` (modes: `keyword`, `semantic`, `hybrid`)
 - Provider protocol: `EmbeddingProvider` for interchangeable embedding generators
 - Application service: `EmbeddingGenerationService` for provider-agnostic generation
-- Placeholder providers: OpenAI, Ollama, and Sentence Transformer (not implemented)
 - Deterministic `FakeEmbeddingProvider` for local wiring and tests
-- Provider selection: `EmbeddingProviderConfig` / `build_embedding_provider`
-- Repository contracts: `SearchRepository` (full-text) and `EmbeddingRepository`
-- Domain service: `SearchMaterializer` for deterministic search document creation
-- Application commands: `MaterializeSearchDocument` and `GenerateEmbedding`
-- Application handlers: `SearchKnowledgeMaterializedHandler` and
-  `SearchIndexedEmbeddingHandler` for event-driven indexing and embedding
-- Application query: `SearchKnowledge` for ranked full-text retrieval
-- Public HTTP API: `GET /search` for ranked full-text retrieval with optional
-  metadata filters
-- Domain events: `SearchDocumentRegistered`, `SearchIndexed`, and `EmbeddingGenerated`
-- Application DTOs, ports, and layer scaffolds for future use cases
-- SQLAlchemy persistence models and repository implementations
-- Embedding vectors stored as JSON `list[float]` (pgvector not yet)
+- Repository contracts: `SearchRepository` and `EmbeddingRepository`
+- Public HTTP API: `GET /search` with `mode` (hybrid default); `GET /search/semantic`
+  is deprecated and routes through the same engine
+- Embedding vectors stored with PostgreSQL pgvector (`vector(N)` + HNSW cosine index)
 
 Search owns derived retrieval structures. It does not own canonical knowledge.
 Everything in Search must be reproducible from Memory.
 
-The import package is `memovi_search` because the package boundary is already
-clear from `packages/search`.
+## Unified retrieval
 
-## Full-text search
+`RetrieveKnowledge` builds a retrieval request, runs the enabled retrievers,
+fuses rankings with RRF for hybrid mode, applies metadata filters, normalizes
+scores for presentation, then paginates.
 
-`SearchDocument` persistence stores:
-
-- `searchable_text` — normalized text assembled from canonical memory chunks
-- `search_vector` — PostgreSQL `tsvector` generated with the English text search
-  configuration whenever a search document is created or updated
-
-A GIN index on `search_vector` supports ranked retrieval ordered by
-`ts_rank`. The `SearchKnowledge` query returns `SearchResultDto` records with
-document identifiers, searchable text, and relevance scores.
+| Mode | Behavior |
+|------|----------|
+| `keyword` | Full-text (`ts_rank`) only |
+| `semantic` | Vector cosine similarity only |
+| `hybrid` | RRF merge of keyword and semantic (default) |
 
 ## Search API
 
-`GET /search` exposes ranked full-text retrieval over HTTP:
+`GET /search`:
 
 | Parameter | Required | Default | Notes |
 |-----------|----------|---------|-------|
 | `q` | yes | — | Non-empty search query |
+| `mode` | no | `hybrid` | `keyword`, `semantic`, or `hybrid` |
 | `document_id` | no | — | Restrict to one document |
 | `source_type` | no | — | Restrict by source type |
 | `mime_type` | no | — | Restrict by MIME type |
@@ -62,49 +56,22 @@ document identifiers, searchable text, and relevance scores.
 | `limit` | no | `25` | Maximum `100` |
 | `offset` | no | `0` | Must be non-negative |
 
-Optional metadata filters are applied to search projections before ranking.
-When omitted, search behavior is unchanged.
-
-The response returns the normalized query, result count, and ranked matches with
-`search_document_id`, `knowledge_item_id`, `document_id`, `score`, and `text`.
-The route stays thin: it validates query parameters, calls `SearchKnowledge`,
-and maps `SearchResultDto` values to the public response schema.
+`GET /search/semantic` is deprecated; use `GET /search?mode=semantic`.
 
 ## Layout
 
-- `domain` — business model, invariants, provider protocols, repository interfaces, and events
-- `application` — use cases, generation services, DTOs, ports, and worker placeholders
-- `infrastructure` — persistence models, SQLAlchemy repositories, and provider adapters
-- `api` — FastAPI router, dependencies, and response schemas for search
+- `domain` — model, retrievers, ranking, repository interfaces, events
+- `application` — use cases, `RetrievalEngine`, generation services, DTOs
+- `infrastructure` — persistence models, SQLAlchemy repositories, providers
+- `api` — FastAPI router, dependencies, response schemas
 
-## Embedding generation
-
-`SearchIndexed` triggers `SearchIndexedEmbeddingHandler`, which loads the
-canonical `SearchDocument`, generates a vector through
-`EmbeddingGenerationService`, persists an `Embedding` projection, and publishes
-`EmbeddingGenerated`. Embeddings are derived data and remain reproducible from
-`SearchDocument` text.
-
-The composition root currently wires `FakeEmbeddingProvider` so the pipeline is
-exercisable without external embedding APIs. Provider identity (`provider`,
-`model`) is recorded on each embedding for later regeneration.
-
-## Out of scope for this foundation
+## Out of scope
 
 - Live embedding generation against OpenAI, Ollama, or Sentence Transformers
-- Vector storage and pgvector integration
-- Vector similarity search and hybrid retrieval
-- Intelligence / answer generation
-
-Cross-domain wiring from memory materialization to search indexing lives in
-the API composition root (`apps/api`), which subscribes to `KnowledgeMaterialized`
-and invokes `SearchKnowledgeMaterializedHandler` without creating a compile-time
-dependency from Memory to Search or Search to Memory. `SearchIndexed` similarly
-drives embedding generation inside Search.
+- AI reasoning, answer generation, or LLM prompts
+- Reranking models beyond RRF
 
 ## Memory boundary
 
 Search references knowledge items and processed documents by string UUID
-identifiers. It does not import the Memory or Documents domains. Canonical
-knowledge and normalized source text remain owned by Memory until future use
-cases register searchable projections.
+identifiers. It does not import the Memory or Documents domains.

@@ -73,6 +73,13 @@ class FakeEmbeddingRepository(EmbeddingRepository):
         self.deleted_ids.append(embedding_id.value)
         self.embeddings.pop(embedding_id.value, None)
 
+    def similarity_search(
+        self,
+        query_vector: EmbeddingVector,
+        limit: int,
+    ) -> list[RankedSearchDocument]:
+        return []
+
 
 class FakeEventPublisher:
     def __init__(self) -> None:

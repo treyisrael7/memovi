@@ -782,12 +782,14 @@ version = "0.1.0"
 source = { editable = "packages/search" }
 dependencies = [
     { name = "fastapi" },
+    { name = "pgvector" },
     { name = "sqlalchemy" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "fastapi" },
+    { name = "pgvector" },
     { name = "sqlalchemy", specifier = ">=2" },
 ]
 

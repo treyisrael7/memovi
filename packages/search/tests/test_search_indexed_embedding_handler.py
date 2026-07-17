@@ -9,7 +9,7 @@ from memovi_search.application.services import EmbeddingGenerationService
 from memovi_search.domain.entities import Embedding, RankedSearchDocument, SearchDocument
 from memovi_search.domain.events import EmbeddingGenerated, SearchIndexed
 from memovi_search.domain.repositories import EmbeddingRepository, SearchRepository
-from memovi_search.domain.value_objects import EmbeddingId, SearchDocumentId
+from memovi_search.domain.value_objects import EmbeddingId, EmbeddingVector, SearchDocumentId
 from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from sqlalchemy.orm import Session as OrmSession
 
@@ -74,6 +74,13 @@ class FakeEmbeddingRepository(EmbeddingRepository):
 
     def delete(self, embedding_id: EmbeddingId) -> None:
         self.saved = [embedding for embedding in self.saved if embedding.id != embedding_id]
+
+    def similarity_search(
+        self,
+        query_vector: EmbeddingVector,
+        limit: int,
+    ) -> list[RankedSearchDocument]:
+        return []
 
 
 class FakeEventPublisher:

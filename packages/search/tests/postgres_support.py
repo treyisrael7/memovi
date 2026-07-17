@@ -21,7 +21,11 @@ def postgres_database_url() -> str:
 
 def postgres_available() -> bool:
     try:
-        engine = create_engine(postgres_database_url(), pool_pre_ping=True)
+        engine = create_engine(
+            postgres_database_url(),
+            pool_pre_ping=True,
+            connect_args={"connect_timeout": 2},
+        )
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
         engine.dispose()
@@ -32,12 +36,18 @@ def postgres_available() -> bool:
 
 requires_postgres = pytest.mark.skipif(
     not postgres_available(),
-    reason="PostgreSQL is required for full-text search tests.",
+    reason="PostgreSQL is required for full-text and vector search tests.",
 )
+
+
+def ensure_pgvector_extension(engine: Engine) -> None:
+    with engine.begin() as connection:
+        connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
 
 def build_postgres_session_factory() -> tuple[sessionmaker[Session], Engine]:
     engine = create_engine(postgres_database_url(), pool_pre_ping=True)
+    ensure_pgvector_extension(engine)
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     return sessionmaker(bind=engine, expire_on_commit=False), engine

@@ -4,8 +4,8 @@ from memovi_search.domain.entities.search_document import SearchDocument
 
 
 @dataclass(frozen=True, slots=True)
-class RankedSearchDocument:
-    """Search document matched by retrieval with a relevance or similarity score."""
+class SearchResult:
+    """A single ranked retrieval hit produced by a retriever or fusion step."""
 
     search_document: SearchDocument
-    relevance_score: float
+    score: float

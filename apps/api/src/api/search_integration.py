@@ -17,10 +17,12 @@ from memovi_search.application.handlers import (
     SearchKnowledgeMaterializedHandler,
 )
 from memovi_search.application.ports import EventPublisher
-from memovi_search.application.queries import SearchKnowledge
-from memovi_search.application.services import EmbeddingGenerationService
+from memovi_search.application.queries import RetrieveKnowledge, SearchKnowledge, SemanticSearch
+from memovi_search.application.services import EmbeddingGenerationService, RetrievalEngine
 from memovi_search.domain.events import SearchIndexed
 from memovi_search.domain.providers import EmbeddingProvider
+from memovi_search.domain.ranking import RankFusion, ScoreNormalizer
+from memovi_search.domain.retrievers import KeywordRetriever, SemanticRetriever
 from memovi_search.domain.services import SearchMaterializer
 from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from memovi_search.infrastructure.repositories import (
@@ -74,9 +76,61 @@ def build_generate_embedding(
     )
 
 
-def build_search_knowledge(session: OrmSession) -> SearchKnowledge:
+def build_retrieval_engine(
+    session: OrmSession,
+    *,
+    embedding_provider: EmbeddingProvider | None = None,
+) -> RetrievalEngine:
+    provider = embedding_provider or FakeEmbeddingProvider()
+    return RetrievalEngine(
+        keyword_retriever=KeywordRetriever(
+            search_repository=SqlAlchemySearchRepository(session),
+        ),
+        semantic_retriever=SemanticRetriever(
+            embedding_provider=provider,
+            embedding_repository=SqlAlchemyEmbeddingRepository(session),
+        ),
+        rank_fusion=RankFusion(),
+        score_normalizer=ScoreNormalizer(),
+    )
+
+
+def build_retrieve_knowledge(
+    session: OrmSession,
+    *,
+    embedding_provider: EmbeddingProvider | None = None,
+) -> RetrieveKnowledge:
+    return RetrieveKnowledge(
+        retrieval_engine=build_retrieval_engine(
+            session,
+            embedding_provider=embedding_provider,
+        ),
+    )
+
+
+def build_search_knowledge(
+    session: OrmSession,
+    *,
+    embedding_provider: EmbeddingProvider | None = None,
+) -> SearchKnowledge:
     return SearchKnowledge(
-        search_repository=SqlAlchemySearchRepository(session),
+        retrieval_engine=build_retrieval_engine(
+            session,
+            embedding_provider=embedding_provider,
+        ),
+    )
+
+
+def build_semantic_search(
+    session: OrmSession,
+    *,
+    embedding_provider: EmbeddingProvider | None = None,
+) -> SemanticSearch:
+    return SemanticSearch(
+        retrieval_engine=build_retrieval_engine(
+            session,
+            embedding_provider=embedding_provider,
+        ),
     )
 
 

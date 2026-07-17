@@ -55,6 +55,10 @@ Examples include:
 
 The architecture allows multiple retrieval techniques to coexist because each serves a different discovery need.
 
+Unified retrieval is orchestrated by `RetrievalEngine` / `RetrieveKnowledge` with
+modes `keyword`, `semantic`, and `hybrid` (RRF fusion). Metadata filters are applied
+after retrieval and fusion.
+
 # Indexing
 
 Knowledge becomes retrievable through indexing.
@@ -77,6 +81,8 @@ Vector storage enables semantic retrieval.
 Vectors represent derived knowledge rather than business entities. Embeddings should always be reproducible from stored documents.
 
 Memovi keeps vector storage within PostgreSQL through pgvector to preserve a single operational database, transaction consistency, simplified backups, reduced operational overhead, shared metadata, and easier development.
+
+Search persists embeddings as `vector(N)` with an HNSW index using cosine distance, and exposes semantic retrieval through `SemanticSearch` / `GET /search/semantic`. Embeddings remain derived data regenerable from Memory.
 
 Dedicated vector databases may be evaluated in the future if operational scale requires them.
 

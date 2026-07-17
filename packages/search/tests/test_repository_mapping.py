@@ -53,8 +53,8 @@ def test_embedding_mapping_round_trips_between_domain_and_record() -> None:
         search_document_id=search_document_id,
         provider="openai",
         model="text-embedding-3-small",
-        dimensions=3,
-        vector=(0.1, 0.2, 0.3),
+        dimensions=4,
+        vector=(0.1, 0.2, 0.3, 0.4),
     )
 
     record = repository._to_record(embedding)
@@ -63,5 +63,5 @@ def test_embedding_mapping_round_trips_between_domain_and_record() -> None:
     assert isinstance(record, SearchEmbeddingRecord)
     assert record.provider == "openai"
     assert record.model == "text-embedding-3-small"
-    assert record.vector == [0.1, 0.2, 0.3]
+    assert record.vector == [0.1, 0.2, 0.3, 0.4]
     assert restored == embedding

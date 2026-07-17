@@ -1,8 +1,8 @@
-"""Deprecated keyword-only query; prefer RetrieveKnowledge with mode=keyword."""
+"""Deprecated semantic-only query; prefer RetrieveKnowledge with mode=semantic."""
 
 from dataclasses import dataclass
 
-from memovi_search.application.dto import SearchFilters, SearchResultDto
+from memovi_search.application.dto import SearchResultDto
 from memovi_search.application.queries.retrieve_knowledge import (
     RetrieveKnowledge,
     RetrieveKnowledgeQuery,
@@ -11,26 +11,23 @@ from memovi_search.application.services.retrieval_engine import RetrievalEngine,
 
 
 @dataclass(frozen=True, slots=True)
-class SearchKnowledgeQuery:
+class SemanticSearchQuery:
     query: str
     limit: int
-    offset: int
-    filters: SearchFilters | None = None
 
 
-class SearchKnowledge:
-    """Thin keyword-mode adapter over RetrieveKnowledge for transitional callers."""
+class SemanticSearch:
+    """Thin semantic-mode adapter over RetrieveKnowledge for transitional callers."""
 
     def __init__(self, *, retrieval_engine: RetrievalEngine) -> None:
         self._retrieve_knowledge = RetrieveKnowledge(retrieval_engine=retrieval_engine)
 
-    def execute(self, query: SearchKnowledgeQuery) -> list[SearchResultDto]:
+    def execute(self, query: SemanticSearchQuery) -> list[SearchResultDto]:
         return self._retrieve_knowledge.execute(
             RetrieveKnowledgeQuery(
                 query=query.query,
                 limit=query.limit,
-                offset=query.offset,
-                mode=RetrievalMode.KEYWORD,
-                filters=query.filters,
+                offset=0,
+                mode=RetrievalMode.SEMANTIC,
             )
         )

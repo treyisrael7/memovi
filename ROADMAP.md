@@ -191,11 +191,11 @@ Provide fast, accurate retrieval across the knowledge platform.
 **Deliverables**
 
 * Full-text search — **done**
-* Vector search — **partial** (event-driven embedding generation and JSON vector persistence; no pgvector or similarity search yet)
-* Hybrid retrieval
-* Metadata filtering — **done** (full-text search projections)
-* Semantic ranking
-* Search APIs — **partial** (`GET /search` for full-text search)
+* Vector search — **done** (pgvector storage, HNSW cosine index, semantic mode)
+* Hybrid retrieval — **done** (unified `RetrievalEngine` with Reciprocal Rank Fusion)
+* Metadata filtering — **done** (applied after retrieval/fusion)
+* Semantic ranking — **partial** (score normalization + RRF; no learned reranker)
+* Search APIs — **done** (`GET /search` with `mode=keyword|semantic|hybrid`; `/search/semantic` deprecated)
 * Query optimization
 
 **Success Criteria**

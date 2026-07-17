@@ -4,7 +4,7 @@ from datetime import datetime
 
 @dataclass(frozen=True, slots=True)
 class SearchFilters:
-    """Optional metadata constraints applied with full-text search."""
+    """Optional metadata constraints applied after retrieval and fusion."""
 
     document_id: str | None = None
     document_version_id: str | None = None

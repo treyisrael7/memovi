@@ -130,7 +130,7 @@ exclude = [
 ]
 
 [[tool.mypy.overrides]]
-module = ["alembic", "boto3", "botocore.*", "pypdf", "pypdf.*"]
+module = ["alembic", "boto3", "botocore.*", "pgvector", "pgvector.*", "pypdf", "pypdf.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
