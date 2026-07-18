@@ -415,7 +415,7 @@ None under `application/queries/`.
 ### Repositories / ports
 
 * Ports: `KnowledgeRetriever`, `ReasoningProvider`, `ConversationRepository`, `Tool`
-* Infra: `InMemoryConversationRepository`
+* Infra: `InMemoryConversationRepository`, `SqlAlchemyConversationRepository`
 * Retrieval: `FakeKnowledgeRetriever`, `PlaceholderKnowledgeRetriever`
 * Providers: `FakeReasoningProvider`, `OpenAIReasoningProvider`, `PlaceholderReasoningProvider`, `build_model_gateway`
 * Tools: `EchoTool`
@@ -462,7 +462,7 @@ Tools: `ToolCall`, `ToolResult`, `ToolDefinition`, `ToolParameter`
 
 ### Dependencies on other domains
 
-None in package source. Package defaults use `FakeKnowledgeRetriever` and `InMemoryConversationRepository` for isolated tests. `apps/api` overrides `KnowledgeRetriever` with `SearchKnowledgeRetriever` (Search `RetrieveKnowledge`).
+None in package source. Package defaults use `FakeKnowledgeRetriever` and `InMemoryConversationRepository` for isolated tests. `apps/api` overrides `KnowledgeRetriever` with `SearchKnowledgeRetriever` and `ConversationRepository` with `SqlAlchemyConversationRepository`.
 
 ---
 
@@ -659,7 +659,12 @@ Registered in `apps/api/src/api/routers.py`: auth, documents, conversations (int
 
 ## Intelligence persistence
 
-Does not exist in SQL. Conversations use `InMemoryConversationRepository` (process-local dict).
+| Table | Purpose |
+|-------|---------|
+| `intelligence_conversations` | Conversation id + created/updated timestamps |
+| `intelligence_conversation_turns` | Ordered turns with role, content, citations JSON |
+
+Package default remains `InMemoryConversationRepository` for tests. `apps/api` wires `SqlAlchemyConversationRepository`.
 
 ## Migrations
 
@@ -674,8 +679,9 @@ Alembic `script_location = database/migrations`.
 | `20260713_0005` | Full-text `search_vector` + GIN |
 | `20260715_0006` | Search metadata filter columns |
 | `20260717_0007` | Enable pgvector; retype embeddings; HNSW index |
+| `20260717_0008` | Intelligence conversation tables |
 
-`database/migrations/env.py` registers auth, documents, memory, and search metadata.
+`database/migrations/env.py` registers auth, documents, intelligence, memory, and search metadata.
 
 ## pgvector
 
@@ -796,7 +802,7 @@ Immutable stage timings + aggregate `ExecutionMetrics`. Stages: `retrieval`, `co
 
 * Domain: `Conversation`, `ConversationTurn`, `ConversationHistory`
 * Application: `ConversationService`, `SendConversationMessage`
-* Infra: `InMemoryConversationRepository` only
+* Infra: `InMemoryConversationRepository` (tests); `SqlAlchemyConversationRepository` (composition root)
 * History is passed into `Reason` **before** the new user turn is appended (current request stays in `ReasoningRequest.query` / prompt `user_request`, not in history)
 
 ## Interaction (Conversation API path)
@@ -993,8 +999,6 @@ Scaffold packages have no meaningful test suites beyond empty/test placeholders 
 ## Missing coverage (factual gaps)
 
 * Ownership enforcement on knowledge APIs (feature absent)
-* Search-backed Intelligence retrieval (feature absent)
-* Durable conversation persistence (feature absent)
 * Tool framework integration into Reason path (feature absent)
 * Real embedding providers (stubs raise `NotImplementedError`)
 * Memory HTTP API (no routes)
@@ -1032,7 +1036,7 @@ Compared against `ROADMAP.md` milestones (capability phases), using repository f
 | 3 Knowledge Ingestion | **In Progress** | Upload, MinIO, worker, processing, chunk handoff done; OCR and connector intake absent |
 | 4 Knowledge Platform | **In Progress** | Memory materialization exists; collections/tags/relationships/public Memory API absent |
 | 5 Retrieval Intelligence | **In Progress** | Keyword/semantic/hybrid/filters/APIs done; query planning, cache/summary lookup, learned rerank absent |
-| 6 Reasoning Engine | **In Progress** | Reason pipeline, Conversation API, traces, fake/openai providers done; Search wiring, durable chats, chat UI, summaries absent |
+| 6 Reasoning Engine | **In Progress** | Reason pipeline, Conversation API, Search wiring, durable chats done; chat UI, summaries, streaming absent |
 | 7 Memory Intelligence | **Not Started** | Hierarchical summaries/caching/embedding lifecycle policies not implemented as a milestone slice |
 | 8 Connector Ecosystem | **Not Started** | Connectors package is empty scaffold |
 | 9 Platform Maturity | **Not Started** | Advanced observability/distributed workers/backup maturity not implemented |
@@ -1044,7 +1048,6 @@ Compared against `ROADMAP.md` milestones (capability phases), using repository f
 
 ## Known compromises
 
-* Conversations are process-local (`InMemoryConversationRepository`)
 * Embedding dimension hard-coded to **4** for fake/local vector path
 * Production embedding providers are stubs (`NotImplementedError`)
 * Document processing queue is in-memory (lost on process restart)
@@ -1064,7 +1067,6 @@ Compared against `ROADMAP.md` milestones (capability phases), using repository f
 
 ## Planned / implied refactors (from docs/status, not unfinished code branches)
 
-* Durable conversation repository
 * Ownership context on knowledge APIs
 * Typed `memovi_config` and observability package fill-in
 * Memory HTTP surface
@@ -1122,12 +1124,10 @@ Composition root (`apps/api`) owns cross-domain event wiring and adapters. Domai
 Not implemented:
 
 * Ownership enforcement on knowledge APIs
-* Search-backed conversation retrieval
-* Durable conversations
 * Connectors, OCR, collections/tags
 * Product chat UI / streaming
 * Typed shared config and observability packages
 * Real embedding provider integrations
 * Architecture boundary tests
 
-The knowledge pipeline from upload through hybrid search is operational for local development. The reasoning/conversation path is operational against fake retrieval and in-memory conversation state, and is not yet closed-loop with Search.
+The knowledge pipeline from upload through hybrid search is operational for local development. Conversation reasoning is closed-loop with Search-backed retrieval and durable SQLAlchemy conversation persistence at the composition root.

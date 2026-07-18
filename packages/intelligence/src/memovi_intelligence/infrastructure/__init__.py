@@ -1,4 +1,7 @@
-from memovi_intelligence.infrastructure.conversations import InMemoryConversationRepository
+from memovi_intelligence.infrastructure.conversations import (
+    InMemoryConversationRepository,
+    SqlAlchemyConversationRepository,
+)
 from memovi_intelligence.infrastructure.providers import (
     FakeReasoningProvider,
     OpenAIProviderSettings,
@@ -22,6 +25,7 @@ __all__ = [
     "OpenAIReasoningProvider",
     "PlaceholderKnowledgeRetriever",
     "PlaceholderReasoningProvider",
+    "SqlAlchemyConversationRepository",
     "build_model_gateway",
     "serialize_prompt_messages",
 ]

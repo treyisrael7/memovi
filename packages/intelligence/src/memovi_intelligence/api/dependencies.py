@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends, Request
+from sqlalchemy.orm import Session as OrmSession
 
 from memovi_intelligence.application.commands import Reason, SendConversationMessage
 from memovi_intelligence.application.ports import ConversationRepository, KnowledgeRetriever
@@ -18,6 +19,13 @@ from memovi_intelligence.infrastructure import (
 )
 
 
+def get_database_session() -> OrmSession:
+    raise RuntimeError("Intelligence database session dependency was not configured.")
+
+
+DatabaseSession = Annotated[OrmSession, Depends(get_database_session)]
+
+
 def get_intelligence_config(request: Request) -> IntelligenceConfig:
     config = getattr(request.app.state, "intelligence_config", None)
     if config is None:
@@ -27,6 +35,10 @@ def get_intelligence_config(request: Request) -> IntelligenceConfig:
 
 
 def get_conversation_repository(request: Request) -> ConversationRepository:
+    """Package default: process-local store for isolated tests.
+
+    The composition root overrides this with SqlAlchemyConversationRepository.
+    """
     repository = getattr(request.app.state, "conversation_repository", None)
     if repository is None:
         repository = InMemoryConversationRepository()

@@ -20,8 +20,12 @@ from documents.infrastructure.persistence import Base as DocumentsBase
 from documents.infrastructure.persistence.models import ProcessingJobRecord
 from documents.infrastructure.queue import InMemoryProcessingJobQueue
 from fastapi.testclient import TestClient
-from memovi_intelligence.api.dependencies import get_knowledge_retriever
+from memovi_intelligence.api.dependencies import (
+    get_database_session as get_intelligence_database_session,
+    get_knowledge_retriever,
+)
 from memovi_intelligence.infrastructure import FakeKnowledgeRetriever
+from memovi_intelligence.infrastructure.persistence import Base as IntelligenceBase
 from memovi_memory.infrastructure.persistence.models import Base as MemoryBase
 from memovi_search.api.dependencies import get_database_session as get_search_database_session
 from memovi_search.infrastructure.persistence.models import Base as SearchBase
@@ -110,9 +114,9 @@ def conversation_retrieval_client() -> Iterator[tuple[TestClient, Engine]]:
     object_storage = InMemoryObjectStorage()
     engine = create_engine(postgres_database_url(), pool_pre_ping=True)
     ensure_pgvector_extension(engine)
-    for base in (AuthBase, DocumentsBase, MemoryBase, SearchBase):
+    for base in (AuthBase, DocumentsBase, MemoryBase, SearchBase, IntelligenceBase):
         base.metadata.drop_all(engine)
-    for base in (AuthBase, DocumentsBase, MemoryBase, SearchBase):
+    for base in (AuthBase, DocumentsBase, MemoryBase, SearchBase, IntelligenceBase):
         base.metadata.create_all(engine)
     test_session_factory = sessionmaker(bind=engine, expire_on_commit=False)
 
@@ -143,6 +147,7 @@ def conversation_retrieval_client() -> Iterator[tuple[TestClient, Engine]]:
         database_session
     )
     app.dependency_overrides[get_search_database_session] = database_session
+    app.dependency_overrides[get_intelligence_database_session] = database_session
     app.dependency_overrides[get_object_storage] = lambda: object_storage
 
     with TestClient(app, base_url="https://testserver") as client:

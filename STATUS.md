@@ -221,6 +221,7 @@ Reasoning pipeline, conversation memory, Conversation REST API, and Search-backe
 * Execution traces and citations
 * Provider gateway with `fake` and `openai` adapters
 * Search-backed knowledge retrieval (`SearchKnowledgeRetriever` in `apps/api`)
+* Durable conversation storage (`SqlAlchemyConversationRepository` in `apps/api`)
 
 **In Progress**
 
@@ -233,17 +234,14 @@ Reasoning pipeline, conversation memory, Conversation REST API, and Search-backe
 
 * Product chat UI, streaming, and WebSockets
 * AI summaries
-* Durable conversation storage (current store is in-memory)
 
 **Known Risks**
 
-* In-memory conversations limit production usefulness
 * Tool framework is not yet part of the conversation path
 
 **Next Recommended Work**
 
-* Persist conversations durably
-* Product chat UI once durable conversation storage is solid
+* Product chat UI on top of durable conversations + Search-backed retrieval
 
 ---
 

@@ -132,9 +132,10 @@ Application ports remain:
 
 Infrastructure currently provides a deterministic `FakeReasoningProvider` for tests and
 an `OpenAIReasoningProvider` adapter that maps provider-agnostic prompts to Chat
-Completions. A `FakeKnowledgeRetriever` remains for isolated unit tests. The composition
-root (`apps/api`) wires `SearchKnowledgeRetriever`, which adapts Search
-`RetrieveKnowledge` onto the `KnowledgeRetriever` port without coupling the packages.
+Completions. A `FakeKnowledgeRetriever` and `InMemoryConversationRepository` remain for
+isolated unit tests. The composition root (`apps/api`) wires `SearchKnowledgeRetriever`
+(Search `RetrieveKnowledge`) and `SqlAlchemyConversationRepository` onto Intelligence
+ports without coupling packages across domain boundaries.
 
 `SendConversationMessage` loads conversation history, runs `Reason`, then appends the
 user and assistant turns through `ConversationService`. The Conversation REST API exposes

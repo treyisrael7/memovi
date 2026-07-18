@@ -6,6 +6,7 @@ requires-python = ">=3.14"
 dependencies = [
     "fastapi",
     "openai>=1.0",
+    "sqlalchemy>=2",
 ]
 
 [build-system]

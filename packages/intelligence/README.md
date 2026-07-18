@@ -23,7 +23,7 @@ pipeline:
 * `SendConversationMessage` use case: persist user/assistant turns around a Reason execution
 * Conversation REST API (`POST/GET /conversations`, `GET/POST /conversations/{id}/messages`)
 * Application ports for knowledge retrieval and reasoning providers
-* Deterministic `FakeReasoningProvider` / `FakeKnowledgeRetriever` for tests; production `OpenAIReasoningProvider`; Search-backed retrieval is wired in `apps/api`
+* Deterministic `FakeReasoningProvider` / `FakeKnowledgeRetriever` / `InMemoryConversationRepository` for tests; production `OpenAIReasoningProvider`; Search-backed retrieval and SQLAlchemy conversation persistence are wired in `apps/api`
 * Placeholder infrastructure adapters for unfinished Search integrations
 * Package configuration with provider selection (`provider=fake|openai`; future: anthropic, ollama, gemini)
 

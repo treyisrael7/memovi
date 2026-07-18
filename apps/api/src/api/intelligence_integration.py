@@ -1,15 +1,20 @@
-"""Composition-root wiring between Intelligence and Search.
+"""Composition-root wiring for Intelligence integrations.
 
-Intelligence owns the KnowledgeRetriever port. Search owns retrieval via
-RetrieveKnowledge / RetrievalEngine. This module is the only place that bridges
-the two so neither package imports the other.
+Owns adapters and DI factories that connect Intelligence ports to platform
+infrastructure (Search retrieval, durable conversation persistence) without
+introducing cross-domain package imports.
 """
 
 from typing import Annotated
 
 from fastapi import Depends
+from memovi_intelligence.api.dependencies import (
+    get_database_session as get_intelligence_database_session,
+)
+from memovi_intelligence.application.ports import ConversationRepository
 from memovi_intelligence.domain.entities import ReasoningRequest
 from memovi_intelligence.domain.value_objects import RetrievedKnowledge
+from memovi_intelligence.infrastructure import SqlAlchemyConversationRepository
 from memovi_search.api.dependencies import get_database_session as get_search_database_session
 from memovi_search.application.dto import SearchResultDto
 from memovi_search.application.queries import RetrieveKnowledge, RetrieveKnowledgeQuery
@@ -17,6 +22,13 @@ from memovi_search.application.services import RetrievalMode
 from sqlalchemy.orm import Session as OrmSession
 
 from api.search_integration import build_retrieve_knowledge
+
+
+def get_sqlalchemy_conversation_repository(
+    session: Annotated[OrmSession, Depends(get_intelligence_database_session)],
+) -> ConversationRepository:
+    """Request-scoped durable ConversationRepository for the composition root."""
+    return SqlAlchemyConversationRepository(session)
 
 
 class SearchKnowledgeRetriever:
