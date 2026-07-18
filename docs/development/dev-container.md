@@ -48,7 +48,7 @@ docker compose up -d
 
 Forwarded ports are configured for the web app and local infrastructure:
 
-- `3000` for Next.js
+- `3000` for the optional web client workspace
 - `5432` for PostgreSQL
 - `6379` for Redis
 - `9000` for the MinIO API
@@ -56,7 +56,7 @@ Forwarded ports are configured for the web app and local infrastructure:
 
 ## Notes
 
-The container does not run backend or frontend application services automatically. It only prepares the development environment and installs dependencies.
+The container does not run backend API or client application services automatically. It only prepares the development environment and installs dependencies.
 
 If dependencies change, rebuild the container or rerun:
 

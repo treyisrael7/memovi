@@ -10,7 +10,7 @@ It covers self-hosting, runtime components, infrastructure isolation, repository
 
 # Relationship to ARCHITECTURE.md
 
-[`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) establishes that Memovi is self-hostable by default and begins as a modular monolith. This document expands the deployment-related implications of those decisions.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) establishes that Memovi is self-hostable by default and begins as a modular monolith. This document expands the deployment-related implications of those decisions.
 
 # Self-Hostable by Default
 
@@ -24,8 +24,8 @@ Cloud-native technologies are encouraged. Cloud-required architecture is avoided
 
 The high-level runtime model includes:
 
-* Presentation clients
-* FastAPI application
+* Presentation clients (desktop primary; optional web and future clients)
+* FastAPI application (platform API boundary)
 * Business domains
 * Domain events
 * Workers
@@ -36,7 +36,7 @@ The high-level runtime model includes:
 
 The top-level blueprint represents these responsibilities in the canonical system diagram.
 
-See [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md).
+See [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
 
 # Infrastructure Layer
 
@@ -127,7 +127,7 @@ Additional infrastructure, including distributed services, dedicated message bro
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`repository-architecture.md`](repository-architecture.md)
 * [`storage-architecture.md`](storage-architecture.md)
 * [`observability.md`](observability.md)

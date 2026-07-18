@@ -10,13 +10,18 @@ Knowledge today is fragmented.
 
 Documents live in cloud storage, conversations happen across messaging platforms, code lives in repositories, and notes are scattered across personal tools. While AI has made interacting with information easier, it has not solved the underlying problem: knowledge remains disconnected.
 
-Memovi exists to build a persistent knowledge platform that unifies information regardless of where it originates.
+Memovi exists to build a persistent knowledge operating system that unifies
+information regardless of where it originates.
+
+The product is desktop-first: a reusable backend platform powers a flagship
+desktop experience, with optional web and future mobile clients over the same API.
 
 Artificial intelligence is not the product.
 
 Knowledge is.
 
-AI is simply one of the ways users interact with it.
+AI is simply one of the ways users interact with it. The client is replaceable;
+backend domains remain independent of any specific UI.
 
 ---
 
@@ -48,7 +53,9 @@ Features solve immediate needs.
 
 Platforms enable future capabilities.
 
-Whenever possible, we invest in reusable systems rather than isolated implementations.
+Whenever possible, we invest in a reusable backend platform and replaceable
+clients rather than isolated application-specific implementations. Desktop is
+the preferred product surface; the API remains the stable platform boundary.
 
 A connector framework is more valuable than a GitHub integration.
 

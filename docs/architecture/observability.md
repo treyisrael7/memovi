@@ -10,7 +10,7 @@ It covers observability concerns for requests, background jobs, events, AI infer
 
 # Relationship to ARCHITECTURE.md
 
-[`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) establishes observability as a core architectural concern. This document expands where visibility is required.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) establishes observability as a core architectural concern. This document expands where visibility is required.
 
 # Observability by Design
 
@@ -163,7 +163,7 @@ See [`connector-framework.md`](connector-framework.md).
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`request-lifecycle.md`](request-lifecycle.md)
 * [`event-architecture.md`](event-architecture.md)
 * [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md)

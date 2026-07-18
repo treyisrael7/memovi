@@ -6,9 +6,10 @@ If something is not present in the repository, it is stated as absent.
 
 Companion documents:
 
-* `ROADMAP.md` / `ROADMAP_V2.md` — direction
-* `STATUS.md` — living implementation tracker
-* `ARCHITECTURE.md` — architecture blueprint
+* [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) — direction
+* [`STATUS.md`](STATUS.md) — living implementation tracker
+* [`ARCHITECTURE.md`](ARCHITECTURE.md) — architecture blueprint
+* [`PRODUCT_VISION.md`](PRODUCT_VISION.md) — product vision
 
 ---
 
@@ -22,8 +23,8 @@ memovi/
 ├── .devcontainer/
 ├── .github/workflows/
 ├── apps/
-│   ├── api/                 # FastAPI composition root (memovi-api)
-│   └── web/                 # Next.js shell (placeholder UI)
+│   ├── api/                 # FastAPI composition root (platform API)
+│   └── web/                 # Optional web client shell (not primary product)
 ├── packages/
 │   ├── auth/                # memovi-auth
 │   ├── config/              # memovi-config (scaffold)
@@ -39,21 +40,21 @@ memovi/
 │   └── migrations/versions/ # Alembic revisions
 ├── docker/                  # .gitkeep only
 ├── docs/
+│   ├── PRODUCT_VISION.md
+│   ├── ARCHITECTURE.md
+│   ├── ROADMAP.md
+│   ├── ROADMAP_V2.md
+│   ├── STATUS.md
+│   ├── PHILOSOPHY.md
+│   ├── ENGINEERING_SNAPSHOT.md
+│   ├── README.md
 │   ├── adr/
 │   ├── architecture/
-│   ├── development/
-│   └── diagrams/
+│   └── development/
 ├── scripts/
 ├── tests/
-├── ARCHITECTURE.md
-├── CONTRIBUTING.md
-├── ENGINEERING_SNAPSHOT.md
-├── LICENSE
-├── PHILOSOPHY.md
 ├── README.md
-├── ROADMAP.md
-├── ROADMAP_V2.md
-├── STATUS.md
+├── LICENSE
 ├── alembic.ini
 ├── compose.yml
 ├── package.json
@@ -82,8 +83,8 @@ memovi/
 
 | App | Role |
 |-----|------|
-| `apps/api` | Backend composition root. Registers routers, DB sessions, document processing worker, in-process event bus, memory/search integration adapters. |
-| `apps/web` | Next.js frontend workspace shell. No product chat or knowledge UI. |
+| `apps/api` | Backend composition root / platform API. Registers routers, DB sessions, document processing worker, in-process event bus, memory/search/intelligence integration adapters. |
+| `apps/web` | Optional web client workspace shell. Flagship desktop client is not present yet. |
 
 ## Shared libraries
 
@@ -1002,7 +1003,7 @@ Scaffold packages have no meaningful test suites beyond empty/test placeholders 
 * Tool framework integration into Reason path (feature absent)
 * Real embedding providers (stubs raise `NotImplementedError`)
 * Memory HTTP API (no routes)
-* Frontend/product UI (shell only)
+* Desktop client / optional web product UI (web shell only today)
 * Architecture boundary tests
 * Observability/metrics tests (package empty)
 
@@ -1020,13 +1021,15 @@ Only related note found:
 
 There is no centralized TODO ledger in code comments.
 
-Outstanding work is tracked narratively in `STATUS.md`, not via in-code TODO markers.
+Outstanding work is tracked narratively in [`STATUS.md`](STATUS.md), not via in-code TODO markers.
 
 ---
 
 # 13 Roadmap Progress
 
-Compared against `ROADMAP.md` milestones (capability phases), using repository facts and `STATUS.md` as implementation evidence.
+Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), using repository facts and [`STATUS.md`](STATUS.md).
+
+## Platform foundation (Milestones 0–6)
 
 | Milestone | Status | Evidence |
 |-----------|--------|----------|
@@ -1036,11 +1039,18 @@ Compared against `ROADMAP.md` milestones (capability phases), using repository f
 | 3 Knowledge Ingestion | **In Progress** | Upload, MinIO, worker, processing, chunk handoff done; OCR and connector intake absent |
 | 4 Knowledge Platform | **In Progress** | Memory materialization exists; collections/tags/relationships/public Memory API absent |
 | 5 Retrieval Intelligence | **In Progress** | Keyword/semantic/hybrid/filters/APIs done; query planning, cache/summary lookup, learned rerank absent |
-| 6 Reasoning Engine | **In Progress** | Reason pipeline, Conversation API, Search wiring, durable chats done; chat UI, summaries, streaming absent |
-| 7 Memory Intelligence | **Not Started** | Hierarchical summaries/caching/embedding lifecycle policies not implemented as a milestone slice |
-| 8 Connector Ecosystem | **Not Started** | Connectors package is empty scaffold |
-| 9 Platform Maturity | **Not Started** | Advanced observability/distributed workers/backup maturity not implemented |
-| 10 Applications | **Not Started** | `apps/web` is a placeholder shell; no product clients |
+| 6 Reasoning Engine | **In Progress** | Reason pipeline, Conversation API, Search wiring, durable chats done; desktop UX deferred to Phase 2 |
+
+## Forward roadmap (Phases 1–6)
+
+| Phase | Status | Evidence |
+|-------|--------|----------|
+| 1 Complete V1 Platform | **In Progress** | Core pipeline exists; ownership, observability, hardening, API stability remain |
+| 2 Desktop Client | **Not Started** | Flagship desktop client absent; optional `apps/web` shell only |
+| 3 Capability Framework | **Not Started** | No filesystem/terminal/plugin/permission framework |
+| 4 Automation | **Not Started** | No approval workflow or capability orchestration product path |
+| 5 Knowledge Evolution | **Not Started** | Summaries, long-term memory, graph, reasoning cache absent |
+| 6 Ecosystem | **Not Started** | Optional web/mobile, cloud sync, enterprise, connector marketplace absent |
 
 ---
 
@@ -1077,7 +1087,7 @@ Compared against `ROADMAP.md` milestones (capability phases), using repository f
 
 * OCR
 * Connector sync
-* Chat UI / streaming / WebSockets
+* Desktop client UX / streaming / realtime channels
 * AI summaries
 * Collections/tags/knowledge graph
 * Audit logging
@@ -1109,7 +1119,9 @@ Enforced by package layout, ports, and composition practices:
 
 ## Current State of Memovi
 
-Memovi is a modular-monolith Python/FastAPI knowledge platform with a Next.js frontend shell.
+Memovi is a desktop-first knowledge operating system built as a modular-monolith
+Python/FastAPI backend platform. An optional web client shell exists; the
+flagship desktop client is not yet implemented.
 
 Implemented vertical slices:
 
@@ -1119,15 +1131,15 @@ Implemented vertical slices:
 4. **Search indexing and retrieval** — search documents, PostgreSQL FTS, pgvector embeddings (dim 4 + fake provider in composition), hybrid RRF retrieval API.
 5. **Intelligence foundation** — Reason pipeline, conversation memory, Conversation REST API, execution traces, fake/OpenAI providers, tool framework (unused by Reason).
 
-Composition root (`apps/api`) owns cross-domain event wiring and adapters. Domain packages do not import each other.
+Composition root (`apps/api`) owns cross-domain event wiring and adapters. Domain packages do not import each other. Clients attach at the API boundary.
 
 Not implemented:
 
 * Ownership enforcement on knowledge APIs
 * Connectors, OCR, collections/tags
-* Product chat UI / streaming
+* Desktop client product UX / streaming
 * Typed shared config and observability packages
 * Real embedding provider integrations
 * Architecture boundary tests
 
-The knowledge pipeline from upload through hybrid search is operational for local development. Conversation reasoning is closed-loop with Search-backed retrieval and durable SQLAlchemy conversation persistence at the composition root.
+The knowledge pipeline from upload through hybrid search is operational for local development. Conversation reasoning is closed-loop with Search-backed retrieval and durable SQLAlchemy conversation persistence at the composition root. The next product surface is a desktop client over that API.

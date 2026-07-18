@@ -10,7 +10,7 @@ It covers the monorepo structure, top-level directories, package responsibilitie
 
 # Relationship to ARCHITECTURE.md
 
-[`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) provides the repository overview. This document is the focused reference for repository organization.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) provides the repository overview. This document is the focused reference for repository organization.
 
 # Repository Model
 
@@ -21,7 +21,7 @@ A monorepo provides:
 * A single source of truth
 * Shared tooling
 * Consistent dependency management
-* Atomic changes across frontend and backend
+* Atomic changes across clients and backend
 * Simplified local development
 * Easier refactoring across domains
 
@@ -37,21 +37,28 @@ memovi/
 ├── apps/
 ├── packages/
 ├── docs/
+│   ├── README.md                 # documentation hub
+│   ├── PRODUCT_VISION.md
+│   ├── ARCHITECTURE.md
+│   ├── ROADMAP.md
+│   ├── ROADMAP_V2.md
+│   ├── STATUS.md
+│   ├── PHILOSOPHY.md
+│   ├── ENGINEERING_SNAPSHOT.md
+│   ├── adr/
+│   ├── architecture/             # deep-dives
+│   └── development/
 ├── docker/
 ├── scripts/
 ├── .github/
 ├── .cursor/
 
-├── README.md
-├── PHILOSOPHY.md
-├── ARCHITECTURE.md
-├── ROADMAP.md
-├── CONTRIBUTING.md
+├── README.md                     # repository entry point
 ├── LICENSE
 └── .env.example
 ```
 
-This structure separates application code, reusable platform libraries, infrastructure, automation, AI guidance, and documentation into clearly defined areas.
+This structure separates application code, reusable platform libraries, infrastructure, automation, AI guidance, and documentation into clearly defined areas. Project documentation lives under `docs/`; the repository root keeps the entry README.
 
 # Top-Level Directories
 
@@ -65,20 +72,22 @@ Current applications include:
 
 ```text
 apps/
-    web/
-    api/
+    api/        # platform API / composition root
+    web/        # optional web client shell
 ```
 
 Future applications may include:
 
 ```text
-desktop/
+desktop/        # flagship desktop client
 mobile/
 cli/
 worker/
 ```
 
-Every application consumes the same platform capabilities. Business logic should remain inside the platform rather than inside individual applications.
+Every application consumes the same platform capabilities through the API.
+Business logic remains inside backend domains. Desktop is the preferred product
+surface; web and other clients are optional.
 
 ## packages/
 
@@ -175,7 +184,7 @@ Packages should remain infrastructure-oriented. Business concepts remain inside 
 
 Architecture documentation is treated with the same importance as source code.
 
-Significant architectural changes should update `ARCHITECTURE.md`, relevant documentation, ADRs, and Cursor rules when applicable.
+Significant architectural changes should update `docs/ARCHITECTURE.md`, relevant documentation, ADRs, and Cursor rules when applicable.
 
 ## Infrastructure Remains Isolated
 
@@ -220,8 +229,9 @@ Every file within the repository should have a clear owner.
 
 | Area | Primary Responsibility |
 | --- | --- |
-| `apps/web` | User interface |
-| `apps/api` | Platform API |
+| `apps/api` | Platform API / composition root |
+| `apps/web` | Optional web client |
+| `apps/desktop` (future) | Flagship desktop client |
 | `packages` | Shared platform libraries |
 | `docs` | Engineering documentation |
 | `docker` | Infrastructure |
@@ -257,7 +267,7 @@ A developer unfamiliar with Memovi should be able to understand the purpose of e
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`module-architecture.md`](module-architecture.md)
 * [`deployment.md`](deployment.md)
 * [`observability.md`](observability.md)

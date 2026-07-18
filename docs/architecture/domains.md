@@ -10,7 +10,7 @@ It covers domain responsibilities, what each domain owns, what each domain must 
 
 # Relationship to ARCHITECTURE.md
 
-[`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) summarizes the domain model. This document is the focused reference for domain-level responsibility and ownership.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) summarizes the domain model. This document is the focused reference for domain-level responsibility and ownership.
 
 # Domain Model
 
@@ -302,7 +302,7 @@ New domains should never exist simply to separate implementation details. They s
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`module-architecture.md`](module-architecture.md)
 * [`request-lifecycle.md`](request-lifecycle.md)
 * [`event-architecture.md`](event-architecture.md)

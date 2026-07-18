@@ -2,9 +2,11 @@
 
 The API application package is the backend composition root for Memovi.
 
-It is responsible for assembling the FastAPI platform, registering routers,
-configuring application lifecycle behavior, wiring request-scoped infrastructure
-dependencies, and exposing operational endpoints such as health checks.
+It is the platform boundary for all clients: the flagship desktop app, an
+optional web client, and future mobile or CLI surfaces. It assembles the FastAPI
+platform, registers routers, configures application lifecycle behavior, wires
+request-scoped infrastructure dependencies, and exposes operational endpoints
+such as health checks.
 
 Business behavior remains in domain packages. For example, local authentication
 lives in `packages/auth`; this app only wires its router and database session

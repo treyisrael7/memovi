@@ -1,9 +1,10 @@
 # Memovi Status
 
-Living implementation tracker.
+Living implementation tracker for Memovi as a desktop-first knowledge operating
+system on a reusable backend platform.
 
-* `ROADMAP.md` / `ROADMAP_V2.md` describe where Memovi is going.
-* `STATUS.md` describes where Memovi is today.
+* [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
+* [`STATUS.md`](STATUS.md) describes where Memovi is today.
 
 ---
 
@@ -211,7 +212,7 @@ Keyword, semantic, and hybrid retrieval are operational. Query planning, caching
 
 **Overall Status:** In progress
 
-Reasoning pipeline, conversation memory, Conversation REST API, and Search-backed retrieval for conversations are operational. Product chat UI and summaries remain.
+Reasoning pipeline, conversation memory, Conversation REST API, and Search-backed retrieval for conversations are operational. Desktop client UX and summaries remain.
 
 **Completed**
 
@@ -232,7 +233,7 @@ Reasoning pipeline, conversation memory, Conversation REST API, and Search-backe
 
 **Remaining**
 
-* Product chat UI, streaming, and WebSockets
+* Desktop client conversation UX, streaming, and realtime channels as needed
 * AI summaries
 
 **Known Risks**
@@ -241,15 +242,91 @@ Reasoning pipeline, conversation memory, Conversation REST API, and Search-backe
 
 **Next Recommended Work**
 
-* Product chat UI on top of durable conversations + Search-backed retrieval
+* Close Phase 1 platform gaps (ownership, observability, API stability), then Desktop Client
 
 ---
 
-# Milestone 7 — Memory Intelligence
+# Forward Roadmap Status
+
+Future work tracks [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) Phases 1–6.
+Milestones 0–6 above remain the platform foundation tracker.
+
+---
+
+# Phase 1 — Complete V1 Platform
+
+**Overall Status:** In progress
+
+Documents, Memory, Search, and Intelligence vertical slices exist. Ownership
+enforcement, observability, production hardening, and API stability remain.
+
+**Completed**
+
+* Core Documents → Memory → Search → Intelligence pipeline paths
+* Conversation API with Search-backed retrieval and durable storage
+
+**In Progress**
+
+* Ownership on knowledge-sensitive paths
+* Typed config / structured logging / observability foundation
+* Platform package and contract hardening
+
+**Remaining**
+
+* Documents / Memory / Search / Intelligence production readiness
+* Ownership enforcement
+* Observability
+* Production hardening
+* API stability for clients
+
+**Known Risks**
+
+* Building the desktop client before ownership and observability land creates rework
+
+**Next Recommended Work**
+
+* Finish ownership, observability, and API stability before Phase 2
+
+---
+
+# Phase 2 — Desktop Client
 
 **Overall Status:** Not started
 
-Cost-reducing memory capabilities are defined on the roadmap but not implemented as a milestone slice.
+Optional web workspace exists as a shell. The flagship desktop client is not
+delivered. Backend APIs are the platform boundary for all clients.
+
+**Completed**
+
+* None for product clients
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Native desktop application
+* Conversation UI
+* Collections
+* Settings
+* Model management
+* Workspace management
+* Indexing status
+
+**Known Risks**
+
+* Building clients before Phase 1 contracts stabilize creates rework
+
+**Next Recommended Work**
+
+* Keep the desktop client behind stable Conversation, Search, and ownership APIs
+
+---
+
+# Phase 3 — Capability Framework
+
+**Overall Status:** Not started
 
 **Completed**
 
@@ -261,11 +338,69 @@ Cost-reducing memory capabilities are defined on the roadmap but not implemented
 
 **Remaining**
 
-* Hierarchical summaries
-* Semantic and response caching
-* Embedding lifecycle policies
-* Selective embedding and adaptive chunking
-* Context compression for reasoning
+* Filesystem, Terminal, Browser, Git, Clipboard, Notifications
+* Plugin system
+* Permission model
+
+**Known Risks**
+
+* Capabilities without a permission model become an unsafe automation surface
+
+**Next Recommended Work**
+
+* Begin after Desktop Client has a stable product shell
+
+---
+
+# Phase 4 — Automation
+
+**Overall Status:** Not started
+
+**Completed**
+
+* None
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Safe execution
+* Approval workflow
+* Task orchestration
+* Background jobs
+* Capability composition
+
+**Known Risks**
+
+* Automation without approval and provenance undermines trust
+
+**Next Recommended Work**
+
+* Build on the Capability Framework, not as a parallel agent stack
+
+---
+
+# Phase 5 — Knowledge Evolution
+
+**Overall Status:** Not started
+
+**Completed**
+
+* None
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Summaries
+* Long-term memory
+* Knowledge graph
+* Reasoning cache
+* Inference-efficient retrieval
 
 **Known Risks**
 
@@ -273,15 +408,13 @@ Cost-reducing memory capabilities are defined on the roadmap but not implemented
 
 **Next Recommended Work**
 
-* Begin after Retrieval Intelligence and Reasoning Engine have stable contracts
+* Begin after V1 platform and desktop product contracts are stable
 
 ---
 
-# Milestone 8 — Connector Ecosystem
+# Phase 6 — Ecosystem
 
 **Overall Status:** Not started
-
-Connector package remains a scaffold. No production connectors.
 
 **Completed**
 
@@ -293,81 +426,19 @@ Connector package remains a scaffold. No production connectors.
 
 **Remaining**
 
-* Connector SDK and contracts
-* Priority source connectors
-* Incremental sync and change detection
-* Selective embedding at the connector boundary
+* Optional web client
+* Optional mobile client
+* Cloud sync
+* Enterprise deployment
+* Connector marketplace
 
 **Known Risks**
 
-* Premature connectors would bypass normalization if Memory/ingestion contracts are unfinished
+* Treating web or mobile as primary would conflict with the desktop-first vision
 
 **Next Recommended Work**
 
-* Define connector contracts after Knowledge Platform ownership is clearer
-
----
-
-# Milestone 9 — Platform Maturity
-
-**Overall Status:** Not started
-
-Production hardening capabilities remain future work.
-
-**Completed**
-
-* None
-
-**In Progress**
-
-* None
-
-**Remaining**
-
-* Advanced observability
-* Distributed workers and scheduling
-* Performance and cache maturity
-* Backup and recovery improvements
-* Optional knowledge graph foundations
-
-**Known Risks**
-
-* Scaling without observability will hide cost and failure modes
-
-**Next Recommended Work**
-
-* Grow observability incrementally as earlier milestones stabilize
-
----
-
-# Milestone 10 — Applications
-
-**Overall Status:** Not started
-
-Frontend workspace exists as a shell. Product clients are not delivered.
-
-**Completed**
-
-* None for product applications
-
-**In Progress**
-
-* None
-
-**Remaining**
-
-* Web application and chat UI
-* CLI and public API surface maturity
-* Desktop / extension / mobile as needed
-* SDKs over stable contracts
-
-**Known Risks**
-
-* Building clients before ownership, retrieval, and reasoning contracts stabilize creates rework
-
-**Next Recommended Work**
-
-* Keep applications behind stable Conversation, Search, and ownership APIs
+* Keep ecosystem clients optional and API-backed
 
 ---
 
@@ -378,4 +449,5 @@ When implementation changes:
 1. Move items between Completed / In Progress / Remaining
 2. Refresh Overall Status and the short summary
 3. Update Known Risks and Next Recommended Work
-4. Keep `ROADMAP.md` / `ROADMAP_V2.md` focused on direction, not progress
+4. Keep [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) focused on direction, not progress
+5. Keep Milestones 0–6 as the platform foundation; use Phases 1–6 for forward work

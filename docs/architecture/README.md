@@ -2,26 +2,29 @@
 
 # Purpose
 
-This directory contains the focused engineering references that expand the high-level blueprint in [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md).
+This directory contains the focused engineering references that expand the high-level blueprint in [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
 
 # Scope
 
 Use these documents when a topic needs more detail than the top-level architecture overview should carry.
 
-Each document covers one architectural concern and should remain aligned with the decisions in `ARCHITECTURE.md`.
+Each document covers one architectural concern and should remain aligned with the decisions in [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
 
 # Relationship to ARCHITECTURE.md
 
-`ARCHITECTURE.md` is the canonical blueprint.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) is the canonical blueprint.
 
 The files in this directory are supporting references. They clarify, expand, and organize the same architecture; they do not introduce separate architectural direction.
 
 # Reading Guide
 
-Start with `ARCHITECTURE.md` for the platform overview, then follow the document that matches the concern being changed or reviewed.
+Start with [`../PRODUCT_VISION.md`](../PRODUCT_VISION.md) for product direction, then
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) for the platform blueprint. Follow the
+document that matches the concern being changed or reviewed.
 
 | Document | Concern |
 | --- | --- |
+| [`../PRODUCT_VISION.md`](../PRODUCT_VISION.md) | Canonical product vision: mission, identity, principles, layers, non-goals |
 | [`domains.md`](domains.md) | Business domains, responsibilities, ownership, communication, and future domains |
 | [`module-architecture.md`](module-architecture.md) | Modular monolith, layers, dependency direction, and service boundaries |
 | [`repository-architecture.md`](repository-architecture.md) | Monorepo structure, top-level directories, ownership, and repository evolution |
@@ -44,12 +47,15 @@ Avoid duplicating large explanations across files. Put detailed content in the m
 
 # Key Decisions
 
-* `ARCHITECTURE.md` remains the canonical blueprint.
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md) remains the canonical blueprint.
 * Each document in this directory owns one architectural concern.
 * Deep-dive documents expand the blueprint without contradicting it.
 * Duplicate explanations should be consolidated into the most specific document.
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
-* [`../../PHILOSOPHY.md`](../../PHILOSOPHY.md)
+* [`../README.md`](../README.md) — documentation hub
+* [`../PRODUCT_VISION.md`](../PRODUCT_VISION.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
+* [`../PHILOSOPHY.md`](../PHILOSOPHY.md)
+* [`../ROADMAP.md`](../ROADMAP.md)

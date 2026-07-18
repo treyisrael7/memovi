@@ -16,17 +16,19 @@ Documentation should evolve with the codebase. When implementation changes what 
 
 ## ARCHITECTURE.md
 
-- Update `ARCHITECTURE.md` when a change affects system structure, major components, boundaries, data flow, external dependencies, runtime topology, or cross-cutting platform behavior.
+- Update `docs/ARCHITECTURE.md` when a change affects system structure, major components, boundaries, data flow, external dependencies, runtime topology, or cross-cutting platform behavior.
 - Keep the file current enough that a new engineer can understand how the running system is shaped.
 - Prefer explaining the current state of the system over preserving historical commentary.
 - Do not duplicate detailed API, setup, or roadmap content there.
+- Product vision lives in `docs/PRODUCT_VISION.md`; keep planning docs under `docs/` rather than the repository root.
 
 ## ROADMAP.md
 
-- Update `ROADMAP.md` when scope, priority, phase sequencing, planned milestones, or delivered roadmap items change.
+- Update `docs/ROADMAP.md` when scope, priority, phase sequencing, planned milestones, or delivered roadmap items change.
 - Remove or revise roadmap entries once implementation makes them obsolete.
 - Keep roadmap language outcome-focused rather than task-list focused.
 - Do not use the roadmap as a dumping ground for bugs, speculative ideas, or implementation notes.
+- Keep living progress in `docs/STATUS.md`.
 
 ## ADRs
 

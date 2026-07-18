@@ -10,7 +10,7 @@ It covers connector responsibility, external system integration, acquisition, sy
 
 # Relationship to ARCHITECTURE.md
 
-[`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) identifies Connectors as the entry point for external information. This document expands that role without introducing new connector architecture.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) identifies Connectors as the entry point for external information. This document expands that role without introducing new connector architecture.
 
 # Connector Responsibility
 
@@ -164,7 +164,7 @@ See [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md).
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`domains.md`](domains.md)
 * [`event-architecture.md`](event-architecture.md)
 * [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md)

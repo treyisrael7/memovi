@@ -5,13 +5,20 @@ alwaysApply: true
 
 # Memovi Project Identity
 
-Memovi is a self-hosted knowledge platform. Its core product is not a chatbot, an AI wrapper, or a document viewer. Its core product is durable, organized, retrievable knowledge assembled from many fragmented sources.
+Memovi is a desktop-first, AI-native knowledge operating system built on a
+reusable backend platform. Its core product is not a chatbot, an AI wrapper, a
+web app, or a document viewer. Its core product is durable, organized,
+retrievable knowledge assembled from many fragmented sources.
+
+The flagship client is desktop. Web is optional. Future mobile remains possible.
+The FastAPI API is the platform boundary; clients are replaceable and must not
+own business logic.
 
 Cursor should treat every implementation as part of a long-lived platform whose job is to connect raw information, normalize it, preserve it, index it, retrieve it, reason over it, and present it clearly.
 
 ## Mission
 
-Build an extensible platform that turns scattered documents, conversations, notes, code, and external services into connected knowledge the user controls.
+Build an extensible backend platform that turns scattered documents, conversations, notes, code, and external services into connected knowledge the user controls—primarily through a desktop experience.
 
 When choosing what to build or how to build it, prefer work that improves how knowledge is collected, structured, stored, searched, understood, or extended. If a feature does not strengthen that mission, question whether it belongs in the core platform.
 

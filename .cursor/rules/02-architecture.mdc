@@ -69,6 +69,8 @@ Why: users should not wait for heavy processing after actions such as upload or 
 
 Use `apps/` for deployable entry points and `packages/` for reusable platform capabilities. Expected top-level package responsibilities include core primitives, events, database access, config, logging, connectors, AI integrations, and shared contracts.
 
+`apps/api` is the composition root and platform API boundary. Desktop is the preferred product client; optional web and future clients attach at that API without owning domain logic.
+
 Why: deployable applications should assemble platform capabilities; packages should provide bounded, reusable building blocks. This prevents clients, APIs, and workers from growing separate versions of the same platform logic.
 
 ## Folder Conventions

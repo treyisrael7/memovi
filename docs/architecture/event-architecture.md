@@ -10,7 +10,7 @@ It covers event philosophy, event platform expectations, event principles, lifec
 
 # Relationship to ARCHITECTURE.md
 
-[`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) summarizes event-driven processing. This document is the focused reference for event architecture.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) summarizes event-driven processing. This document is the focused reference for event architecture.
 
 # Event Philosophy
 
@@ -347,7 +347,7 @@ Events exist to reduce coupling, not to increase architectural complexity.
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`domains.md`](domains.md)
 * [`request-lifecycle.md`](request-lifecycle.md)
 * [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md)

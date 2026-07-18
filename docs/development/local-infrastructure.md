@@ -1,6 +1,6 @@
 # Local Infrastructure
 
-Memovi uses Docker Compose for local infrastructure. The Compose stack provides only shared platform services; it does not build or run backend or frontend application containers.
+Memovi uses Docker Compose for local infrastructure. The Compose stack provides only shared platform services; it does not build or run backend API or client application containers.
 
 ## Usage
 

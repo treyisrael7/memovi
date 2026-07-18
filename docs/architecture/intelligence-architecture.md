@@ -10,7 +10,7 @@ It covers AI's architectural role, Intelligence ownership, provider isolation, R
 
 # Relationship to ARCHITECTURE.md
 
-[`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) establishes that AI consumes knowledge but does not own it. This document expands that constraint for Intelligence-specific behavior.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) establishes that AI consumes knowledge but does not own it. This document expands that constraint for Intelligence-specific behavior.
 
 # Intelligence Role
 
@@ -140,7 +140,7 @@ ports without coupling packages across domain boundaries.
 `SendConversationMessage` loads conversation history, runs `Reason`, then appends the
 user and assistant turns through `ConversationService`. The Conversation REST API exposes
 create/get conversation, list messages, and send message endpoints under `/conversations`.
-Streaming, WebSockets, and agents remain out of scope until later milestones.
+Desktop (and other) client UX, streaming/realtime channels, and agents remain out of scope until later milestones.
 
 
 # Provider Isolation
@@ -235,7 +235,7 @@ See [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md).
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`domains.md`](domains.md)
 * [`search-architecture.md`](search-architecture.md)
 * [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md)

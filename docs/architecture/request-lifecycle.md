@@ -10,7 +10,7 @@ It covers request flow, request stages, synchronous versus asynchronous operatio
 
 # Relationship to ARCHITECTURE.md
 
-[`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) summarizes the request model. This document is the detailed lifecycle reference.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) summarizes the request model. This document is the detailed lifecycle reference.
 
 # Overview
 
@@ -55,8 +55,8 @@ Every interaction begins with a client.
 
 Examples include:
 
-* Web application
-* Desktop application
+* Desktop application (primary product client)
+* Optional web client
 * Browser extension
 * Mobile application
 * CLI
@@ -64,7 +64,8 @@ Examples include:
 
 Clients are responsible for presenting information and collecting user input. Clients should never implement business logic.
 
-Every client consumes the same platform capabilities.
+Every client consumes the same platform capabilities through the API. Additional
+clients can be added without changing backend domains.
 
 # Stage 2 - Presentation
 
@@ -317,7 +318,7 @@ This approach improves scalability while reducing lock contention and operationa
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`domains.md`](domains.md)
 * [`module-architecture.md`](module-architecture.md)
 * [`event-architecture.md`](event-architecture.md)

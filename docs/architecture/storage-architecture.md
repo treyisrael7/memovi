@@ -10,7 +10,7 @@ It covers PostgreSQL, pgvector, MinIO, Redis, data ownership, lifecycle, version
 
 # Relationship to ARCHITECTURE.md
 
-[`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) summarizes the storage model. This document is the focused storage reference.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) summarizes the storage model. This document is the focused storage reference.
 
 # Storage Philosophy
 
@@ -312,7 +312,7 @@ The architecture intentionally isolates storage technologies behind stable abstr
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md)
 * [`search-architecture.md`](search-architecture.md)
 * [`deployment.md`](deployment.md)

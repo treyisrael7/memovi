@@ -2,12 +2,23 @@
 
 > Your knowledge, organized. AI that remembers what matters.
 
-Memovi is a self-hosted knowledge platform for turning fragmented documents,
-notes, conversations, code, and external services into durable, searchable
-memory.
+Memovi is a desktop-first, AI-native knowledge operating system.
 
-This README is the developer entry point. For system design, see
-[`ARCHITECTURE.md`](ARCHITECTURE.md) and [`docs/architecture/`](docs/architecture/).
+It is built around a reusable backend platform that turns fragmented documents,
+notes, conversations, code, and external services into durable, searchable
+memory. The flagship product experience is a desktop application. The same API
+powers an optional web client and can support future mobile or CLI clients
+without changing backend domain architecture.
+
+Knowledge is the product. AI is a consumer of that knowledge. Clients are
+replaceable; the FastAPI platform boundary stays stable.
+
+This README is the developer entry point.
+
+* Product direction: [`docs/PRODUCT_VISION.md`](docs/PRODUCT_VISION.md)
+* Documentation hub: [`docs/README.md`](docs/README.md)
+* Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+* Roadmap / status: [`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/STATUS.md`](docs/STATUS.md)
 
 ## Prerequisites
 
@@ -31,8 +42,8 @@ Install Task, then set up the repository:
 task setup
 ```
 
-This installs Python dependencies, installs frontend dependencies, enables the
-pinned pnpm version, and installs pre-commit hooks.
+This installs Python dependencies, installs optional web-workspace dependencies,
+enables the pinned pnpm version, and installs pre-commit hooks.
 
 If you are not using Task, the equivalent commands are documented in
 [`docs/development/developer-tooling.md`](docs/development/developer-tooling.md).
@@ -42,8 +53,8 @@ If you are not using Task, the equivalent commands are documented in
 ```text
 .
 |-- apps/
-|   |-- api/                  # FastAPI composition root
-|   `-- web/                  # Next.js frontend workspace
+|   |-- api/                  # FastAPI composition root (platform API)
+|   `-- web/                  # Optional web client workspace (shell)
 |-- packages/
 |   |-- auth/
 |   |-- connectors/
@@ -57,9 +68,14 @@ If you are not using Task, the equivalent commands are documented in
 |   `-- shared/
 |-- database/
 |-- docker/
-|-- docs/
+|-- docs/                     # Product, planning, architecture, development docs
+|   |-- README.md             # Documentation hub
+|   |-- PRODUCT_VISION.md
+|   |-- ARCHITECTURE.md
+|   |-- ROADMAP.md
+|   |-- STATUS.md
 |   |-- adr/
-|   |-- architecture/         # Architecture reference docs
+|   |-- architecture/         # Architecture deep-dives
 |   `-- development/          # Local development docs
 |-- scripts/
 |-- tests/
@@ -74,11 +90,17 @@ If you are not using Task, the equivalent commands are documented in
 `-- Taskfile.yml              # Repository task runner
 ```
 
-The API app currently contains the backend composition root, health endpoint,
-local authentication endpoints, and search. Auth owns its domain
-model, use cases, SQLAlchemy repositories, Alembic migration, and tests inside
-`packages/auth`. Search owns ranked full-text, semantic, and hybrid retrieval and exposes
-`GET /search` with `mode=keyword|semantic|hybrid` (hybrid default).
+The API app is the composition root for the reusable backend platform: health,
+local authentication, documents, search, and conversation reasoning. Auth owns
+its domain model, use cases, SQLAlchemy repositories, Alembic migration, and
+tests inside `packages/auth`. Search owns ranked full-text, semantic, and hybrid
+retrieval and exposes `GET /search` with `mode=keyword|semantic|hybrid` (hybrid
+default). Desktop and other clients consume these APIs; they do not own business
+logic.
+
+A future desktop app workspace will live under `apps/` alongside `api`. The
+existing `apps/web` workspace is an optional client shell, not the primary
+product surface.
 
 ## Development Workflow
 
@@ -88,7 +110,7 @@ Start from a clean setup:
 task setup
 ```
 
-Start local infrastructure and the frontend development server:
+Start local infrastructure and the optional web development server:
 
 ```bash
 task dev
@@ -115,7 +137,7 @@ task test
 ```
 
 Pre-commit runs formatting, linting, type checks, and file hygiene checks before
-commits. CI runs backend and frontend validation through GitHub Actions.
+commits. CI validates the backend and optional web workspace through GitHub Actions.
 
 ## Task Commands
 
@@ -123,19 +145,19 @@ commits. CI runs backend and frontend validation through GitHub Actions.
 - `task backend` starts Docker infrastructure and the backend API dev server.
 - `task backend:check` runs backend lint, format check, typecheck, and tests.
 - `task backend:dev` is an alias for `task backend`.
-- `task frontend` runs frontend lint, format check, typecheck, and build.
+- `task frontend` runs optional web-workspace lint, format check, typecheck, and build.
 - `task docker-up` starts local infrastructure.
 - `task docker-down` stops local infrastructure.
 - `task db:migrate` starts PostgreSQL and applies Alembic migrations.
 - `task backend:process -- <processing_job_id>` runs document processing locally.
-- `task lint` runs backend and frontend linters.
-- `task format` formats backend and frontend files.
-- `task typecheck` runs backend and frontend type checks.
+- `task lint` runs backend and web-workspace linters.
+- `task format` formats backend and web-workspace files.
+- `task typecheck` runs backend and web-workspace type checks.
 - `task test` runs tests.
-- `task dev` starts Docker infrastructure and the frontend dev server.
+- `task dev` starts Docker infrastructure and the optional web-workspace dev server.
 
 Run `task --list` for the full command list, including scoped backend and
-frontend subtasks.
+web-workspace subtasks.
 
 ## Docker Services
 
@@ -177,6 +199,8 @@ uv run alembic upgrade head
 
 ## Status
 
-Memovi is in early development. The repository currently provides the Python
-workspace, frontend workspace, local infrastructure, developer tooling, CI, Dev
-Container foundation, and local session-based authentication foundation.
+Memovi is in early development. The repository currently provides the reusable
+backend platform (Python workspace, FastAPI composition root, local
+infrastructure, developer tooling, CI, Dev Container foundation, and local
+session-based authentication), with an optional web client shell. The flagship
+desktop client is the next product surface on top of the stable API.

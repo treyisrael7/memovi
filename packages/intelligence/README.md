@@ -27,7 +27,8 @@ pipeline:
 * Placeholder infrastructure adapters for unfinished Search integrations
 * Package configuration with provider selection (`provider=fake|openai`; future: anthropic, ollama, gemini)
 
-It does not yet implement concrete product tools, streaming, WebSockets, or agents.
+It does not yet implement concrete product tools, streaming/realtime channels, or agents.
+Desktop (and other) clients consume the Conversation API; Intelligence does not own UI.
 
 ## Conversation API
 

@@ -15,13 +15,14 @@ Use this rule when writing application code. Assume the architecture is already 
 - Return explicit response models so API contracts stay stable as internals change.
 - Map application and domain exceptions to HTTP errors at the API boundary, not inside core logic.
 
-## Next.js
+## Clients (Desktop Primary, Optional Web)
 
+- Prefer desktop as the flagship product surface; treat web as an optional client over the same API.
 - Keep UI code focused on presentation, user interaction, and calling typed API clients.
-- Keep server-only behavior out of client components.
-- Centralize API access behind small client functions instead of scattering raw fetch calls across components.
+- Centralize API access behind small client functions instead of scattering raw transport calls across UI code.
 - Treat loading, empty, and error states as part of the feature implementation.
-- Avoid duplicating backend business rules in the frontend; the frontend may validate user input, but backend services own decisions.
+- Avoid duplicating backend business rules in any client; clients may validate user input, but backend services own decisions.
+- For optional Next.js/web work: keep server-only behavior out of client components.
 
 ## SQLAlchemy
 
@@ -64,7 +65,7 @@ Use this rule when writing application code. Assume the architecture is already 
 ## Domain Models
 
 - Domain models should express business meaning and enforce invariants.
-- Keep them independent from FastAPI, Next.js, SQLAlchemy, Pydantic, queues, and provider SDKs.
+- Keep them independent from FastAPI, desktop/web UI frameworks, SQLAlchemy, Pydantic, queues, and provider SDKs.
 - Prefer meaningful value objects and explicit state transitions where they clarify knowledge, document, search, connector, or AI behavior.
 - Domain events should describe facts that occurred, not commands another module must perform.
 

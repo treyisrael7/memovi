@@ -10,7 +10,7 @@ It covers modular monolith evolution, worker scaling, storage evolution, reposit
 
 # Relationship to ARCHITECTURE.md
 
-[`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) states that Memovi favors operational simplicity and future evolution. This document expands the existing scaling and evolution strategy without introducing new architectural decisions.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) states that Memovi favors operational simplicity and future evolution. This document expands the existing scaling and evolution strategy without introducing new architectural decisions.
 
 # Scaling Philosophy
 
@@ -53,7 +53,7 @@ workers/
 ↓
 
 Phase 3
-desktop/
+desktop/   # flagship client
 mobile/
 cli/
 
@@ -168,7 +168,7 @@ Scaling should not violate these constraints:
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`module-architecture.md`](module-architecture.md)
 * [`repository-architecture.md`](repository-architecture.md)
 * [`event-architecture.md`](event-architecture.md)

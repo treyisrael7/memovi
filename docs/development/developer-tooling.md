@@ -30,11 +30,11 @@ task test
 task dev
 ```
 
-The top-level tasks compose smaller backend and frontend tasks instead of duplicating command logic. For example, `task lint` runs `task backend:lint` and `task frontend:lint`.
+The top-level tasks compose smaller backend and optional web-workspace tasks instead of duplicating command logic. For example, `task lint` runs `task backend:lint` and `task frontend:lint`.
 
 ## Installation Details
 
-`task setup` installs Python dependencies, frontend dependencies, and Git hooks.
+`task setup` installs Python dependencies, optional web-workspace dependencies, and Git hooks.
 It wraps these lower-level commands:
 
 ```bash
@@ -59,7 +59,7 @@ Python hooks use the tool configuration in `pyproject.toml`:
 - Black formats Python files.
 - MyPy performs strict type checking.
 
-JavaScript hooks use the `apps/web` package scripts:
+Optional web-workspace hooks use the `apps/web` package scripts:
 
 - ESLint runs `corepack pnpm --filter @memovi/web lint`.
 - Prettier runs `corepack pnpm --filter @memovi/web format`.

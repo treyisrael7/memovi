@@ -10,7 +10,7 @@ It covers the modular monolith, layered architecture, dependency direction, modu
 
 # Relationship to ARCHITECTURE.md
 
-[`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) summarizes Memovi's modular architecture. This document expands the constraints that keep the monolith modular and extractable.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) summarizes Memovi's modular architecture. This document expands the constraints that keep the monolith modular and extractable.
 
 # Modular Monolith
 
@@ -64,7 +64,7 @@ This keeps the architecture understandable while preventing circular dependencie
 
 ## Presentation
 
-The Presentation Layer contains user interfaces and external entry points. It renders interfaces, accepts input, displays results, authenticates users, and calls platform APIs.
+The Presentation Layer contains user interfaces and external entry points. Desktop is the primary product surface; optional web and future clients are additional entry points. The layer renders interfaces, accepts input, displays results, authenticates users, and calls platform APIs.
 
 It contains no business logic.
 
@@ -143,7 +143,7 @@ Well-defined modules can be extracted later. Unnecessary services are hard to re
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`domains.md`](domains.md)
 * [`event-architecture.md`](event-architecture.md)
 * [`request-lifecycle.md`](request-lifecycle.md)

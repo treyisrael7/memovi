@@ -1,16 +1,25 @@
 # Memovi Architecture
 
-> This document is the high-level architectural blueprint for Memovi. It defines the platform shape, canonical boundaries, and documentation map. Detailed engineering references live under `docs/architecture/`.
+> This document is the high-level architectural blueprint for Memovi. It defines the platform shape, canonical boundaries, and documentation map. Detailed engineering references live under `architecture/`.
+
+For the canonical product vision—what Memovi is and why the architecture
+exists—see [`PRODUCT_VISION.md`](PRODUCT_VISION.md).
 
 ---
 
 # Purpose
 
-Memovi is designed as a long-lived knowledge platform rather than a collection of isolated AI features.
+Memovi is a desktop-first, AI-native knowledge operating system built on a
+reusable backend platform. It is not primarily a web application, and it is not
+a collection of isolated AI features.
+
+The flagship client is a desktop application. The same client-agnostic API also
+supports an optional web client and can support future mobile or CLI clients
+without changing backend domain architecture.
 
 The purpose of this document is to provide a complete architectural overview of the platform without carrying every implementation detail. It explains the goals, principles, system layers, domain boundaries, repository organization, knowledge lifecycle, and technology choices that guide the project.
 
-The focused documents under `docs/architecture/` expand this blueprint. When deeper detail is needed, follow the links in the Documentation Map rather than duplicating material here.
+The focused documents under `architecture/` expand this blueprint. When deeper detail is needed, follow the links in the Documentation Map rather than duplicating material here.
 
 This document is intended for:
 
@@ -29,11 +38,19 @@ Memovi's architecture is organized around a small number of long-term goals.
 
 ## Build a Platform
 
-Memovi is not a single application.
+Memovi is not a single UI.
 
-It is a platform capable of supporting multiple clients, including the web application, desktop application, browser extension, mobile application, command-line tools, public APIs, and future third-party integrations.
+It is a reusable backend platform whose flagship product is a desktop knowledge
+operating system. The API is the platform boundary. Additional clients—optional
+web, future mobile, CLI, browser extensions, public APIs, and third-party
+integrations—consume the same capabilities.
 
-Every client should interact with the same core platform capabilities. Business logic should never be duplicated simply because a new client is introduced.
+Every client should interact with the same core platform. Business logic should
+never be duplicated simply because a new client is introduced. Clients are
+replaceable; backend domains remain independent.
+
+Desktop is the preferred experience because it enables local models, filesystem
+access, automation, and a richer UX without changing backend architecture.
 
 ## Knowledge Is the Product
 
@@ -73,7 +90,7 @@ Every module owns its public APIs, application services, domain models, persiste
 
 The goal is not to avoid microservices. The goal is to delay distributed complexity until it becomes operationally beneficial.
 
-See [`docs/architecture/module-architecture.md`](docs/architecture/module-architecture.md).
+See [`architecture/module-architecture.md`](architecture/module-architecture.md).
 
 ## Domain-Driven Design
 
@@ -90,7 +107,7 @@ Core domains include:
 
 Each domain contains everything required to fulfill its responsibility. Business rules remain independent of frameworks, databases, and infrastructure.
 
-See [`docs/architecture/domains.md`](docs/architecture/domains.md).
+See [`architecture/domains.md`](architecture/domains.md).
 
 ## Layered Architecture
 
@@ -107,7 +124,7 @@ The primary layers are:
 
 Dependencies point downward. Lower layers never depend on higher layers.
 
-See [`docs/architecture/module-architecture.md`](docs/architecture/module-architecture.md).
+See [`architecture/module-architecture.md`](architecture/module-architecture.md).
 
 ## Event-Driven Processing
 
@@ -122,7 +139,7 @@ Examples include:
 
 Events describe what happened. They do not command other components what to do.
 
-See [`docs/architecture/event-architecture.md`](docs/architecture/event-architecture.md).
+See [`architecture/event-architecture.md`](architecture/event-architecture.md).
 
 ## Asynchronous Workflows
 
@@ -130,15 +147,18 @@ Expensive operations should not block the user experience.
 
 Tasks such as OCR, document parsing, chunk generation, embedding creation, AI summarization, and search indexing execute through background processing.
 
-See [`docs/architecture/request-lifecycle.md`](docs/architecture/request-lifecycle.md) and [`docs/architecture/knowledge-processing-pipeline.md`](docs/architecture/knowledge-processing-pipeline.md).
+See [`architecture/request-lifecycle.md`](architecture/request-lifecycle.md) and [`architecture/knowledge-processing-pipeline.md`](architecture/knowledge-processing-pipeline.md).
 
 ## API-First Design
 
-Every capability exposed by the platform should be accessible through stable application interfaces.
+Every capability exposed by the platform should be accessible through stable
+application interfaces. The API is the platform boundary between reusable
+backend domains and replaceable clients.
 
-Presentation clients consume the same platform capabilities rather than implementing business logic independently.
+Desktop, optional web, and future clients consume the same platform capabilities
+rather than implementing business logic independently.
 
-See [`docs/architecture/request-lifecycle.md`](docs/architecture/request-lifecycle.md).
+See [`architecture/request-lifecycle.md`](architecture/request-lifecycle.md).
 
 ## Self-Hostable by Default
 
@@ -146,7 +166,7 @@ Memovi is designed to be deployable on personal hardware, home servers, or cloud
 
 No architectural decision should unnecessarily require proprietary cloud services. Cloud-native technologies are encouraged; cloud-required architecture is avoided whenever practical.
 
-See [`docs/architecture/deployment.md`](docs/architecture/deployment.md).
+See [`architecture/deployment.md`](architecture/deployment.md).
 
 ## Observability by Design
 
@@ -154,7 +174,7 @@ Operational visibility is a core architectural concern.
 
 The platform should provide visibility into requests, background jobs, AI inference, connector synchronization, search operations, errors, and performance.
 
-See [`docs/architecture/observability.md`](docs/architecture/observability.md).
+See [`architecture/observability.md`](architecture/observability.md).
 
 ---
 
@@ -172,24 +192,22 @@ This separation allows knowledge to remain independent from the technologies use
 
 ```mermaid
 flowchart TD
-    User((User))
+    Desktop[Desktop App<br/>primary client]
+    Web[Optional Web Client]
+    Other[Future clients<br/>mobile / CLI / extension]
 
-    User --> Web[Next.js Web]
-    User --> Desktop[Desktop Client]
-    User --> Extension[Browser Extension]
-
-    Web --> API
     Desktop --> API
-    Extension --> API
+    Web --> API
+    Other --> API
 
-    API[FastAPI Application]
+    API[FastAPI API<br/>platform boundary]
 
-    API --> Auth
-    API --> Memory
     API --> Documents
+    API --> Memory
     API --> Search
-    API --> Connectors
     API --> Intelligence
+    API --> Auth
+    API --> Connectors
 
     Documents --> Events
     Connectors --> Events
@@ -213,10 +231,13 @@ flowchart TD
     Memory --> Storage
     Intelligence --> Storage
 
-    Storage[(PostgreSQL<br/>pgvector<br/>Redis<br/>MinIO)]
+    Storage[(PostgreSQL / pgvector<br/>Redis / MinIO)]
 ```
 
-This diagram emphasizes responsibility boundaries over implementation details. Lower-level interactions are described in the deep-dive documents.
+Additional clients attach at the API without changing Documents, Memory, Search,
+or Intelligence. This diagram emphasizes responsibility boundaries over
+implementation details. Lower-level interactions are described in the deep-dive
+documents.
 
 ---
 
@@ -245,7 +266,9 @@ Infrastructure
 
 The Presentation Layer contains every interface through which users interact with Memovi.
 
-Examples include the web application, desktop application, browser extension, mobile application, command-line interface, public REST API, and future GraphQL API.
+The primary product surface is the desktop application. An optional web client,
+future mobile clients, browser extensions, CLI tools, and public APIs are
+additional presentation surfaces over the same backend.
 
 Responsibilities:
 
@@ -255,7 +278,9 @@ Responsibilities:
 * Authenticate users
 * Call platform APIs
 
-The Presentation Layer contains no business logic. Business rules belong within the Application Layer and domains.
+The Presentation Layer contains no business logic. Business rules belong within
+the Application Layer and domains. Clients remain replaceable; backend domains
+do not depend on any specific UI technology.
 
 ## Application Layer
 
@@ -336,7 +361,7 @@ Primary domain responsibilities:
 | Connectors | External system integration and normalization |
 | Intelligence | Reasoning over retrieved knowledge |
 
-See [`docs/architecture/domains.md`](docs/architecture/domains.md).
+See [`architecture/domains.md`](architecture/domains.md).
 
 ---
 
@@ -349,22 +374,26 @@ memovi/
 
 ├── apps/
 ├── packages/
-├── docs/
+├── docs/                 # product, planning, architecture, development docs
+│   ├── README.md         # documentation hub
+│   ├── PRODUCT_VISION.md
+│   ├── ARCHITECTURE.md
+│   ├── ROADMAP.md
+│   ├── STATUS.md
+│   ├── adr/
+│   ├── architecture/     # deep-dives
+│   └── development/
 ├── docker/
 ├── scripts/
 ├── .github/
 ├── .cursor/
 
-├── README.md
-├── PHILOSOPHY.md
-├── ARCHITECTURE.md
-├── ROADMAP.md
-├── CONTRIBUTING.md
+├── README.md             # repository entry point
 ├── LICENSE
 └── .env.example
 ```
 
-This structure separates application code, reusable platform libraries, infrastructure, and documentation into clearly defined areas.
+This structure separates application code, reusable platform libraries, infrastructure, and documentation into clearly defined areas. Project docs live under `docs/`; the root keeps only the entry README.
 
 Top-level responsibilities:
 
@@ -378,7 +407,7 @@ Top-level responsibilities:
 | `.github/` | Repository automation |
 | `.cursor/` | AI development guidance |
 
-See [`docs/architecture/repository-architecture.md`](docs/architecture/repository-architecture.md).
+See [`architecture/repository-architecture.md`](architecture/repository-architecture.md).
 
 ---
 
@@ -442,7 +471,7 @@ User
 
 GitHub repositories, PDFs, emails, Slack conversations, local files, and future integrations all become normalized documents before entering the platform. From that point onward, downstream systems should not need to know where the information originally came from.
 
-See [`docs/architecture/knowledge-processing-pipeline.md`](docs/architecture/knowledge-processing-pipeline.md).
+See [`architecture/knowledge-processing-pipeline.md`](architecture/knowledge-processing-pipeline.md).
 
 ---
 
@@ -450,13 +479,13 @@ See [`docs/architecture/knowledge-processing-pipeline.md`](docs/architecture/kno
 
 The architecture uses technologies already identified by the project.
 
-## Frontend
+## Clients
 
-* Next.js
-* React
-* TypeScript
-* Tailwind CSS
-* TanStack Query
+* Desktop application (primary product surface; workspace forthcoming)
+* Optional web client (`apps/web` shell today; Next.js / React / TypeScript)
+* Future mobile, CLI, and extension clients as needed
+
+Clients call the platform API. They do not own knowledge, retrieval, or reasoning.
 
 ## Backend
 
@@ -514,18 +543,20 @@ The following documents expand this blueprint without redefining it.
 
 | Document | Purpose |
 | --- | --- |
-| [`docs/architecture/README.md`](docs/architecture/README.md) | Architecture documentation index and reading guide |
-| [`docs/architecture/domains.md`](docs/architecture/domains.md) | Domain responsibilities, ownership, communication, and future domains |
-| [`docs/architecture/module-architecture.md`](docs/architecture/module-architecture.md) | Modular monolith, layers, dependency direction, and service boundaries |
-| [`docs/architecture/repository-architecture.md`](docs/architecture/repository-architecture.md) | Monorepo structure, top-level directories, and repository evolution |
-| [`docs/architecture/request-lifecycle.md`](docs/architecture/request-lifecycle.md) | Synchronous request flow, async transitions, failures, and transactions |
-| [`docs/architecture/event-architecture.md`](docs/architecture/event-architecture.md) | Event philosophy, lifecycle, ownership, workers, versioning, and failure handling |
-| [`docs/architecture/knowledge-processing-pipeline.md`](docs/architecture/knowledge-processing-pipeline.md) | Ingestion, normalization, storage, processing, indexing, retrieval, and intelligence stages |
-| [`docs/architecture/storage-architecture.md`](docs/architecture/storage-architecture.md) | PostgreSQL, pgvector, Redis, MinIO, data ownership, backup, and versioning |
-| [`docs/architecture/search-architecture.md`](docs/architecture/search-architecture.md) | Search responsibility, retrieval strategies, indexes, ranking, and boundaries |
-| [`docs/architecture/intelligence-architecture.md`](docs/architecture/intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |
-| [`docs/architecture/connector-framework.md`](docs/architecture/connector-framework.md) | Connector responsibilities, acquisition, synchronization, and normalization |
-| [`docs/architecture/observability.md`](docs/architecture/observability.md) | Request, worker, event, AI, connector, search, error, and performance telemetry |
-| [`docs/architecture/deployment.md`](docs/architecture/deployment.md) | Self-hostable deployment posture, infrastructure isolation, and runtime concerns |
-| [`docs/architecture/scaling.md`](docs/architecture/scaling.md) | Evolution strategy, future extraction, storage scaling, workers, and operational thresholds |
+| [`README.md`](README.md) | Documentation hub |
+| [`PRODUCT_VISION.md`](PRODUCT_VISION.md) | Canonical product vision |
+| [`architecture/README.md`](architecture/README.md) | Architecture deep-dive index and reading guide |
+| [`architecture/domains.md`](architecture/domains.md) | Domain responsibilities, ownership, communication, and future domains |
+| [`architecture/module-architecture.md`](architecture/module-architecture.md) | Modular monolith, layers, dependency direction, and service boundaries |
+| [`architecture/repository-architecture.md`](architecture/repository-architecture.md) | Monorepo structure, top-level directories, and repository evolution |
+| [`architecture/request-lifecycle.md`](architecture/request-lifecycle.md) | Synchronous request flow, async transitions, failures, and transactions |
+| [`architecture/event-architecture.md`](architecture/event-architecture.md) | Event philosophy, lifecycle, ownership, workers, versioning, and failure handling |
+| [`architecture/knowledge-processing-pipeline.md`](architecture/knowledge-processing-pipeline.md) | Ingestion, normalization, storage, processing, indexing, retrieval, and intelligence stages |
+| [`architecture/storage-architecture.md`](architecture/storage-architecture.md) | PostgreSQL, pgvector, Redis, MinIO, data ownership, backup, and versioning |
+| [`architecture/search-architecture.md`](architecture/search-architecture.md) | Search responsibility, retrieval strategies, indexes, ranking, and boundaries |
+| [`architecture/intelligence-architecture.md`](architecture/intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |
+| [`architecture/connector-framework.md`](architecture/connector-framework.md) | Connector responsibilities, acquisition, synchronization, and normalization |
+| [`architecture/observability.md`](architecture/observability.md) | Request, worker, event, AI, connector, search, error, and performance telemetry |
+| [`architecture/deployment.md`](architecture/deployment.md) | Self-hostable deployment posture, infrastructure isolation, and runtime concerns |
+| [`architecture/scaling.md`](architecture/scaling.md) | Evolution strategy, future extraction, storage scaling, workers, and operational thresholds |
 

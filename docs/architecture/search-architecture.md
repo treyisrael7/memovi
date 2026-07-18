@@ -10,7 +10,7 @@ It covers retrieval responsibility, supported retrieval strategies, indexes, ran
 
 # Relationship to ARCHITECTURE.md
 
-[`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) identifies Search as a core domain and retrieval as a pipeline stage. This document expands that concern without changing the high-level blueprint.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) identifies Search as a core domain and retrieval as a pipeline stage. This document expands that concern without changing the high-level blueprint.
 
 # Search Responsibility
 
@@ -160,7 +160,7 @@ Retrieval never modifies knowledge.
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`domains.md`](domains.md)
 * [`request-lifecycle.md`](request-lifecycle.md)
 * [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md)

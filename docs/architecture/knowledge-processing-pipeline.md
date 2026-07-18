@@ -10,7 +10,7 @@ It covers pipeline philosophy, lifecycle stages, canonical flow, invariants, evo
 
 # Relationship to ARCHITECTURE.md
 
-[`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) summarizes the knowledge pipeline. This document is the focused reference for pipeline behavior and constraints.
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) summarizes the knowledge pipeline. This document is the focused reference for pipeline behavior and constraints.
 
 # Pipeline Responsibility
 
@@ -332,7 +332,7 @@ Durable storage always precedes enrichment.
 
 # Related Documents
 
-* [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md)
+* [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`connector-framework.md`](connector-framework.md)
 * [`event-architecture.md`](event-architecture.md)
 * [`storage-architecture.md`](storage-architecture.md)

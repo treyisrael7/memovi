@@ -1,15 +1,17 @@
-# Memovi Roadmap v2
+# Memovi Roadmap
 
-> Engineering roadmap for Memovi as an AI-native knowledge operating system.
-> Organized by capability milestones, not release dates.
+> Engineering roadmap for Memovi as a desktop-first knowledge operating system.
+> Organized by capability phases, not release dates.
 
 ---
 
 # Philosophy
 
-Memovi is an AI-native knowledge operating system.
+Memovi is a desktop-first, AI-native knowledge operating system.
 
-It is not a chatbot wrapper, a document viewer, or a pile of AI features.
+It is not a chatbot wrapper, a document viewer, a web-app-first product, or a
+pile of AI features. It is a reusable backend platform whose flagship experience
+is a desktop client; web and other clients are optional surfaces over the same API.
 
 The platform is built around one rule:
 
@@ -17,25 +19,45 @@ The platform is built around one rule:
 
 AI is an expensive computational resource. It should run only when cheaper layers cannot answer.
 
-Cost efficiency is a first-class architectural goal:
-
-* Every expensive operation should have a cheaper alternative.
-* Every platform layer should reduce future AI cost.
-* Retrieval, memory, and caching should absorb work before models are invoked.
-
 ---
 
 # Guiding Principles
 
+* **Desktop-first** — the flagship product surface is a native desktop client.
+* **Backend-first** — the reusable platform API is stable before product UX expands.
+* **Client-independent** — desktop, optional web, and future clients share one API.
+* **Knowledge-first** — durable knowledge outranks any single model or UI.
+* **Automation on knowledge** — capabilities and automation build on the knowledge platform, not around it.
 * **Platform before products** — shared capabilities come before client-specific features.
 * **Architecture before features** — boundaries and ownership stay clear as scope grows.
 * **Cost-aware by default** — prefer local, cached, and retrieved answers before generation.
 * **AI as a last resort** — use models when reasoning or synthesis is required, not by habit.
-* **Layered memory over flat retrieval** — organize knowledge by purpose and lifetime.
 * **Vendor independence** — providers are adapters; the knowledge model is not.
 * **Modular architecture** — domains stay extractable without premature microservices.
-* **Production-ready vertical slices** — ship complete, operable paths, not stubs.
 * **Simplicity over cleverness** — prefer explicit, boring systems that stay maintainable.
+
+---
+
+# Evolution Path
+
+```text
+Platform
+    │
+    ▼
+Desktop Product
+    │
+    ▼
+Capabilities
+    │
+    ▼
+Automation
+    │
+    ▼
+Knowledge Operating System
+    │
+    ▼
+Ecosystem (optional clients & deployment)
+```
 
 ---
 
@@ -84,15 +106,6 @@ Artifacts produced by AI workflows.
 * Execution traces
 * Tool outputs
 
-## Future Memory Research
-
-Not committed deliverables. Candidates for later exploration:
-
-* Episodic memory
-* Procedural memory
-* Long-term memory consolidation
-* Knowledge graph representations
-
 ---
 
 # Retrieval Philosophy
@@ -100,18 +113,6 @@ Not committed deliverables. Candidates for later exploration:
 Retrieval should become increasingly intelligent over time.
 
 Memovi calls this **Retrieval Intelligence**: the system that decides what knowledge to fetch, how to fetch it, and how much context to spend before reasoning.
-
-Responsibilities include:
-
-* Keyword retrieval
-* Semantic retrieval
-* Hybrid retrieval
-* Metadata filtering
-* Query planning
-* Reranking
-* Context budgeting
-* Summary lookup
-* Cache lookup
 
 Retrieval should attempt the least expensive path first.
 
@@ -126,48 +127,10 @@ Example progression:
 
 ---
 
-# Cost Intelligence
+# Platform Foundation
 
-Cost Intelligence is an architectural concern, not a set of micro-optimizations.
-
-The goal is to minimize AI spend while preserving answer quality and provenance.
-
-Capabilities include:
-
-* Hierarchical summaries
-* Embedding lifecycle management
-* Prompt caching
-* Response caching
-* Semantic caching
-* Repository caching
-* Selective embedding
-* Adaptive chunking
-* Model routing
-* Token budgeting
-* Context compression
-
-These capabilities should shape package boundaries, data flow, and APIs. They are not after-the-fact tuning knobs.
-
----
-
-# Connector Philosophy
-
-Connectors normalize external information into Memovi's knowledge model.
-
-They should support:
-
-* Incremental synchronization
-* Change detection
-* Selective embedding
-* Metadata preservation
-
-Connectors must not encode product-specific business logic.
-
-Once data is normalized, downstream ingestion, memory, retrieval, and reasoning should not need to know the source system.
-
----
-
-# Roadmap
+Completed and in-progress platform milestones. These are not reopened for redesign;
+remaining gaps are finished under Phase 1.
 
 ## Milestone 0 — Foundation
 
@@ -315,104 +278,167 @@ Enable controlled reasoning over retrieved knowledge.
 
 ---
 
-## Milestone 7 — Memory Intelligence
+# Forward Roadmap
 
-**Objective**
-
-Make memory actively reduce retrieval and AI cost.
-
-**Primary Deliverables**
-
-* Hierarchical summaries
-* Semantic and response caching
-* Embedding lifecycle policies
-* Selective embedding and adaptive chunking
-* Context compression for reasoning
-
-**Success Criteria**
-
-* Common questions are answered from memory or cache before generation.
-* Embedding and context spend are intentional, not unbounded.
+Future work after the platform foundation. Ordered from platform completion to
+product, capabilities, automation, knowledge evolution, and ecosystem.
 
 ---
 
-## Milestone 8 — Connector Ecosystem
+## Phase 1 — Complete V1 Platform
 
 **Objective**
 
-Expand knowledge intake beyond local uploads.
+Finish a production-ready, client-agnostic V1 backend platform.
 
 **Primary Deliverables**
 
-* Connector SDK and contracts
-* Priority source connectors
-* Incremental sync and change detection
-* Selective embedding at the connector boundary
+* Documents — complete ingestion reliability and operator visibility
+* Memory — durable knowledge organization foundations
+* Search — stable retrieval contracts and quality hardening
+* Intelligence — production-ready conversation and reasoning APIs
+* Ownership — enforce ownership on knowledge-sensitive paths
+* Observability — logging, metrics, and traces that explain cost and failure
+* Production hardening — resilience, backups, worker maturity
+* API stability — versioned, documented contracts for clients
 
 **Success Criteria**
 
-* New connectors follow one normalization interface.
-* Source-specific logic stops at the connector edge.
+* Desktop and other clients can build against a stable API.
+* Knowledge pipeline is operable without UI-specific assumptions.
+* Operators can explain failures and latency from telemetry.
 
 ---
 
-## Milestone 9 — Platform Maturity
+## Phase 2 — Desktop Client
 
 **Objective**
 
-Harden the operating system for production scale.
+Ship the flagship desktop knowledge OS on the V1 platform API.
 
 **Primary Deliverables**
 
-* Advanced observability
-* Distributed workers and scheduling
-* Performance and cache maturity
-* Backup and recovery improvements
-* Optional knowledge graph foundations
+* Native desktop application
+* Conversation UI
+* Collections
+* Settings
+* Model management
+* Workspace management
+* Indexing status
 
 **Success Criteria**
 
-* The platform scales without architectural redesign.
-* Operators can explain failures, cost, and latency from telemetry.
+* Desktop is clearly the primary product surface.
+* UX consumes platform APIs; business logic stays in backend domains.
+* Local-model and filesystem-oriented UX is possible without backend redesign.
 
 ---
 
-## Milestone 10 — Applications
+## Phase 3 — Capability Framework
 
 **Objective**
 
-Expose the same platform capabilities through multiple clients.
+Give the desktop OS safe, permissioned access to the user’s environment.
 
 **Primary Deliverables**
 
-* Web application and chat UI
-* CLI and public API surface
-* Desktop / extension / mobile as needed
-* SDKs over stable contracts
+* Filesystem
+* Terminal
+* Browser
+* Git
+* Clipboard
+* Notifications
+* Plugin system
+* Permission model
 
 **Success Criteria**
 
-* Clients share one platform; business logic stays centralized.
-* Application features compose pipeline capabilities instead of bypassing them.
+* Capabilities are explicit, auditable, and permissioned.
+* Plugins cannot bypass knowledge or ownership boundaries.
+* The backend remains the source of durable knowledge truth.
 
 ---
 
-# Future Vision
+## Phase 4 — Automation
 
-Exploratory. Not committed milestone scope.
+**Objective**
 
-* Local model runtimes
-* Knowledge graphs and graph traversal
-* Multi-user workspaces
-* Collaborative knowledge
-* Workflow automation
-* Agent orchestration
-* Offline synchronization
-* Distributed / multi-node deployments
-* Federated search
-* Enterprise packaging
+Compose capabilities into safe, user-approved automation on top of knowledge.
 
-These ideas may enter the roadmap only after architecture and cost constraints justify them.
+**Primary Deliverables**
+
+* Safe execution
+* Approval workflow
+* Task orchestration
+* Background jobs
+* Capability composition
+
+**Success Criteria**
+
+* Automation runs only with clear approval and provenance.
+* Tasks compose capabilities without inventing parallel knowledge stores.
+* Background work is observable and interruptible.
+
+---
+
+## Phase 5 — Knowledge Evolution
+
+**Objective**
+
+Make memory actively reduce future retrieval and inference cost.
+
+**Primary Deliverables**
+
+* Summaries
+* Long-term memory
+* Knowledge graph
+* Reasoning cache
+* Inference-efficient retrieval
+
+**Success Criteria**
+
+* Common needs are satisfied from memory or cache before generation.
+* Knowledge becomes cheaper to reuse as the system matures.
+* Graph and summary layers strengthen retrieval without owning raw truth.
+
+---
+
+## Phase 6 — Ecosystem
+
+**Objective**
+
+Extend the same platform to optional clients and broader deployment models.
+
+**Primary Deliverables**
+
+* Optional web client
+* Optional mobile client
+* Cloud sync
+* Enterprise deployment
+* Connector marketplace
+
+**Success Criteria**
+
+* Web and mobile remain optional; desktop stays the flagship.
+* Additional clients do not fork business logic.
+* Connectors and deployment options attach at platform boundaries.
+
+---
+
+# Connector Philosophy
+
+Connectors normalize external information into Memovi's knowledge model.
+
+They should support:
+
+* Incremental synchronization
+* Change detection
+* Selective embedding
+* Metadata preservation
+
+Connectors must not encode product-specific business logic.
+
+Once data is normalized, downstream ingestion, memory, retrieval, and reasoning should not need to know the source system. Marketplace packaging belongs in Phase 6.
 
 ---
 
@@ -425,6 +451,7 @@ These ideas may enter the roadmap only after architecture and cost constraints j
 * Scalable knowledge organization
 * Reusable modular architecture
 * Clear ownership and provenance
+* Desktop-first product clarity
 * Production-quality vertical slices
 
 ---
@@ -433,6 +460,7 @@ These ideas may enter the roadmap only after architecture and cost constraints j
 
 * Unnecessary AI calls
 * Premature microservices
+* Web-first product framing
 * Feature quantity over platform quality
 * Vendor lock-in
 * Hidden platform behavior
@@ -444,14 +472,14 @@ These ideas may enter the roadmap only after architecture and cost constraints j
 
 # Measuring Progress
 
-A milestone is complete when:
+A phase is complete when:
 
 * Architecture remains consistent with this roadmap
 * The capability is operable, tested, and documented
 * Cost and failure modes are visible
-* Later milestones become easier, not harder
+* Later phases become easier, not harder
 
-Progress is platform maturity, not feature count.
+Progress is platform and product maturity, not feature count.
 
 ---
 
@@ -459,11 +487,13 @@ Progress is platform maturity, not feature count.
 
 This roadmap will change.
 
-Capabilities may move between milestones.
+Capabilities may move between phases.
 
 The philosophy should not:
 
 * Knowledge remains the product
 * Memory remains the architecture
 * AI remains a consumer
+* Desktop remains the flagship client
+* The API remains the platform boundary
 * Cost efficiency remains a design constraint
