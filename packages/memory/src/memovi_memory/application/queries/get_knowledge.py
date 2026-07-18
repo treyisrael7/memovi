@@ -1,3 +1,4 @@
+from memovi_observability import get_metrics_recorder, timed_operation
 from memovi_shared import WorkspaceId
 
 from memovi_memory.application.dto import KnowledgeDto
@@ -19,16 +20,22 @@ class GetKnowledge:
         self._chunk_repository = chunk_repository
 
     def execute(self, knowledge_item_id: str, *, workspace_id: WorkspaceId) -> KnowledgeDto:
-        knowledge_item = self._knowledge_repository.get_by_id(
-            KnowledgeItemId(knowledge_item_id),
-            workspace_id=workspace_id,
-        )
-        if knowledge_item is None:
-            raise KnowledgeItemNotFoundError("Knowledge item was not found.")
+        with timed_operation(
+            "memory.lookup",
+            metric_name="memovi.memory.lookup",
+            attributes={"operation": "memory.lookup"},
+        ):
+            knowledge_item = self._knowledge_repository.get_by_id(
+                KnowledgeItemId(knowledge_item_id),
+                workspace_id=workspace_id,
+            )
+            if knowledge_item is None:
+                raise KnowledgeItemNotFoundError("Knowledge item was not found.")
 
-        chunks = self._chunk_repository.list_by_document_version(
-            document_id=knowledge_item.document_id,
-            document_version_id=knowledge_item.document_version_id,
-            workspace_id=workspace_id,
-        )
-        return KnowledgeDto.from_knowledge_item_and_chunks(knowledge_item, chunks)
+            chunks = self._chunk_repository.list_by_document_version(
+                document_id=knowledge_item.document_id,
+                document_version_id=knowledge_item.document_version_id,
+                workspace_id=workspace_id,
+            )
+            get_metrics_recorder().increment("memovi.memory.lookup.count")
+            return KnowledgeDto.from_knowledge_item_and_chunks(knowledge_item, chunks)

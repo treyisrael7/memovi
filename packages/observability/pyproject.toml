@@ -1,13 +1,24 @@
 [project]
 name = "memovi-observability"
 version = "0.1.0"
-description = "Observability package for cross-cutting logging, tracing, and metrics boundaries. Instrumentation should be centralized here when runtime code is introduced."
+description = "Cross-cutting logging, tracing, metrics, and request-context boundaries for Memovi."
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "memovi-shared",
+    "opentelemetry-api",
+]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/memovi_observability",
+]
+
 [tool.uv]
 package = true
+
+[tool.uv.sources]
+memovi-shared = { workspace = true }

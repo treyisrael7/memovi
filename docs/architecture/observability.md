@@ -153,6 +153,23 @@ Useful signals include:
 
 See [`connector-framework.md`](connector-framework.md).
 
+# As-Built Foundation
+
+The `memovi_observability` package provides the cross-cutting runtime surface:
+
+* **RequestContext** — `request_id`, optional `workspace_id`, optional `correlation_id`, `timestamp`, optional `principal` (future auth). Bound by API middleware via ContextVar; workspace resolution updates the same context for the request.
+* **Structured logging** — JSON log records with consistent fields: `request_id`, `workspace_id`, `correlation_id`, `operation`, `duration_ms`, `status`, `error`, `repository`, `event`.
+* **Diagnostic events** — lightweight emitter that logs standardized names only (no second bus). The composition-root bridge maps pipeline domain events:
+  * `DocumentCreated` → `DocumentUploaded`
+  * `KnowledgeMaterialized` → `MemoryCreated`
+  * `SearchIndexed` → `DocumentIndexed`
+  * Direct emits: `WorkspaceCreated`, `ConversationCreated`, `SearchExecuted`
+* **Metrics** — `MetricsRecorder` protocol with an in-memory implementation; timings/counters for HTTP, upload, search, embedding, conversation, memory lookup, and repository hot paths. Export adapters (Prometheus/OTel) can plug in later.
+* **Tracing** — OpenTelemetry API spans around HTTP requests and timed operations; no exporter required.
+* **Health** — `GET /health` liveness; `GET /ready` readiness with `database`, `vector_search`, `embedding_provider`, `migrations`, `workspace`, and `search_readiness` component checks.
+
+The existing in-process pipeline event bus remains the source of truth for domain facts. Observability adapts those facts into diagnostic logs and metrics.
+
 # Key Decisions
 
 * Observability is part of the architecture, not an optional enhancement.
@@ -160,6 +177,7 @@ See [`connector-framework.md`](connector-framework.md).
 * Event telemetry includes publication time, processing latency, retries, queue depth, and throughput.
 * Failures should produce meaningful telemetry without exposing implementation details to clients.
 * Observability supports debugging, optimization, and long-term maintenance.
+* Diagnostic event names are an observability concern; pipeline domain event names are not renamed.
 
 # Related Documents
 

@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from memovi_observability import DiagnosticEventEmitter, DiagnosticEventName, timed_operation
 from memovi_shared import InvalidWorkspaceIdError
 
 from memovi_workspace.api.dependencies import (
@@ -18,6 +19,7 @@ from memovi_workspace.application.queries import GetWorkspace, GetWorkspaceQuery
 from memovi_workspace.domain.exceptions import WorkspaceDomainError, WorkspaceNotFoundError
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
+_DIAGNOSTICS = DiagnosticEventEmitter()
 
 
 @router.post(
@@ -31,13 +33,19 @@ def create_workspace(
     use_case: Annotated[CreateWorkspace, Depends(get_create_workspace)],
 ) -> WorkspaceResponse:
     try:
-        result = use_case.execute(CreateWorkspaceCommand(name=body.name))
+        with timed_operation("workspace.create", attributes={"operation": "workspace.create"}):
+            result = use_case.execute(CreateWorkspaceCommand(name=body.name))
     except WorkspaceDomainError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
 
+    _DIAGNOSTICS.emit(
+        DiagnosticEventName.WORKSPACE_CREATED,
+        workspace_id=result.workspace.id,
+        workspace_name=result.workspace.name,
+    )
     return WorkspaceResponse(
         id=result.workspace.id,
         name=result.workspace.name,

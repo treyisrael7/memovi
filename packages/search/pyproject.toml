@@ -5,12 +5,14 @@ description = "Search and retrieval domain boundary."
 requires-python = ">=3.14"
 dependencies = [
     "fastapi",
+    "memovi-observability",
     "memovi-shared",
     "pgvector",
     "sqlalchemy>=2",
 ]
 
 [tool.uv.sources]
+memovi-observability = { workspace = true }
 memovi-shared = { workspace = true }
 
 [build-system]

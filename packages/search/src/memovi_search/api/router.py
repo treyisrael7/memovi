@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, status
+from memovi_observability import DiagnosticEventEmitter, DiagnosticEventName, timed_operation
 from memovi_shared import WorkspaceId
 from pydantic import AfterValidator
 
@@ -32,6 +33,7 @@ NonBlankSearchQuery = Annotated[str, AfterValidator(_require_non_blank_query)]
 SearchMode = Literal["keyword", "semantic", "hybrid"]
 
 router = APIRouter(prefix="/search", tags=["search"])
+_DIAGNOSTICS = DiagnosticEventEmitter()
 
 
 def _to_response(*, query: str, results: list[SearchResultDto]) -> SearchResponse:
@@ -120,22 +122,33 @@ def search(
         ),
     ] = 0,
 ) -> SearchResponse:
-    results = use_case.execute(
-        RetrieveKnowledgeQuery(
-            query=q,
-            workspace_id=workspace_id,
-            mode=RetrievalMode(mode),
-            limit=limit,
-            offset=offset,
-            filters=SearchFilters(
+    with timed_operation(
+        "search.execute",
+        metric_name="memovi.search.latency",
+        attributes={"operation": "search.execute", "search.mode": mode},
+    ):
+        results = use_case.execute(
+            RetrieveKnowledgeQuery(
+                query=q,
                 workspace_id=workspace_id,
-                document_id=document_id,
-                source_type=source_type,
-                mime_type=mime_type,
-                created_after=created_after,
-                created_before=created_before,
-            ),
+                mode=RetrievalMode(mode),
+                limit=limit,
+                offset=offset,
+                filters=SearchFilters(
+                    workspace_id=workspace_id,
+                    document_id=document_id,
+                    source_type=source_type,
+                    mime_type=mime_type,
+                    created_after=created_after,
+                    created_before=created_before,
+                ),
+            )
         )
+    _DIAGNOSTICS.emit(
+        DiagnosticEventName.SEARCH_EXECUTED,
+        workspace_id=workspace_id.value,
+        mode=mode,
+        result_count=len(results),
     )
     return _to_response(query=q, results=results)
 
@@ -174,11 +187,22 @@ def semantic_search(
         ),
     ] = 25,
 ) -> SearchResponse:
-    results = use_case.execute(
-        SemanticSearchQuery(
-            query=q,
-            workspace_id=workspace_id,
-            limit=limit,
+    with timed_operation(
+        "search.semantic",
+        metric_name="memovi.search.latency",
+        attributes={"operation": "search.semantic", "search.mode": "semantic"},
+    ):
+        results = use_case.execute(
+            SemanticSearchQuery(
+                query=q,
+                workspace_id=workspace_id,
+                limit=limit,
+            )
         )
+    _DIAGNOSTICS.emit(
+        DiagnosticEventName.SEARCH_EXECUTED,
+        workspace_id=workspace_id.value,
+        mode="semantic",
+        result_count=len(results),
     )
     return _to_response(query=q, results=results)

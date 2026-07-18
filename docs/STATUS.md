@@ -42,34 +42,33 @@ Engineering foundation is in place: workspaces, local infrastructure, CI, toolin
 
 **Overall Status:** In progress
 
-Backend composition root is operational. Cross-cutting config, structured logging, observability, and architecture tests remain incomplete.
+Backend composition root is operational. Observability foundation (request context, structured logs, diagnostic bridge, metrics, readiness) is in place. Typed config and architecture boundary tests remain.
 
 **Completed**
 
 * FastAPI composition root and bootstrap
 * Dependency injection and router registration
-* Health endpoint
+* Health liveness (`/health`) and readiness (`/ready`) endpoints
 * Domain packages for auth, documents, search, and intelligence
+* `memovi_observability` RequestContext, structured JSON logging, diagnostic event bridge, metrics recorder, and OpenTelemetry-API spans
 
 **In Progress**
 
 * Domain package scaffolding for remaining packages
 * Environment-based configuration (typed `memovi_config` not yet wired)
-* Application logging (structured/JSON logging not yet implemented)
-* Observability package scaffold (tracing and metrics not yet implemented)
 
 **Remaining**
 
 * Architecture tests validating package boundaries
-* Full observability foundation
+* Typed configuration wiring
 
 **Known Risks**
 
-* Cross-cutting concerns may stay ad hoc without typed config and observability
+* Cross-cutting concerns may stay ad hoc without typed config
 
 **Next Recommended Work**
 
-* Wire typed configuration and harden logging/observability foundations
+* Wire typed configuration and add architecture boundary tests
 
 ---
 
@@ -273,24 +272,27 @@ API stability remain.
 
 **In Progress**
 
-* Typed config / structured logging / observability foundation
-* Platform package and contract hardening
+* Typed config and platform package/contract hardening
+* API stability for clients
 
 **Remaining**
 
 * Documents / Memory / Search / Intelligence production readiness
 * Auth-bound workspace membership and audit logging
-* Observability
 * Production hardening
 * API stability for clients
 
+**Completed (Phase 1 platform)**
+
+* Observability foundation: request context propagation, structured logs, diagnostic event bridge, metrics interface, OTel-neutral spans, `/ready` checks
+
 **Known Risks**
 
-* Building the desktop client before observability and API stability land creates rework
+* Building the desktop client before API stability lands creates rework
 
 **Next Recommended Work**
 
-* Finish observability and API stability before Phase 2
+* Finish API stability and typed config before Phase 2
 
 ---
 

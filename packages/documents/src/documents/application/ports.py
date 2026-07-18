@@ -6,12 +6,21 @@ from typing import Protocol
 class QueuedProcessingJob:
     processing_job_id: str
     attempt: int = 1
+    request_id: str | None = None
+    workspace_id: str | None = None
 
 
 class ProcessingJobQueue(Protocol):
     """Queues document processing jobs for asynchronous execution."""
 
-    def enqueue(self, processing_job_id: str, *, attempt: int = 1) -> None:
+    def enqueue(
+        self,
+        processing_job_id: str,
+        *,
+        attempt: int = 1,
+        request_id: str | None = None,
+        workspace_id: str | None = None,
+    ) -> None:
         raise NotImplementedError
 
     async def dequeue(self) -> QueuedProcessingJob | None:

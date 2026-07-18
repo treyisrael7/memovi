@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from memovi_observability import timed_operation
 from memovi_shared import WorkspaceId
 
 from documents.api.dependencies import get_active_workspace_id, get_ingest_local_document
@@ -31,14 +32,19 @@ async def ingest_document(
     mime_type = file.content_type or "application/octet-stream"
 
     try:
-        result = use_case.execute(
-            IngestLocalDocumentCommand(
-                workspace_id=workspace_id,
-                filename=filename,
-                mime_type=mime_type,
-                content=content,
-            ),
-        )
+        with timed_operation(
+            "document.upload",
+            metric_name="memovi.documents.upload.latency",
+            attributes={"operation": "document.upload"},
+        ):
+            result = use_case.execute(
+                IngestLocalDocumentCommand(
+                    workspace_id=workspace_id,
+                    filename=filename,
+                    mime_type=mime_type,
+                    content=content,
+                ),
+            )
     except EmptyUploadError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -56,9 +62,11 @@ async def ingest_document(
         ) from exc
 
     request.state.pending_processing_job_ids.append(result.processing_job_id)
+    request.state.pending_domain_events.append(result.event)
 
     return IngestDocumentResponse(
         document_id=result.document_id,
         processing_job_id=result.processing_job_id,
         processing_status=result.processing_status.value,
     )
+

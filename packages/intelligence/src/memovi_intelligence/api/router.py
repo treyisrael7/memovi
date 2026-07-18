@@ -1,6 +1,7 @@
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from memovi_observability import DiagnosticEventEmitter, DiagnosticEventName, timed_operation
 from memovi_shared import WorkspaceId
 
 from memovi_intelligence.api.dependencies import (
@@ -40,6 +41,7 @@ from memovi_intelligence.domain.value_objects import Citation, ConversationId, C
 from memovi_intelligence.domain.value_objects.execution_trace import ExecutionTrace
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
+_DIAGNOSTICS = DiagnosticEventEmitter()
 
 
 def _citation_response(citation: Citation) -> CitationResponse:
@@ -110,7 +112,16 @@ def create_conversation(
     conversations: Annotated[ConversationService, Depends(get_conversation_service)],
     workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
 ) -> CreateConversationResponse:
-    conversation = conversations.create_conversation(workspace_id=workspace_id)
+    with timed_operation(
+        "conversation.create",
+        attributes={"operation": "conversation.create"},
+    ):
+        conversation = conversations.create_conversation(workspace_id=workspace_id)
+    _DIAGNOSTICS.emit(
+        DiagnosticEventName.CONVERSATION_CREATED,
+        conversation_id=conversation.id.value,
+        workspace_id=workspace_id.value,
+    )
     return CreateConversationResponse(
         conversation_id=conversation.id.value,
         created_at=conversation.created_at,

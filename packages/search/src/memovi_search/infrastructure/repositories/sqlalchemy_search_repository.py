@@ -1,6 +1,7 @@
 import builtins
 from datetime import UTC, datetime
 
+from memovi_observability import timed_operation
 from memovi_shared import WorkspaceId
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session as OrmSession
@@ -10,30 +11,33 @@ from memovi_search.domain.value_objects import SearchDocumentId
 from memovi_search.infrastructure.persistence.full_text import ENGLISH_TEXT_SEARCH_CONFIG
 from memovi_search.infrastructure.persistence.models import SearchDocumentRecord
 
+_REPO = "SqlAlchemySearchRepository"
+
 
 class SqlAlchemySearchRepository:
     def __init__(self, session: OrmSession) -> None:
         self._session = session
 
     def save_document(self, search_document: SearchDocument) -> None:
-        record = self._session.get(SearchDocumentRecord, search_document.id.value)
-        if record is None:
-            record = self._document_to_record(search_document)
-            self._session.add(record)
-        else:
-            record.workspace_id = search_document.workspace_id.value
-            record.knowledge_item_id = search_document.knowledge_item_id
-            record.document_id = search_document.document_id
-            record.document_version_id = search_document.document_version_id
-            record.source_type = search_document.source_type
-            record.mime_type = search_document.mime_type
-            record.searchable_text = search_document.searchable_text
-            record.updated_at = search_document.updated_at
+        with timed_operation("repository.save_document", repository=_REPO):
+            record = self._session.get(SearchDocumentRecord, search_document.id.value)
+            if record is None:
+                record = self._document_to_record(search_document)
+                self._session.add(record)
+            else:
+                record.workspace_id = search_document.workspace_id.value
+                record.knowledge_item_id = search_document.knowledge_item_id
+                record.document_id = search_document.document_id
+                record.document_version_id = search_document.document_version_id
+                record.source_type = search_document.source_type
+                record.mime_type = search_document.mime_type
+                record.searchable_text = search_document.searchable_text
+                record.updated_at = search_document.updated_at
 
-        record.search_vector = _search_vector_expression(
-            self._session,
-            search_document.searchable_text,
-        )
+            record.search_vector = _search_vector_expression(
+                self._session,
+                search_document.searchable_text,
+            )
 
     def get_document(
         self,
@@ -89,48 +93,49 @@ class SqlAlchemySearchRepository:
         created_after: datetime | None = None,
         created_before: datetime | None = None,
     ) -> builtins.list[RankedSearchDocument]:
-        if not _supports_full_text_search(self._session):
-            return []
+        with timed_operation("repository.search", repository=_REPO):
+            if not _supports_full_text_search(self._session):
+                return []
 
-        ts_query = func.plainto_tsquery(ENGLISH_TEXT_SEARCH_CONFIG, query)
-        relevance_score = func.ts_rank(
-            SearchDocumentRecord.search_vector,
-            ts_query,
-        ).label("relevance_score")
+            ts_query = func.plainto_tsquery(ENGLISH_TEXT_SEARCH_CONFIG, query)
+            relevance_score = func.ts_rank(
+                SearchDocumentRecord.search_vector,
+                ts_query,
+            ).label("relevance_score")
 
-        statement: Select[tuple[SearchDocumentRecord, float]] = select(
-            SearchDocumentRecord,
-            relevance_score,
-        ).where(
-            SearchDocumentRecord.search_vector.op("@@")(ts_query),
-            SearchDocumentRecord.workspace_id == workspace_id.value,
-        )
-        statement = _apply_search_filters(
-            statement,
-            document_id=document_id,
-            document_version_id=document_version_id,
-            source_type=source_type,
-            mime_type=mime_type,
-            created_after=created_after,
-            created_before=created_before,
-        )
-
-        rows = self._session.execute(
-            statement.order_by(
-                relevance_score.desc(),
-                SearchDocumentRecord.created_at.asc(),
+            statement: Select[tuple[SearchDocumentRecord, float]] = select(
+                SearchDocumentRecord,
+                relevance_score,
+            ).where(
+                SearchDocumentRecord.search_vector.op("@@")(ts_query),
+                SearchDocumentRecord.workspace_id == workspace_id.value,
             )
-            .limit(limit)
-            .offset(offset)
-        ).all()
-
-        return [
-            RankedSearchDocument(
-                search_document=self._document_to_domain(record),
-                relevance_score=float(score),
+            statement = _apply_search_filters(
+                statement,
+                document_id=document_id,
+                document_version_id=document_version_id,
+                source_type=source_type,
+                mime_type=mime_type,
+                created_after=created_after,
+                created_before=created_before,
             )
-            for record, score in rows
-        ]
+
+            rows = self._session.execute(
+                statement.order_by(
+                    relevance_score.desc(),
+                    SearchDocumentRecord.created_at.asc(),
+                )
+                .limit(limit)
+                .offset(offset)
+            ).all()
+
+            return [
+                RankedSearchDocument(
+                    search_document=self._document_to_domain(record),
+                    relevance_score=float(score),
+                )
+                for record, score in rows
+            ]
 
     def _document_to_domain(self, record: SearchDocumentRecord) -> SearchDocument:
         return SearchDocument(

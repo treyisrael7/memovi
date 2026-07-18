@@ -1,15 +1,14 @@
 import logging
 from importlib.metadata import PackageNotFoundError, metadata
 
+from memovi_observability import configure_structured_logging
+
 PROJECT_DISTRIBUTION = "memovi-api"
 LOGGER_NAME = "memovi.api"
 
 
 def initialize_logging() -> None:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-    )
+    configure_structured_logging(level=logging.INFO)
 
 
 def validate_configuration() -> None:

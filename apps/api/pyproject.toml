@@ -4,11 +4,13 @@ version = "0.1.0"
 description = "Backend composition root for the Memovi platform."
 requires-python = ">=3.14"
 dependencies = [
+    "alembic",
     "fastapi",
     "memovi-auth",
     "memovi-documents",
     "memovi-intelligence",
     "memovi-memory",
+    "memovi-observability",
     "memovi-search",
     "memovi-shared",
     "memovi-workspace",
@@ -34,6 +36,7 @@ memovi-auth = { workspace = true }
 memovi-documents = { workspace = true }
 memovi-intelligence = { workspace = true }
 memovi-memory = { workspace = true }
+memovi-observability = { workspace = true }
 memovi-search = { workspace = true }
 memovi-shared = { workspace = true }
 memovi-workspace = { workspace = true }

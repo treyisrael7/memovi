@@ -1,6 +1,7 @@
 import builtins
 from datetime import UTC, datetime
 
+from memovi_observability import timed_operation
 from memovi_shared import WorkspaceId
 from sqlalchemy.orm import Session as OrmSession
 
@@ -8,23 +9,26 @@ from memovi_memory.domain.entities import KnowledgeItem
 from memovi_memory.domain.value_objects import KnowledgeItemId
 from memovi_memory.infrastructure.persistence.models import KnowledgeItemRecord
 
+_REPO = "SqlAlchemyKnowledgeRepository"
+
 
 class SqlAlchemyKnowledgeRepository:
     def __init__(self, session: OrmSession) -> None:
         self._session = session
 
     def save(self, knowledge_item: KnowledgeItem) -> None:
-        record = self._session.get(KnowledgeItemRecord, knowledge_item.id.value)
-        if record is None:
-            self._session.add(self._to_record(knowledge_item))
-            return
+        with timed_operation("repository.save", repository=_REPO):
+            record = self._session.get(KnowledgeItemRecord, knowledge_item.id.value)
+            if record is None:
+                self._session.add(self._to_record(knowledge_item))
+                return
 
-        record.workspace_id = knowledge_item.workspace_id.value
-        record.document_id = knowledge_item.document_id
-        record.document_version_id = knowledge_item.document_version_id
-        record.source_type = knowledge_item.source_type
-        record.mime_type = knowledge_item.mime_type
-        record.updated_at = knowledge_item.updated_at
+            record.workspace_id = knowledge_item.workspace_id.value
+            record.document_id = knowledge_item.document_id
+            record.document_version_id = knowledge_item.document_version_id
+            record.source_type = knowledge_item.source_type
+            record.mime_type = knowledge_item.mime_type
+            record.updated_at = knowledge_item.updated_at
 
     def get_by_id(
         self,
@@ -32,17 +36,18 @@ class SqlAlchemyKnowledgeRepository:
         *,
         workspace_id: WorkspaceId,
     ) -> KnowledgeItem | None:
-        record = (
-            self._session.query(KnowledgeItemRecord)
-            .filter(
-                KnowledgeItemRecord.id == knowledge_item_id.value,
-                KnowledgeItemRecord.workspace_id == workspace_id.value,
+        with timed_operation("repository.get_by_id", repository=_REPO):
+            record = (
+                self._session.query(KnowledgeItemRecord)
+                .filter(
+                    KnowledgeItemRecord.id == knowledge_item_id.value,
+                    KnowledgeItemRecord.workspace_id == workspace_id.value,
+                )
+                .one_or_none()
             )
-            .one_or_none()
-        )
-        if record is None:
-            return None
-        return self._to_domain(record)
+            if record is None:
+                return None
+            return self._to_domain(record)
 
     def list_by_workspace(self, *, workspace_id: WorkspaceId) -> builtins.list[KnowledgeItem]:
         records = (

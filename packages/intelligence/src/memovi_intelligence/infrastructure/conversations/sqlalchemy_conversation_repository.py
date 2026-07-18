@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
+from memovi_observability import timed_operation
 from memovi_shared import WorkspaceId
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session as OrmSession
@@ -20,6 +21,8 @@ from memovi_intelligence.infrastructure.persistence.models import (
     ConversationTurnRecord,
 )
 
+_REPO = "SqlAlchemyConversationRepository"
+
 
 class SqlAlchemyConversationRepository:
     """SQLAlchemy-backed ConversationRepository for durable conversation state."""
@@ -28,17 +31,18 @@ class SqlAlchemyConversationRepository:
         self._session = session
 
     def create(self, *, workspace_id: WorkspaceId) -> Conversation:
-        conversation = Conversation.create(workspace_id=workspace_id)
-        self._session.add(
-            ConversationRecord(
-                id=conversation.id.value,
-                workspace_id=conversation.workspace_id.value,
-                created_at=conversation.created_at,
-                updated_at=conversation.updated_at,
+        with timed_operation("repository.create", repository=_REPO):
+            conversation = Conversation.create(workspace_id=workspace_id)
+            self._session.add(
+                ConversationRecord(
+                    id=conversation.id.value,
+                    workspace_id=conversation.workspace_id.value,
+                    created_at=conversation.created_at,
+                    updated_at=conversation.updated_at,
+                )
             )
-        )
-        self._session.flush()
-        return conversation
+            self._session.flush()
+            return conversation
 
     def get(
         self,
@@ -46,17 +50,18 @@ class SqlAlchemyConversationRepository:
         *,
         workspace_id: WorkspaceId,
     ) -> Conversation | None:
-        record = (
-            self._session.query(ConversationRecord)
-            .filter(
-                ConversationRecord.id == conversation_id.value,
-                ConversationRecord.workspace_id == workspace_id.value,
+        with timed_operation("repository.get", repository=_REPO):
+            record = (
+                self._session.query(ConversationRecord)
+                .filter(
+                    ConversationRecord.id == conversation_id.value,
+                    ConversationRecord.workspace_id == workspace_id.value,
+                )
+                .one_or_none()
             )
-            .one_or_none()
-        )
-        if record is None:
-            return None
-        return self._to_domain(record)
+            if record is None:
+                return None
+            return self._to_domain(record)
 
     def append_turn(
         self,

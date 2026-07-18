@@ -161,6 +161,7 @@ pythonpath = [
     "packages/memory/src",
     "packages/memory/tests",
     "packages/observability/src",
+    "packages/observability/tests",
     "packages/search/src",
     "packages/search/tests",
     "packages/shared/src",

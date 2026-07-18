@@ -1,10 +1,13 @@
 from datetime import UTC, datetime
 
+from memovi_observability import timed_operation
 from memovi_shared import WorkspaceId
 from sqlalchemy.orm import Session as OrmSession
 
 from memovi_workspace.domain.entities import Workspace
 from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
+
+_REPO = "SqlAlchemyWorkspaceRepository"
 
 
 class SqlAlchemyWorkspaceRepository:
@@ -12,19 +15,21 @@ class SqlAlchemyWorkspaceRepository:
         self._session = session
 
     def get_by_id(self, workspace_id: WorkspaceId) -> Workspace | None:
-        record = self._session.get(WorkspaceRecord, workspace_id.value)
-        if record is None:
-            return None
-        return self._to_domain(record)
+        with timed_operation("repository.get_by_id", repository=_REPO):
+            record = self._session.get(WorkspaceRecord, workspace_id.value)
+            if record is None:
+                return None
+            return self._to_domain(record)
 
     def add(self, workspace: Workspace) -> None:
-        self._session.add(
-            WorkspaceRecord(
-                id=workspace.id.value,
-                name=workspace.name,
-                created_at=workspace.created_at,
+        with timed_operation("repository.add", repository=_REPO):
+            self._session.add(
+                WorkspaceRecord(
+                    id=workspace.id.value,
+                    name=workspace.name,
+                    created_at=workspace.created_at,
+                )
             )
-        )
 
     def list_all(self) -> list[Workspace]:
         records = (

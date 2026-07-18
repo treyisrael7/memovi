@@ -33,9 +33,9 @@ memovi/
 │   ├── documents/           # memovi-documents
 │   ├── intelligence/        # memovi-intelligence
 │   ├── memory/              # memovi-memory
-│   ├── observability/       # memovi-observability (scaffold)
+│   ├── observability/       # memovi-observability
 │   ├── search/              # memovi-search
-│   └── shared/              # memovi-shared (scaffold)
+│   └── shared/              # memovi-shared
 ├── database/
 │   └── migrations/versions/ # Alembic revisions
 ├── docker/                  # .gitkeep only
@@ -76,7 +76,7 @@ memovi/
 | config | `memovi-config` | `memovi_config` | Scaffold only |
 | connectors | `memovi-connectors` | `memovi_connectors` | Scaffold only |
 | contracts | `memovi-contracts` | `memovi_contracts` | Scaffold only |
-| observability | `memovi-observability` | `memovi_observability` | Scaffold only |
+| observability | `memovi-observability` | `memovi_observability` | RequestContext, structured logs, metrics, diagnostic events, OTel spans |
 | shared | `memovi-shared` | `memovi_shared` | Scaffold only |
 
 ## Apps
@@ -93,7 +93,7 @@ There is no substantive shared library code.
 * `packages/shared` — empty package root
 * `packages/contracts` — empty `events/`, `messages/`, `schemas/`
 * `packages/config` — empty settings package
-* `packages/observability` — empty `logging/`, `metrics/`, `tracing/`
+* `packages/observability` — RequestContext, structured JSON logging, MetricsRecorder, diagnostic emitter, OTel-API tracing
 
 Cross-domain coupling is composed only in `apps/api`, not via shared packages.
 
@@ -586,7 +586,8 @@ Registered in `apps/api/src/api/routers.py`: auth, documents, conversations (int
 
 | Method | Route | Request | Response | Service |
 |--------|-------|---------|----------|---------|
-| GET | `/health` | none | `{"status":"healthy"}` | inline handler |
+| GET | `/health` | none | `{"status":"healthy"}` | liveness |
+| GET | `/ready` | none | component readiness aggregate | database, vector_search, embedding_provider, migrations, workspace, search_readiness |
 
 ## Not exposed
 
@@ -846,8 +847,10 @@ memovi-memory        → fastapi, sqlalchemy
 memovi-search        → fastapi, pgvector, sqlalchemy
 memovi-intelligence  → fastapi, openai
 
-memovi-config / connectors / contracts / observability / shared
-  → (no dependencies; scaffolds)
+memovi-config / connectors / contracts
+  → (scaffolds)
+memovi-observability → memovi-shared, opentelemetry-api
+memovi-shared → (primitives)
 ```
 
 ## Runtime import graph
@@ -1034,7 +1037,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 | Milestone | Status | Evidence |
 |-----------|--------|----------|
 | 0 Foundation | **Complete** | Workspaces, Compose, CI, tooling, docs present |
-| 1 Platform | **In Progress** | Composition root/routers/health done; typed config, observability, architecture tests incomplete |
+| 1 Platform | **In Progress** | Composition root/routers/observability done; typed config and architecture tests incomplete |
 | 2 Identity & Ownership | **In Progress** | Auth complete; ownership on knowledge APIs and audit logging absent |
 | 3 Knowledge Ingestion | **In Progress** | Upload, MinIO, worker, processing, chunk handoff done; OCR and connector intake absent |
 | 4 Knowledge Platform | **In Progress** | Memory materialization exists; collections/tags/relationships/public Memory API absent |
@@ -1045,7 +1048,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 
 | Phase | Status | Evidence |
 |-------|--------|----------|
-| 1 Complete V1 Platform | **In Progress** | Core pipeline exists; ownership, observability, hardening, API stability remain |
+| 1 Complete V1 Platform | **In Progress** | Core pipeline + ownership + observability foundation exist; hardening and API stability remain |
 | 2 Desktop Client | **Not Started** | Flagship desktop client absent; optional `apps/web` shell only |
 | 3 Capability Framework | **Not Started** | No filesystem/terminal/plugin/permission framework |
 | 4 Automation | **Not Started** | No approval workflow or capability orchestration product path |
@@ -1078,7 +1081,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 ## Planned / implied refactors (from docs/status, not unfinished code branches)
 
 * Ownership context on knowledge APIs
-* Typed `memovi_config` and observability package fill-in
+* Typed `memovi_config` wiring
 * Memory HTTP surface
 * Real embedding providers
 * Tool loop integration into Reason (framework exists; path does not)
@@ -1138,7 +1141,7 @@ Not implemented:
 * Ownership enforcement on knowledge APIs
 * Connectors, OCR, collections/tags
 * Desktop client product UX / streaming
-* Typed shared config and observability packages
+* Typed shared config package
 * Real embedding provider integrations
 * Architecture boundary tests
 

@@ -204,8 +204,13 @@ def test_unified_retrieval_modes_filters_pagination_and_deduplication(
     )
     assert filtered.status_code == 200
     filtered_payload = filtered.json()
-    assert filtered_payload["count"] == 1
-    assert filtered_payload["results"][0]["document_id"] == memovi_md["document_id"]
+    # Hybrid fusion includes semantic candidates; mime filter keeps markdown docs only.
+    assert filtered_payload["count"] == 2
+    assert {item["document_id"] for item in filtered_payload["results"]} == {
+        memovi_md["document_id"],
+        gardening["document_id"],
+    }
+    assert all(item["document_id"] != memovi_txt["document_id"] for item in filtered_payload["results"])
 
     page = client.get(
         "/search",

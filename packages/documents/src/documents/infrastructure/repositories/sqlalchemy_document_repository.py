@@ -1,11 +1,14 @@
 from datetime import UTC, datetime
 
+from memovi_observability import timed_operation
 from memovi_shared import WorkspaceId
 from sqlalchemy.orm import Session as OrmSession
 
 from documents.domain.entities import Document, DocumentVersion
 from documents.domain.value_objects import DocumentId, DocumentName, MimeType, SourceType
 from documents.infrastructure.persistence.models import DocumentRecord, DocumentVersionRecord
+
+_REPO = "SqlAlchemyDocumentRepository"
 
 
 class SqlAlchemyDocumentRepository:
@@ -18,17 +21,18 @@ class SqlAlchemyDocumentRepository:
         *,
         workspace_id: WorkspaceId,
     ) -> Document | None:
-        record = (
-            self._session.query(DocumentRecord)
-            .filter(
-                DocumentRecord.id == document_id.value,
-                DocumentRecord.workspace_id == workspace_id.value,
+        with timed_operation("repository.get_by_id", repository=_REPO):
+            record = (
+                self._session.query(DocumentRecord)
+                .filter(
+                    DocumentRecord.id == document_id.value,
+                    DocumentRecord.workspace_id == workspace_id.value,
+                )
+                .one_or_none()
             )
-            .one_or_none()
-        )
-        if record is None:
-            return None
-        return self._to_domain(record)
+            if record is None:
+                return None
+            return self._to_domain(record)
 
     def get_by_id_unscoped(self, document_id: DocumentId) -> Document | None:
         record = self._session.get(DocumentRecord, document_id.value)
@@ -37,16 +41,17 @@ class SqlAlchemyDocumentRepository:
         return self._to_domain(record)
 
     def add(self, document: Document) -> None:
-        self._session.add(
-            DocumentRecord(
-                id=document.id.value,
-                workspace_id=document.workspace_id.value,
-                name=document.name.value,
-                mime_type=document.mime_type.value,
-                source_type=document.source_type.value,
-                created_at=document.created_at,
+        with timed_operation("repository.add", repository=_REPO):
+            self._session.add(
+                DocumentRecord(
+                    id=document.id.value,
+                    workspace_id=document.workspace_id.value,
+                    name=document.name.value,
+                    mime_type=document.mime_type.value,
+                    source_type=document.source_type.value,
+                    created_at=document.created_at,
+                )
             )
-        )
 
     def list_by_workspace(self, *, workspace_id: WorkspaceId) -> list[Document]:
         records = (

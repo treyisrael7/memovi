@@ -1,9 +1,17 @@
 import asyncio
 import logging
 from collections.abc import Callable
+from contextvars import Token
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
+from memovi_observability import (
+    RequestContext,
+    bind_request_context,
+    clear_request_context,
+)
+from memovi_shared import InvalidWorkspaceIdError, WorkspaceId
 from sqlalchemy.orm import Session as OrmSession
 
 from documents.application.commands.fail_processing import FailProcessing, FailProcessingCommand
@@ -27,6 +35,29 @@ from documents.infrastructure.repositories import (
 )
 
 LOGGER = logging.getLogger(__name__)
+
+
+def _bind_queued_request_context(queued: QueuedProcessingJob) -> Token[Any] | None:
+    """Restore request/workspace identity for worker logs and diagnostic events."""
+    if queued.request_id is None and queued.workspace_id is None:
+        return None
+    workspace_id: WorkspaceId | None = None
+    if queued.workspace_id is not None:
+        try:
+            workspace_id = WorkspaceId(queued.workspace_id)
+        except InvalidWorkspaceIdError:
+            workspace_id = None
+    return bind_request_context(
+        RequestContext.create(
+            request_id=queued.request_id,
+            workspace_id=workspace_id,
+        )
+    )
+
+
+def _clear_queued_request_context(token: Token[Any] | None) -> None:
+    if token is not None:
+        clear_request_context(token)
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,19 +87,16 @@ class DocumentProcessingWorker:
 
     async def run(self) -> None:
         while not self._shutdown.is_set():
-            try:
-                queued = await asyncio.wait_for(
-                    self._queue.dequeue(),
-                    timeout=self._config.poll_interval_seconds,
-                )
-            except TimeoutError:
-                continue
-
+            # Do not wrap dequeue in wait_for: cancelling asyncio.to_thread(queue.get)
+            # can consume a queued job without processing it.
+            queued = await self._queue.dequeue()
             if queued is None:
                 break
 
             try:
-                await asyncio.to_thread(self._process_queued_job, queued)
+                # Process on the event-loop thread. asyncio.to_thread + StaticPool
+                # SQLite shares one connection across threads and corrupts results.
+                self._process_queued_job(queued)
             except ProcessingJobNotFoundError:
                 LOGGER.warning(
                     "Skipping processing job %s because it is not available yet.",
@@ -80,6 +108,7 @@ class DocumentProcessingWorker:
         await self._queue.close()
 
     def _process_queued_job(self, queued: QueuedProcessingJob) -> None:
+        context_token = _bind_queued_request_context(queued)
         session = self._session_factory()
         try:
             process_document = ProcessDocument(
@@ -118,6 +147,7 @@ class DocumentProcessingWorker:
             raise
         finally:
             session.close()
+            _clear_queued_request_context(context_token)
 
     def _handle_transient_failure(self, queued: QueuedProcessingJob, *, reason: str) -> None:
         if queued.attempt >= self._config.max_retries:
@@ -130,6 +160,8 @@ class DocumentProcessingWorker:
         self._queue.enqueue(
             queued.processing_job_id,
             attempt=queued.attempt + 1,
+            request_id=queued.request_id,
+            workspace_id=queued.workspace_id,
         )
         LOGGER.info(
             "Scheduled retry %s/%s for processing job %s",
