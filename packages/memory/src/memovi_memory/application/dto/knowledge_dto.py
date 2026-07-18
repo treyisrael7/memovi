@@ -11,6 +11,7 @@ class KnowledgeDto:
     """Canonical read representation of durable knowledge and its chunks."""
 
     id: str
+    workspace_id: str
     document_id: str
     document_version_id: str
     source_type: str
@@ -29,6 +30,7 @@ class KnowledgeDto:
         ordered_chunks = sorted(chunks, key=lambda chunk: chunk.chunk_index.value)
         return cls(
             id=item.id,
+            workspace_id=item.workspace_id,
             document_id=item.document_id,
             document_version_id=item.document_version_id,
             source_type=item.source_type,

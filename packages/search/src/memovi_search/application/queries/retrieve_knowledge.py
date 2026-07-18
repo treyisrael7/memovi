@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from memovi_shared import WorkspaceId
+
 from memovi_search.application.dto import SearchDocumentDto, SearchFilters, SearchResultDto
 from memovi_search.application.services.retrieval_engine import (
     RetrievalEngine,
@@ -11,6 +13,7 @@ from memovi_search.application.services.retrieval_engine import (
 @dataclass(frozen=True, slots=True)
 class RetrieveKnowledgeQuery:
     query: str
+    workspace_id: WorkspaceId
     limit: int
     offset: int = 0
     mode: RetrievalMode = RetrievalMode.HYBRID
@@ -30,6 +33,7 @@ class RetrieveKnowledge:
                 mode=query.mode,
                 limit=query.limit,
                 offset=query.offset,
+                workspace_id=query.workspace_id,
                 filters=query.filters,
             )
         )

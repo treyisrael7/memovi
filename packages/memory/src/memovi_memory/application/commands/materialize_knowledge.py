@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from memovi_shared import WorkspaceId
+
 from memovi_memory.application.exceptions import NoChunksGeneratedError
 from memovi_memory.domain.repositories import ChunkRepository, KnowledgeRepository
 from memovi_memory.domain.services import ChunkGenerator, KnowledgeMaterializer
@@ -7,6 +9,7 @@ from memovi_memory.domain.services import ChunkGenerator, KnowledgeMaterializer
 
 @dataclass(frozen=True, slots=True)
 class MaterializeKnowledgeCommand:
+    workspace_id: WorkspaceId
     document_id: str
     document_version_id: str
     source_type: str
@@ -44,6 +47,7 @@ class MaterializeKnowledge:
             )
 
         materialization = self._knowledge_materializer.materialize(
+            workspace_id=command.workspace_id,
             document_id=command.document_id,
             document_version_id=command.document_version_id,
             source_type=command.source_type,

@@ -7,6 +7,7 @@ class KnowledgeMaterializedNotification:
     """Search-side notification that canonical knowledge was materialized."""
 
     knowledge_item_id: str
+    workspace_id: str
     document_id: str
     document_version_id: str
     occurred_at: datetime

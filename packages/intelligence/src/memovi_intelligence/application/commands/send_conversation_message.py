@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from memovi_shared import WorkspaceId
+
 from memovi_intelligence.application.commands.reason import Reason
 from memovi_intelligence.application.services.conversation_service import ConversationService
 from memovi_intelligence.domain.entities import ReasoningRequest, ReasoningResult
@@ -9,6 +11,7 @@ from memovi_intelligence.domain.value_objects import Citation, ConversationId, E
 @dataclass(frozen=True, slots=True)
 class SendConversationMessageCommand:
     conversation_id: str
+    workspace_id: WorkspaceId
     message: str
 
 
@@ -40,17 +43,25 @@ class SendConversationMessage:
         command: SendConversationMessageCommand,
     ) -> SendConversationMessageResult:
         conversation_id = ConversationId(command.conversation_id)
-        history = self._conversations.load_history(conversation_id)
+        history = self._conversations.load_history(
+            conversation_id,
+            workspace_id=command.workspace_id,
+        )
 
         result = self._reason.execute(
             ReasoningRequest.create(query=command.message),
             conversation_history=history,
         )
 
-        self._conversations.append_user_turn(conversation_id, command.message)
+        self._conversations.append_user_turn(
+            conversation_id,
+            command.message,
+            workspace_id=command.workspace_id,
+        )
         self._conversations.append_assistant_turn(
             conversation_id,
             result.answer,
+            workspace_id=command.workspace_id,
             citations=result.citations,
         )
 

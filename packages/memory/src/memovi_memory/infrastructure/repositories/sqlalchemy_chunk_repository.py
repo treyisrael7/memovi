@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
 from sqlalchemy.orm import Session as OrmSession
 
 from memovi_memory.domain.entities import Chunk
@@ -18,6 +19,7 @@ class SqlAlchemyChunkRepository:
                 self._session.add(self._to_record(chunk))
                 continue
 
+            record.workspace_id = chunk.workspace_id.value
             record.knowledge_item_id = (
                 chunk.knowledge_item_id.value if chunk.knowledge_item_id is not None else None
             )
@@ -31,16 +33,15 @@ class SqlAlchemyChunkRepository:
         *,
         document_id: str,
         document_version_id: str,
+        workspace_id: WorkspaceId | None = None,
     ) -> list[Chunk]:
-        records = (
-            self._session.query(ChunkRecord)
-            .filter(
-                ChunkRecord.document_id == document_id,
-                ChunkRecord.document_version_id == document_version_id,
-            )
-            .order_by(ChunkRecord.chunk_index.asc())
-            .all()
+        query = self._session.query(ChunkRecord).filter(
+            ChunkRecord.document_id == document_id,
+            ChunkRecord.document_version_id == document_version_id,
         )
+        if workspace_id is not None:
+            query = query.filter(ChunkRecord.workspace_id == workspace_id.value)
+        records = query.order_by(ChunkRecord.chunk_index.asc()).all()
         return [self._to_domain(record) for record in records]
 
     def delete_by_document_version(
@@ -48,19 +49,20 @@ class SqlAlchemyChunkRepository:
         *,
         document_id: str,
         document_version_id: str,
+        workspace_id: WorkspaceId | None = None,
     ) -> None:
-        (
-            self._session.query(ChunkRecord)
-            .filter(
-                ChunkRecord.document_id == document_id,
-                ChunkRecord.document_version_id == document_version_id,
-            )
-            .delete()
+        query = self._session.query(ChunkRecord).filter(
+            ChunkRecord.document_id == document_id,
+            ChunkRecord.document_version_id == document_version_id,
         )
+        if workspace_id is not None:
+            query = query.filter(ChunkRecord.workspace_id == workspace_id.value)
+        query.delete()
 
     def _to_domain(self, record: ChunkRecord) -> Chunk:
         return Chunk(
             id=ChunkId(record.id),
+            workspace_id=WorkspaceId(record.workspace_id),
             knowledge_item_id=(
                 KnowledgeItemId(record.knowledge_item_id)
                 if record.knowledge_item_id is not None
@@ -76,6 +78,7 @@ class SqlAlchemyChunkRepository:
     def _to_record(self, chunk: Chunk) -> ChunkRecord:
         return ChunkRecord(
             id=chunk.id.value,
+            workspace_id=chunk.workspace_id.value,
             knowledge_item_id=(
                 chunk.knowledge_item_id.value if chunk.knowledge_item_id is not None else None
             ),

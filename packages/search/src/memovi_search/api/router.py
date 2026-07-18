@@ -2,9 +2,14 @@ from datetime import datetime
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, status
+from memovi_shared import WorkspaceId
 from pydantic import AfterValidator
 
-from memovi_search.api.dependencies import get_retrieve_knowledge, get_semantic_search
+from memovi_search.api.dependencies import (
+    get_active_workspace_id,
+    get_retrieve_knowledge,
+    get_semantic_search,
+)
 from memovi_search.api.schemas import SearchResponse, SearchResultItemResponse
 from memovi_search.application.dto import SearchFilters, SearchResultDto
 from memovi_search.application.queries import (
@@ -52,10 +57,11 @@ def _to_response(*, query: str, results: list[SearchResultDto]) -> SearchRespons
     status_code=status.HTTP_200_OK,
     summary="Search indexed knowledge",
     description=(
-        "Run unified retrieval over indexed knowledge. "
+        "Run unified retrieval over indexed knowledge in the active workspace. "
         "Supported modes: keyword (full-text), semantic (vector similarity), "
         "and hybrid (Reciprocal Rank Fusion of both). Hybrid is the default. "
-        "Optional metadata filters are applied after retrieval and fusion."
+        "Optional metadata filters are applied after retrieval and fusion. "
+        "Active workspace is resolved from X-Memovi-Workspace-Id or the Default Workspace."
     ),
     responses={
         200: {"description": "Ranked search results for the query."},
@@ -71,6 +77,7 @@ def search(
         ),
     ],
     use_case: Annotated[RetrieveKnowledge, Depends(get_retrieve_knowledge)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
     mode: Annotated[
         SearchMode,
         Query(
@@ -116,10 +123,12 @@ def search(
     results = use_case.execute(
         RetrieveKnowledgeQuery(
             query=q,
+            workspace_id=workspace_id,
             mode=RetrievalMode(mode),
             limit=limit,
             offset=offset,
             filters=SearchFilters(
+                workspace_id=workspace_id,
                 document_id=document_id,
                 source_type=source_type,
                 mime_type=mime_type,
@@ -155,6 +164,7 @@ def semantic_search(
         ),
     ],
     use_case: Annotated[SemanticSearch, Depends(get_semantic_search)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
     limit: Annotated[
         int,
         Query(
@@ -167,6 +177,7 @@ def semantic_search(
     results = use_case.execute(
         SemanticSearchQuery(
             query=q,
+            workspace_id=workspace_id,
             limit=limit,
         )
     )

@@ -254,13 +254,14 @@ Make ownership of knowledge explicit.
 
 * Local authentication
 * Session identity
-* Ownership-aware request context
+* Ownership-aware request context (Workspace + `WorkspaceId`; V1 header/`Default` fallback delivered)
 * Auditability for ownership-sensitive actions
 
 **Success Criteria**
 
 * Ownership-sensitive work can identify the acting user.
 * Auth remains isolated from knowledge domains.
+* Knowledge reads/writes are workspace-scoped at repository and search boundaries.
 
 ---
 

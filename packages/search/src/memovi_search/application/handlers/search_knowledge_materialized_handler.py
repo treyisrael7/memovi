@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
 from sqlalchemy.orm import Session as OrmSession
 
 from memovi_search.application.commands.materialize_search_document import (
@@ -32,7 +33,15 @@ class SearchKnowledgeMaterializedHandler:
         self._session_factory = session_factory
 
     def handle(self, notification: KnowledgeMaterializedNotification) -> None:
-        knowledge = self._knowledge_reader.get_knowledge(notification.knowledge_item_id)
+        workspace_id = (
+            notification.workspace_id
+            if isinstance(notification.workspace_id, WorkspaceId)
+            else WorkspaceId(str(notification.workspace_id))
+        )
+        knowledge = self._knowledge_reader.get_knowledge(
+            notification.knowledge_item_id,
+            workspace_id=workspace_id,
+        )
         if knowledge is None:
             return
 
@@ -44,6 +53,7 @@ class SearchKnowledgeMaterializedHandler:
         try:
             result = self._materialize_search_document_factory(session).execute(
                 MaterializeSearchDocumentCommand(
+                    workspace_id=workspace_id,
                     knowledge_item_id=knowledge.id,
                     document_id=knowledge.document_id,
                     document_version_id=knowledge.document_version_id,

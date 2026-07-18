@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
 from sqlalchemy import select
 from sqlalchemy.orm import Session as OrmSession
 
@@ -64,6 +65,8 @@ class SqlAlchemyEmbeddingRepository:
         self,
         query_vector: EmbeddingVector,
         limit: int,
+        *,
+        workspace_id: WorkspaceId,
     ) -> list[RankedSearchDocument]:
         if limit <= 0:
             return []
@@ -84,7 +87,10 @@ class SqlAlchemyEmbeddingRepository:
                 SearchEmbeddingRecord,
                 SearchEmbeddingRecord.search_document_id == SearchDocumentRecord.id,
             )
-            .where(SearchEmbeddingRecord.dimensions == query_vector.dimensions)
+            .where(
+                SearchEmbeddingRecord.dimensions == query_vector.dimensions,
+                SearchDocumentRecord.workspace_id == workspace_id.value,
+            )
             .order_by(distance.asc(), SearchDocumentRecord.created_at.asc())
             .limit(limit),
         ).all()
@@ -135,6 +141,7 @@ class SqlAlchemyEmbeddingRepository:
     def _document_to_domain(self, record: SearchDocumentRecord) -> SearchDocument:
         return SearchDocument(
             id=SearchDocumentId(record.id),
+            workspace_id=WorkspaceId(record.workspace_id),
             knowledge_item_id=record.knowledge_item_id,
             document_id=record.document_id,
             document_version_id=record.document_version_id,

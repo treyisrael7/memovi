@@ -23,6 +23,7 @@ from memovi_intelligence.infrastructure import (
 )
 from memovi_intelligence.infrastructure.persistence import Base as IntelligenceBase
 from memovi_search.api.dependencies import get_database_session as get_search_database_session
+from memovi_shared import WorkspaceId
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -152,7 +153,10 @@ def test_conversation_history_survives_new_repository_session(
 
     with session_factory() as session:
         repository = SqlAlchemyConversationRepository(session)
-        loaded = repository.get(ConversationId(conversation_id))
+        loaded = repository.get(
+            ConversationId(conversation_id),
+            workspace_id=WorkspaceId.default(),
+        )
         assert loaded is not None
         assert len(loaded.turns) == 4
         assert loaded.turns[0].content == "Remember durable state."

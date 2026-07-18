@@ -1,5 +1,7 @@
 from typing import Protocol
 
+from memovi_shared import WorkspaceId
+
 from memovi_intelligence.domain.entities import Conversation, ReasoningRequest, ReasoningResult
 from memovi_intelligence.domain.value_objects import (
     ConversationId,
@@ -32,20 +34,32 @@ class ReasoningProvider(Protocol):
 class ConversationRepository(Protocol):
     """Persistence contract for multi-turn conversation state."""
 
-    def create(self) -> Conversation:
+    def create(self, *, workspace_id: WorkspaceId) -> Conversation:
         raise NotImplementedError
 
-    def get(self, conversation_id: ConversationId) -> Conversation | None:
+    def get(
+        self,
+        conversation_id: ConversationId,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> Conversation | None:
         raise NotImplementedError
 
     def append_turn(
         self,
         conversation_id: ConversationId,
         turn: ConversationTurn,
+        *,
+        workspace_id: WorkspaceId,
     ) -> Conversation:
         raise NotImplementedError
 
-    def list_turns(self, conversation_id: ConversationId) -> tuple[ConversationTurn, ...]:
+    def list_turns(
+        self,
+        conversation_id: ConversationId,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> tuple[ConversationTurn, ...]:
         raise NotImplementedError
 
 

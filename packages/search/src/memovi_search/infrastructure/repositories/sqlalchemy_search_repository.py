@@ -1,6 +1,7 @@
 import builtins
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session as OrmSession
 
@@ -20,6 +21,7 @@ class SqlAlchemySearchRepository:
             record = self._document_to_record(search_document)
             self._session.add(record)
         else:
+            record.workspace_id = search_document.workspace_id.value
             record.knowledge_item_id = search_document.knowledge_item_id
             record.document_id = search_document.document_id
             record.document_version_id = search_document.document_version_id
@@ -33,22 +35,43 @@ class SqlAlchemySearchRepository:
             search_document.searchable_text,
         )
 
-    def get_document(self, search_document_id: SearchDocumentId) -> SearchDocument | None:
-        record = self._session.get(SearchDocumentRecord, search_document_id.value)
+    def get_document(
+        self,
+        search_document_id: SearchDocumentId,
+        *,
+        workspace_id: WorkspaceId | None = None,
+    ) -> SearchDocument | None:
+        query = self._session.query(SearchDocumentRecord).filter(
+            SearchDocumentRecord.id == search_document_id.value,
+        )
+        if workspace_id is not None:
+            query = query.filter(SearchDocumentRecord.workspace_id == workspace_id.value)
+        record = query.one_or_none()
         if record is None:
             return None
         return self._document_to_domain(record)
 
-    def list_documents(self) -> builtins.list[SearchDocument]:
+    def list_documents(self, *, workspace_id: WorkspaceId) -> builtins.list[SearchDocument]:
         records = (
             self._session.query(SearchDocumentRecord)
+            .filter(SearchDocumentRecord.workspace_id == workspace_id.value)
             .order_by(SearchDocumentRecord.created_at.asc())
             .all()
         )
         return [self._document_to_domain(record) for record in records]
 
-    def delete_document(self, search_document_id: SearchDocumentId) -> None:
-        record = self._session.get(SearchDocumentRecord, search_document_id.value)
+    def delete_document(
+        self,
+        search_document_id: SearchDocumentId,
+        *,
+        workspace_id: WorkspaceId | None = None,
+    ) -> None:
+        query = self._session.query(SearchDocumentRecord).filter(
+            SearchDocumentRecord.id == search_document_id.value,
+        )
+        if workspace_id is not None:
+            query = query.filter(SearchDocumentRecord.workspace_id == workspace_id.value)
+        record = query.one_or_none()
         if record is not None:
             self._session.delete(record)
 
@@ -58,6 +81,7 @@ class SqlAlchemySearchRepository:
         limit: int,
         offset: int,
         *,
+        workspace_id: WorkspaceId,
         document_id: str | None = None,
         document_version_id: str | None = None,
         source_type: str | None = None,
@@ -77,7 +101,10 @@ class SqlAlchemySearchRepository:
         statement: Select[tuple[SearchDocumentRecord, float]] = select(
             SearchDocumentRecord,
             relevance_score,
-        ).where(SearchDocumentRecord.search_vector.op("@@")(ts_query))
+        ).where(
+            SearchDocumentRecord.search_vector.op("@@")(ts_query),
+            SearchDocumentRecord.workspace_id == workspace_id.value,
+        )
         statement = _apply_search_filters(
             statement,
             document_id=document_id,
@@ -108,6 +135,7 @@ class SqlAlchemySearchRepository:
     def _document_to_domain(self, record: SearchDocumentRecord) -> SearchDocument:
         return SearchDocument(
             id=SearchDocumentId(record.id),
+            workspace_id=WorkspaceId(record.workspace_id),
             knowledge_item_id=record.knowledge_item_id,
             document_id=record.document_id,
             document_version_id=record.document_version_id,
@@ -121,6 +149,7 @@ class SqlAlchemySearchRepository:
     def _document_to_record(self, search_document: SearchDocument) -> SearchDocumentRecord:
         return SearchDocumentRecord(
             id=search_document.id.value,
+            workspace_id=search_document.workspace_id.value,
             knowledge_item_id=search_document.knowledge_item_id,
             document_id=search_document.document_id,
             document_version_id=search_document.document_version_id,

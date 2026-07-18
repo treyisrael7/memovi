@@ -7,6 +7,7 @@ from memovi_memory.domain.services import (
     KnowledgeMaterializer,
 )
 from memovi_memory.domain.value_objects import ChunkIndex
+from memovi_shared import WorkspaceId
 
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
 DOCUMENT_VERSION_ID = "7ce3e814-de68-4200-973e-b2526eee058d"
@@ -24,6 +25,7 @@ def test_knowledge_materializer_creates_single_chunk() -> None:
     drafts = [ChunkDraft(chunk_index=ChunkIndex(0), text="First passage.")]
 
     result = materializer.materialize(
+        workspace_id=WorkspaceId.default(),
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
         source_type=SOURCE_TYPE,
@@ -46,6 +48,7 @@ def test_knowledge_materializer_creates_multiple_chunks() -> None:
     ]
 
     result = materializer.materialize(
+        workspace_id=WorkspaceId.default(),
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
         source_type=SOURCE_TYPE,
@@ -63,6 +66,7 @@ def test_knowledge_materializer_rejects_empty_chunk_list() -> None:
 
     with pytest.raises(InvalidKnowledgeMaterializationError):
         materializer.materialize(
+            workspace_id=WorkspaceId.default(),
             document_id=DOCUMENT_ID,
             document_version_id=DOCUMENT_VERSION_ID,
             source_type=SOURCE_TYPE,
@@ -80,6 +84,7 @@ def test_knowledge_materializer_assigns_chunk_ownership_to_knowledge_item() -> N
     ]
 
     result = materializer.materialize(
+        workspace_id=WorkspaceId.default(),
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
         source_type=SOURCE_TYPE,
@@ -101,6 +106,7 @@ def test_knowledge_materializer_preserves_sequential_chunk_indexes() -> None:
     ]
 
     result = materializer.materialize(
+        workspace_id=WorkspaceId.default(),
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
         source_type=SOURCE_TYPE,
@@ -117,6 +123,7 @@ def test_knowledge_materializer_propagates_document_identifiers() -> None:
     drafts = [ChunkDraft(chunk_index=ChunkIndex(0), text="Propagated.")]
 
     result = materializer.materialize(
+        workspace_id=WorkspaceId.default(),
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
         source_type=SOURCE_TYPE,
@@ -139,6 +146,7 @@ def test_knowledge_materializer_is_deterministic_for_same_input() -> None:
     ]
 
     first = materializer.materialize(
+        workspace_id=WorkspaceId.default(),
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
         source_type=SOURCE_TYPE,
@@ -147,6 +155,7 @@ def test_knowledge_materializer_is_deterministic_for_same_input() -> None:
         now=MATERIALIZED_AT,
     )
     second = materializer.materialize(
+        workspace_id=WorkspaceId.default(),
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
         source_type=SOURCE_TYPE,

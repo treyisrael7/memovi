@@ -1,8 +1,10 @@
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from memovi_shared import WorkspaceId
 
 from memovi_intelligence.api.dependencies import (
+    get_active_workspace_id,
     get_conversation_service,
     get_send_conversation_message,
 )
@@ -106,8 +108,9 @@ def _parse_conversation_id(conversation_id: str) -> ConversationId:
 )
 def create_conversation(
     conversations: Annotated[ConversationService, Depends(get_conversation_service)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
 ) -> CreateConversationResponse:
-    conversation = conversations.create_conversation()
+    conversation = conversations.create_conversation(workspace_id=workspace_id)
     return CreateConversationResponse(
         conversation_id=conversation.id.value,
         created_at=conversation.created_at,
@@ -123,10 +126,11 @@ def create_conversation(
 def get_conversation(
     conversation_id: str,
     conversations: Annotated[ConversationService, Depends(get_conversation_service)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
 ) -> ConversationMetadataResponse:
     parsed_id = _parse_conversation_id(conversation_id)
     try:
-        conversation = conversations.get_conversation(parsed_id)
+        conversation = conversations.get_conversation(parsed_id, workspace_id=workspace_id)
     except ConversationNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -150,10 +154,11 @@ def get_conversation(
 def list_messages(
     conversation_id: str,
     conversations: Annotated[ConversationService, Depends(get_conversation_service)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
 ) -> ConversationMessagesResponse:
     parsed_id = _parse_conversation_id(conversation_id)
     try:
-        conversation = conversations.get_conversation(parsed_id)
+        conversation = conversations.get_conversation(parsed_id, workspace_id=workspace_id)
     except ConversationNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -181,6 +186,7 @@ def send_message(
     conversation_id: str,
     body: SendMessageRequest,
     use_case: Annotated[SendConversationMessage, Depends(get_send_conversation_message)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
 ) -> SendMessageResponse:
     _parse_conversation_id(conversation_id)
 
@@ -188,6 +194,7 @@ def send_message(
         result = use_case.execute(
             SendConversationMessageCommand(
                 conversation_id=conversation_id,
+                workspace_id=workspace_id,
                 message=body.message,
             ),
         )

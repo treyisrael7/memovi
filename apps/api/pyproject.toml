@@ -10,6 +10,8 @@ dependencies = [
     "memovi-intelligence",
     "memovi-memory",
     "memovi-search",
+    "memovi-shared",
+    "memovi-workspace",
     "psycopg[binary]",
     "python-multipart",
     "sqlalchemy>=2",
@@ -33,3 +35,5 @@ memovi-documents = { workspace = true }
 memovi-intelligence = { workspace = true }
 memovi-memory = { workspace = true }
 memovi-search = { workspace = true }
+memovi-shared = { workspace = true }
+memovi-workspace = { workspace = true }

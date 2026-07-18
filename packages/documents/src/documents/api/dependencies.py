@@ -1,6 +1,7 @@
 from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends, Header, HTTPException, Request, status
+from memovi_shared import DEFAULT_WORKSPACE_ID, InvalidWorkspaceIdError, WorkspaceId
 from sqlalchemy.orm import Session as OrmSession
 
 from documents.application.commands import (
@@ -28,6 +29,26 @@ def get_database_session() -> OrmSession:
 
 
 DatabaseSession = Annotated[OrmSession, Depends(get_database_session)]
+
+WORKSPACE_HEADER = "X-Memovi-Workspace-Id"
+
+
+def get_active_workspace_id(
+    x_memovi_workspace_id: Annotated[str | None, Header(alias=WORKSPACE_HEADER)] = None,
+) -> WorkspaceId:
+    """Package default workspace resolution; composition root may override."""
+    if x_memovi_workspace_id is None or not x_memovi_workspace_id.strip():
+        return DEFAULT_WORKSPACE_ID
+    try:
+        return WorkspaceId(x_memovi_workspace_id.strip())
+    except InvalidWorkspaceIdError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
+
+ActiveWorkspaceId = Annotated[WorkspaceId, Depends(get_active_workspace_id)]
 
 
 def get_processing_job_queue(request: Request) -> ProcessingJobQueue:

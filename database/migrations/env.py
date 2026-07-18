@@ -12,12 +12,15 @@ sys.path.insert(0, str(ROOT_DIR / "packages" / "documents" / "src"))
 sys.path.insert(0, str(ROOT_DIR / "packages" / "intelligence" / "src"))
 sys.path.insert(0, str(ROOT_DIR / "packages" / "memory" / "src"))
 sys.path.insert(0, str(ROOT_DIR / "packages" / "search" / "src"))
+sys.path.insert(0, str(ROOT_DIR / "packages" / "workspace" / "src"))
+sys.path.insert(0, str(ROOT_DIR / "packages" / "shared" / "src"))
 
 from auth.infrastructure.persistence import Base as AuthBase  # noqa: E402
 from documents.infrastructure.persistence import Base as DocumentsBase  # noqa: E402
 from memovi_intelligence.infrastructure.persistence import Base as IntelligenceBase  # noqa: E402
 from memovi_memory.infrastructure.persistence import Base as MemoryBase  # noqa: E402
 from memovi_search.infrastructure.persistence import Base as SearchBase  # noqa: E402
+from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase  # noqa: E402
 
 config = context.config
 
@@ -30,6 +33,7 @@ target_metadata = [
     IntelligenceBase.metadata,
     MemoryBase.metadata,
     SearchBase.metadata,
+    WorkspaceBase.metadata,
 ]
 
 

@@ -13,11 +13,12 @@ class Base(DeclarativeBase):
 
 
 class DocumentRecord(Base):
-    """Persistence scaffold for normalized documents. Repository mapping is not implemented."""
+    """Persistence model for normalized documents."""
 
     __tablename__ = "documents_documents"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(512), nullable=False)
     mime_type: Mapped[str] = mapped_column(String(255), nullable=False)
     source_type: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -28,7 +29,7 @@ class DocumentRecord(Base):
 
 
 class DocumentVersionRecord(Base):
-    """Persistence scaffold for document version snapshots."""
+    """Persistence model for document version snapshots."""
 
     __tablename__ = "documents_document_versions"
 
@@ -48,7 +49,7 @@ class DocumentVersionRecord(Base):
 
 
 class ProcessingJobRecord(Base):
-    """Persistence scaffold for document ingestion processing jobs."""
+    """Persistence model for document ingestion processing jobs."""
 
     __tablename__ = "documents_processing_jobs"
 

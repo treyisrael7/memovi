@@ -77,7 +77,7 @@ Backend composition root is operational. Cross-cutting config, structured loggin
 
 **Overall Status:** In progress
 
-Local authentication works. Ownership is not yet enforced on knowledge domains.
+Local authentication works. Workspace ownership is enforced on knowledge-sensitive paths. Auth session ↔ active workspace coupling and audit logging remain open.
 
 **Completed**
 
@@ -86,6 +86,9 @@ Local authentication works. Ownership is not yet enforced on knowledge domains.
 * HTTP-only session cookies
 * Session persistence and logout
 * Current-user API boundary
+* Workspace domain (`packages/workspace`) with Default Workspace seed
+* `WorkspaceId` shared primitive and repository-level workspace isolation
+* Optional `X-Memovi-Workspace-Id` API resolution with Default fallback
 
 **In Progress**
 
@@ -93,16 +96,17 @@ Local authentication works. Ownership is not yet enforced on knowledge domains.
 
 **Remaining**
 
-* Ownership-aware request context on knowledge APIs
+* Bind active workspace to authenticated session (replace default header fallback)
 * Audit logging for ownership-sensitive actions
+* Workspace membership / roles
 
 **Known Risks**
 
-* Knowledge APIs remain unauthenticated, delaying true ownership guarantees
+* Knowledge APIs remain unauthenticated; workspace header is an ownership boundary, not yet an authz model
 
 **Next Recommended Work**
 
-* Attach ownership context to documents, memory, search, and conversation paths
+* Attach authenticated user context and membership checks to workspace-scoped APIs
 
 ---
 
@@ -257,35 +261,36 @@ Milestones 0–6 above remain the platform foundation tracker.
 
 **Overall Status:** In progress
 
-Documents, Memory, Search, and Intelligence vertical slices exist. Ownership
-enforcement, observability, production hardening, and API stability remain.
+Documents, Memory, Search, and Intelligence vertical slices exist. Workspace
+ownership is enforced on those paths. Observability, production hardening, and
+API stability remain.
 
 **Completed**
 
 * Core Documents → Memory → Search → Intelligence pipeline paths
 * Conversation API with Search-backed retrieval and durable storage
+* Workspace ownership boundary with repository and search isolation
 
 **In Progress**
 
-* Ownership on knowledge-sensitive paths
 * Typed config / structured logging / observability foundation
 * Platform package and contract hardening
 
 **Remaining**
 
 * Documents / Memory / Search / Intelligence production readiness
-* Ownership enforcement
+* Auth-bound workspace membership and audit logging
 * Observability
 * Production hardening
 * API stability for clients
 
 **Known Risks**
 
-* Building the desktop client before ownership and observability land creates rework
+* Building the desktop client before observability and API stability land creates rework
 
 **Next Recommended Work**
 
-* Finish ownership, observability, and API stability before Phase 2
+* Finish observability and API stability before Phase 2
 
 ---
 

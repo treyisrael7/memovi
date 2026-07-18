@@ -1,5 +1,7 @@
 from typing import Protocol
 
+from memovi_shared import WorkspaceId
+
 from memovi_search.domain.entities import Embedding, RankedSearchDocument
 from memovi_search.domain.value_objects import EmbeddingId, EmbeddingVector, SearchDocumentId
 
@@ -23,6 +25,8 @@ class EmbeddingRepository(Protocol):
         self,
         query_vector: EmbeddingVector,
         limit: int,
+        *,
+        workspace_id: WorkspaceId,
     ) -> list[RankedSearchDocument]:
         """Return search documents ordered by cosine similarity to the query vector."""
 

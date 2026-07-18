@@ -2,6 +2,8 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
+
 from documents.application.exceptions import EmptyUploadError, UnsupportedMimeTypeError
 from documents.application.ports import ObjectStorage
 from documents.domain.entities import Document, DocumentVersion, ProcessingJob
@@ -22,6 +24,7 @@ SUPPORTED_UPLOAD_MIME_TYPES = frozenset(
 
 @dataclass(frozen=True, slots=True)
 class IngestLocalDocumentCommand:
+    workspace_id: WorkspaceId
     filename: str
     mime_type: str
     content: bytes
@@ -59,6 +62,7 @@ class IngestLocalDocument:
 
         now = datetime.now(UTC)
         document = Document.create(
+            workspace_id=command.workspace_id,
             name=DocumentName(command.filename),
             mime_type=mime_type,
             source_type=SourceType("upload"),

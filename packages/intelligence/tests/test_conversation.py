@@ -17,6 +17,7 @@ from memovi_intelligence.domain.value_objects import (
     ConversationTurn,
 )
 from memovi_intelligence.infrastructure import InMemoryConversationRepository
+from memovi_shared import WorkspaceId
 
 
 def _turn(
@@ -35,9 +36,11 @@ def _turn(
 
 
 def test_conversation_create_assigns_id_and_empty_history() -> None:
-    conversation = Conversation.create()
+    workspace_id = WorkspaceId.default()
+    conversation = Conversation.create(workspace_id=workspace_id)
 
     assert isinstance(conversation.id, ConversationId)
+    assert conversation.workspace_id == workspace_id
     assert conversation.history.is_empty
     assert conversation.turns == ()
     assert conversation.created_at == conversation.updated_at
@@ -49,13 +52,19 @@ def test_conversation_id_rejects_invalid_uuid() -> None:
 
 
 def test_conversation_service_create_and_append_turns() -> None:
+    workspace_id = WorkspaceId.default()
     service = ConversationService(repository=InMemoryConversationRepository())
-    conversation = service.create_conversation()
+    conversation = service.create_conversation(workspace_id=workspace_id)
 
-    updated = service.append_user_turn(conversation.id, "What is Memovi?")
+    updated = service.append_user_turn(
+        conversation.id,
+        "What is Memovi?",
+        workspace_id=workspace_id,
+    )
     updated = service.append_assistant_turn(
         updated.id,
         "Memovi is a self-hosted knowledge platform.",
+        workspace_id=workspace_id,
         citations=(Citation(document_id="doc-1", chunk_id="chunk-1"),),
     )
 
@@ -116,25 +125,39 @@ def test_conversation_history_never_bypasses_zero_token_budget() -> None:
 
 
 def test_conversation_service_load_history() -> None:
+    workspace_id = WorkspaceId.default()
     service = ConversationService(repository=InMemoryConversationRepository())
-    conversation = service.create_conversation()
-    service.append_user_turn(conversation.id, "Hello")
-    service.append_assistant_turn(conversation.id, "Hi there")
+    conversation = service.create_conversation(workspace_id=workspace_id)
+    service.append_user_turn(conversation.id, "Hello", workspace_id=workspace_id)
+    service.append_assistant_turn(conversation.id, "Hi there", workspace_id=workspace_id)
 
-    history = service.load_history(conversation.id)
+    history = service.load_history(conversation.id, workspace_id=workspace_id)
 
     assert [turn.role for turn in history.turns] == [
         ConversationRole.USER,
         ConversationRole.ASSISTANT,
     ]
-    assert service.get_conversation(conversation.id).turns == history.turns
+    assert (
+        service.get_conversation(conversation.id, workspace_id=workspace_id).turns
+        == history.turns
+    )
 
 
 def test_conversation_service_raises_when_missing() -> None:
     service = ConversationService(repository=InMemoryConversationRepository())
 
     with pytest.raises(ConversationNotFoundError):
-        service.load_history(ConversationId.new())
+        service.load_history(ConversationId.new(), workspace_id=WorkspaceId.default())
+
+
+def test_conversation_repository_isolates_workspaces() -> None:
+    repo = InMemoryConversationRepository()
+    workspace_a = WorkspaceId.new()
+    workspace_b = WorkspaceId.new()
+    conversation = repo.create(workspace_id=workspace_a)
+
+    assert repo.get(conversation.id, workspace_id=workspace_b) is None
+    assert repo.get(conversation.id, workspace_id=workspace_a) is not None
 
 
 def test_conversation_turn_rejects_blank_content() -> None:
@@ -143,7 +166,7 @@ def test_conversation_turn_rejects_blank_content() -> None:
 
 
 def test_conversation_is_immutable() -> None:
-    conversation = Conversation.create()
+    conversation = Conversation.create(workspace_id=WorkspaceId.default())
 
     with pytest.raises(FrozenInstanceError):
         conversation.history = ConversationHistory.empty()  # type: ignore[misc]

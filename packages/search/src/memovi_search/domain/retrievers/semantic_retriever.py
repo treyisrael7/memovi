@@ -25,6 +25,7 @@ class SemanticRetriever:
         ranked = self._embedding_repository.similarity_search(
             query_vector,
             request.limit,
+            workspace_id=request.workspace_id,
         )
         return [
             SearchResult(

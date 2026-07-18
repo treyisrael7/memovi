@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
 from sqlalchemy.orm import Session as OrmSession
 
 from documents.domain.entities import Document, DocumentVersion
@@ -11,7 +12,25 @@ class SqlAlchemyDocumentRepository:
     def __init__(self, session: OrmSession) -> None:
         self._session = session
 
-    def get_by_id(self, document_id: DocumentId) -> Document | None:
+    def get_by_id(
+        self,
+        document_id: DocumentId,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> Document | None:
+        record = (
+            self._session.query(DocumentRecord)
+            .filter(
+                DocumentRecord.id == document_id.value,
+                DocumentRecord.workspace_id == workspace_id.value,
+            )
+            .one_or_none()
+        )
+        if record is None:
+            return None
+        return self._to_domain(record)
+
+    def get_by_id_unscoped(self, document_id: DocumentId) -> Document | None:
         record = self._session.get(DocumentRecord, document_id.value)
         if record is None:
             return None
@@ -21,6 +40,7 @@ class SqlAlchemyDocumentRepository:
         self._session.add(
             DocumentRecord(
                 id=document.id.value,
+                workspace_id=document.workspace_id.value,
                 name=document.name.value,
                 mime_type=document.mime_type.value,
                 source_type=document.source_type.value,
@@ -28,9 +48,12 @@ class SqlAlchemyDocumentRepository:
             )
         )
 
-    def list_all(self) -> list[Document]:
+    def list_by_workspace(self, *, workspace_id: WorkspaceId) -> list[Document]:
         records = (
-            self._session.query(DocumentRecord).order_by(DocumentRecord.created_at.desc()).all()
+            self._session.query(DocumentRecord)
+            .filter(DocumentRecord.workspace_id == workspace_id.value)
+            .order_by(DocumentRecord.created_at.desc())
+            .all()
         )
         return [self._to_domain(record) for record in records]
 
@@ -73,6 +96,7 @@ class SqlAlchemyDocumentRepository:
     def _to_domain(self, record: DocumentRecord) -> Document:
         return Document(
             id=DocumentId(record.id),
+            workspace_id=WorkspaceId(record.workspace_id),
             name=DocumentName(record.name),
             mime_type=MimeType(record.mime_type),
             source_type=SourceType(record.source_type),

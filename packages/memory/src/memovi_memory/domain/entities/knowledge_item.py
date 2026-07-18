@@ -2,6 +2,8 @@ import uuid
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
+
 from memovi_memory.domain.exceptions import InvalidDocumentReferenceError, InvalidKnowledgeItemError
 from memovi_memory.domain.value_objects import KnowledgeItemId
 
@@ -11,6 +13,7 @@ class KnowledgeItem:
     """Durable knowledge derived from a processed document version."""
 
     id: KnowledgeItemId
+    workspace_id: WorkspaceId
     document_id: str
     document_version_id: str
     source_type: str
@@ -36,6 +39,7 @@ class KnowledgeItem:
     def create(
         cls,
         *,
+        workspace_id: WorkspaceId,
         document_id: str,
         document_version_id: str,
         source_type: str,
@@ -52,6 +56,7 @@ class KnowledgeItem:
         timestamp = now or datetime.now(UTC)
         return cls(
             id=KnowledgeItemId.new(),
+            workspace_id=workspace_id,
             document_id=document_id,
             document_version_id=document_version_id,
             source_type=normalized_source_type,

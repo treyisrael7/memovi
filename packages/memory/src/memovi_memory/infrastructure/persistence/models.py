@@ -14,6 +14,7 @@ class KnowledgeItemRecord(Base):
     __tablename__ = "memory_knowledge_items"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
     document_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
     document_version_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
     source_type: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
@@ -36,6 +37,7 @@ class ChunkRecord(Base):
     __tablename__ = "memory_chunks"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
     knowledge_item_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     document_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
     document_version_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)

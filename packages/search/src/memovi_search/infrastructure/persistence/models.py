@@ -19,6 +19,7 @@ class SearchDocumentRecord(Base):
     __tablename__ = "search_documents"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
     knowledge_item_id: Mapped[str] = mapped_column(
         String(36),
         unique=True,

@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
 from sqlalchemy.orm import Session as OrmSession
 
 from memovi_memory.application.commands.materialize_knowledge import (
@@ -45,6 +46,7 @@ class MemoryProcessingCompletedHandler:
         try:
             result = self._materialize_knowledge_factory(session).execute(
                 MaterializeKnowledgeCommand(
+                    workspace_id=WorkspaceId(snapshot.workspace_id),
                     document_id=snapshot.document_id,
                     document_version_id=snapshot.document_version_id,
                     source_type=snapshot.source_type,
@@ -62,6 +64,7 @@ class MemoryProcessingCompletedHandler:
         self._event_publisher.publish(
             KnowledgeMaterialized(
                 knowledge_item_id=result.knowledge_item_id,
+                workspace_id=snapshot.workspace_id,
                 document_id=snapshot.document_id,
                 document_version_id=snapshot.document_version_id,
                 chunk_count=result.chunk_count,

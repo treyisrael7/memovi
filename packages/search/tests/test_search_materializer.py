@@ -4,6 +4,7 @@ import pytest
 from memovi_search.domain.entities import SearchDocument
 from memovi_search.domain.exceptions import InvalidSearchMaterializationError
 from memovi_search.domain.services import SearchMaterializer
+from memovi_shared import WorkspaceId
 
 DOCUMENT_ID = "3b96152e-5ba9-4933-8819-2a08069a6d9f"
 DOCUMENT_VERSION_ID = "7ce3e814-de68-4200-973e-b2526eee058d"
@@ -21,6 +22,7 @@ def test_search_materializer_creates_document_from_single_chunk() -> None:
     materializer = _materializer()
 
     search_document = materializer.materialize(
+        workspace_id=WorkspaceId.default(),
         knowledge_item_id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
@@ -43,6 +45,7 @@ def test_search_materializer_concatenates_multiple_chunks_in_order() -> None:
     materializer = _materializer()
 
     search_document = materializer.materialize(
+        workspace_id=WorkspaceId.default(),
         knowledge_item_id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
@@ -59,6 +62,7 @@ def test_search_materializer_normalizes_whitespace() -> None:
     materializer = _materializer()
 
     search_document = materializer.materialize(
+        workspace_id=WorkspaceId.default(),
         knowledge_item_id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
@@ -76,6 +80,7 @@ def test_search_materializer_rejects_empty_chunk_list() -> None:
 
     with pytest.raises(InvalidSearchMaterializationError):
         materializer.materialize(
+            workspace_id=WorkspaceId.default(),
             knowledge_item_id=KNOWLEDGE_ITEM_ID,
             document_id=DOCUMENT_ID,
             document_version_id=DOCUMENT_VERSION_ID,
@@ -91,6 +96,7 @@ def test_search_materializer_rejects_whitespace_only_chunk_texts() -> None:
 
     with pytest.raises(InvalidSearchMaterializationError):
         materializer.materialize(
+            workspace_id=WorkspaceId.default(),
             knowledge_item_id=KNOWLEDGE_ITEM_ID,
             document_id=DOCUMENT_ID,
             document_version_id=DOCUMENT_VERSION_ID,
@@ -106,6 +112,7 @@ def test_search_materializer_is_deterministic_for_same_input() -> None:
     chunk_texts = ["Alpha.", "Beta."]
 
     first = materializer.materialize(
+        workspace_id=WorkspaceId.default(),
         knowledge_item_id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,
@@ -115,6 +122,7 @@ def test_search_materializer_is_deterministic_for_same_input() -> None:
         now=MATERIALIZED_AT,
     )
     second = materializer.materialize(
+        workspace_id=WorkspaceId.default(),
         knowledge_item_id=KNOWLEDGE_ITEM_ID,
         document_id=DOCUMENT_ID,
         document_version_id=DOCUMENT_VERSION_ID,

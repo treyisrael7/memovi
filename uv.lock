@@ -20,6 +20,7 @@ members = [
     "memovi-observability",
     "memovi-search",
     "memovi-shared",
+    "memovi-workspace",
 ]
 
 [[package]]
@@ -729,6 +730,8 @@ dependencies = [
     { name = "memovi-intelligence" },
     { name = "memovi-memory" },
     { name = "memovi-search" },
+    { name = "memovi-shared" },
+    { name = "memovi-workspace" },
     { name = "psycopg", extra = ["binary"] },
     { name = "python-multipart" },
     { name = "sqlalchemy" },
@@ -742,6 +745,8 @@ requires-dist = [
     { name = "memovi-intelligence", editable = "packages/intelligence" },
     { name = "memovi-memory", editable = "packages/memory" },
     { name = "memovi-search", editable = "packages/search" },
+    { name = "memovi-shared", editable = "packages/shared" },
+    { name = "memovi-workspace", editable = "packages/workspace" },
     { name = "psycopg", extras = ["binary"] },
     { name = "python-multipart" },
     { name = "sqlalchemy", specifier = ">=2" },
@@ -786,6 +791,7 @@ source = { editable = "packages/documents" }
 dependencies = [
     { name = "boto3" },
     { name = "fastapi" },
+    { name = "memovi-shared" },
     { name = "pypdf" },
     { name = "python-multipart" },
     { name = "sqlalchemy" },
@@ -795,6 +801,7 @@ dependencies = [
 requires-dist = [
     { name = "boto3" },
     { name = "fastapi" },
+    { name = "memovi-shared", editable = "packages/shared" },
     { name = "pypdf" },
     { name = "python-multipart" },
     { name = "sqlalchemy", specifier = ">=2" },
@@ -806,6 +813,7 @@ version = "0.1.0"
 source = { editable = "packages/intelligence" }
 dependencies = [
     { name = "fastapi" },
+    { name = "memovi-shared" },
     { name = "openai" },
     { name = "sqlalchemy" },
 ]
@@ -813,6 +821,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi" },
+    { name = "memovi-shared", editable = "packages/shared" },
     { name = "openai", specifier = ">=1.0" },
     { name = "sqlalchemy", specifier = ">=2" },
 ]
@@ -823,12 +832,14 @@ version = "0.1.0"
 source = { editable = "packages/memory" }
 dependencies = [
     { name = "fastapi" },
+    { name = "memovi-shared" },
     { name = "sqlalchemy" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "fastapi" },
+    { name = "memovi-shared", editable = "packages/shared" },
     { name = "sqlalchemy", specifier = ">=2" },
 ]
 
@@ -843,6 +854,7 @@ version = "0.1.0"
 source = { editable = "packages/search" }
 dependencies = [
     { name = "fastapi" },
+    { name = "memovi-shared" },
     { name = "pgvector" },
     { name = "sqlalchemy" },
 ]
@@ -850,6 +862,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi" },
+    { name = "memovi-shared", editable = "packages/shared" },
     { name = "pgvector" },
     { name = "sqlalchemy", specifier = ">=2" },
 ]
@@ -858,6 +871,23 @@ requires-dist = [
 name = "memovi-shared"
 version = "0.1.0"
 source = { editable = "packages/shared" }
+
+[[package]]
+name = "memovi-workspace"
+version = "0.1.0"
+source = { editable = "packages/workspace" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "memovi-shared" },
+    { name = "sqlalchemy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi" },
+    { name = "memovi-shared", editable = "packages/shared" },
+    { name = "sqlalchemy", specifier = ">=2" },
+]
 
 [[package]]
 name = "mypy"

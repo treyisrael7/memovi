@@ -44,13 +44,14 @@ class SqlAlchemyProcessedDocumentReader:
             if version is None:
                 return None
 
-            document = documents.get_by_id(DocumentId(job.document_id.value))
+            document = documents.get_by_id_unscoped(DocumentId(job.document_id.value))
             if document is None:
                 return None
 
             return ProcessedDocumentSnapshot(
                 document_id=job.document_id.value,
                 document_version_id=job.document_version_id,
+                workspace_id=document.workspace_id.value,
                 source_type=document.source_type.value,
                 mime_type=document.mime_type.value,
                 normalized_content=version.normalized_content,

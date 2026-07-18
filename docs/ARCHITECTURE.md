@@ -346,6 +346,8 @@ Memovi is organized around business capabilities rather than technical concerns.
    Documents     Memory      Search
                     │
               Connectors
+
+ Workspace (shared ownership boundary)
 ```
 
 Every feature implemented within Memovi should belong to one of the core domains. If a feature does not clearly belong to an existing domain, a new domain should only be introduced after careful consideration.
@@ -355,11 +357,14 @@ Primary domain responsibilities:
 | Domain | Responsibility |
 | --- | --- |
 | Authentication | User identity and access control |
+| Workspace | Ownership boundary for knowledge resources |
 | Documents | Raw information entering the platform |
 | Memory | Persistent structured knowledge |
 | Search | Retrieval, ranking, filtering, and query planning |
 | Connectors | External system integration and normalization |
 | Intelligence | Reasoning over retrieved knowledge |
+
+Request ownership context is resolved once at the API composition root. Optional `X-Memovi-Workspace-Id` selects an existing workspace; when omitted, requests use the seeded Default Workspace. Downstream domains receive a required `WorkspaceId` and never invent ownership.
 
 See [`architecture/domains.md`](architecture/domains.md).
 

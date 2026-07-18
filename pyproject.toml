@@ -164,6 +164,7 @@ pythonpath = [
     "packages/search/src",
     "packages/search/tests",
     "packages/shared/src",
+    "packages/workspace/src",
 ]
 addopts = [
     "--strict-config",

@@ -2,6 +2,8 @@ import uuid
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
+
 from memovi_search.domain.exceptions import (
     InvalidDocumentReferenceError,
     InvalidKnowledgeItemReferenceError,
@@ -15,6 +17,7 @@ class SearchDocument:
     """Searchable projection of durable knowledge derived from a processed document."""
 
     id: SearchDocumentId
+    workspace_id: WorkspaceId
     knowledge_item_id: str
     document_id: str
     document_version_id: str
@@ -49,6 +52,7 @@ class SearchDocument:
     def create(
         cls,
         *,
+        workspace_id: WorkspaceId,
         knowledge_item_id: str,
         document_id: str,
         document_version_id: str,
@@ -70,6 +74,7 @@ class SearchDocument:
         timestamp = now or datetime.now(UTC)
         return cls(
             id=SearchDocumentId.new(),
+            workspace_id=workspace_id,
             knowledge_item_id=knowledge_item_id,
             document_id=document_id,
             document_version_id=document_version_id,

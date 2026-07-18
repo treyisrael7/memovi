@@ -1,8 +1,9 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from memovi_shared import WorkspaceId
 
-from documents.api.dependencies import get_ingest_local_document
+from documents.api.dependencies import get_active_workspace_id, get_ingest_local_document
 from documents.api.schemas import IngestDocumentResponse
 from documents.application.commands.ingest_local_document import (
     IngestLocalDocument,
@@ -23,6 +24,7 @@ async def ingest_document(
     request: Request,
     file: Annotated[UploadFile, File()],
     use_case: Annotated[IngestLocalDocument, Depends(get_ingest_local_document)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
 ) -> IngestDocumentResponse:
     content = await file.read()
     filename = file.filename or "upload"
@@ -31,6 +33,7 @@ async def ingest_document(
     try:
         result = use_case.execute(
             IngestLocalDocumentCommand(
+                workspace_id=workspace_id,
                 filename=filename,
                 mime_type=mime_type,
                 content=content,

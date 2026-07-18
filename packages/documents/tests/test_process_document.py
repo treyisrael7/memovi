@@ -11,6 +11,7 @@ from documents.domain.events import ProcessingCompleted, ProcessingFailed, Proce
 from documents.domain.value_objects import DocumentId
 from documents.infrastructure.events.noop_event_publisher import CollectingEventPublisher
 from documents.infrastructure.processors.registry import DefaultProcessorRegistry
+from memovi_shared import WorkspaceId
 from pdf_fixtures import build_pdf_with_text
 from test_documents_application import (
     InMemoryDocumentRepository,
@@ -62,6 +63,7 @@ def seed_pending_job(
     )
     result = ingest.execute(
         IngestLocalDocumentCommand(
+            workspace_id=WorkspaceId.default(),
             filename=filename,
             mime_type=mime_type,
             content=content,

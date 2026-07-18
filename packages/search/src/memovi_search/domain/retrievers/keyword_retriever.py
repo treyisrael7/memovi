@@ -17,6 +17,7 @@ class KeywordRetriever:
             request.query.strip(),
             request.limit,
             0,
+            workspace_id=request.workspace_id,
         )
         return [
             SearchResult(

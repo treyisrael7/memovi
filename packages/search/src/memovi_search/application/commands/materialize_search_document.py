@@ -1,11 +1,14 @@
 from dataclasses import dataclass
 
+from memovi_shared import WorkspaceId
+
 from memovi_search.domain.repositories import SearchRepository
 from memovi_search.domain.services import SearchMaterializer
 
 
 @dataclass(frozen=True, slots=True)
 class MaterializeSearchDocumentCommand:
+    workspace_id: WorkspaceId
     knowledge_item_id: str
     document_id: str
     document_version_id: str
@@ -36,6 +39,7 @@ class MaterializeSearchDocument:
         command: MaterializeSearchDocumentCommand,
     ) -> MaterializeSearchDocumentResult:
         search_document = self._search_materializer.materialize(
+            workspace_id=command.workspace_id,
             knowledge_item_id=command.knowledge_item_id,
             document_id=command.document_id,
             document_version_id=command.document_version_id,

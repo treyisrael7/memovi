@@ -1,5 +1,7 @@
 from typing import Protocol
 
+from memovi_shared import WorkspaceId
+
 from memovi_search.application.dto.knowledge_read_dto import KnowledgeReadDto
 
 
@@ -13,5 +15,10 @@ class EventPublisher(Protocol):
 class KnowledgeReader(Protocol):
     """Loads canonical knowledge without coupling to the Memory domain."""
 
-    def get_knowledge(self, knowledge_item_id: str) -> KnowledgeReadDto | None:
+    def get_knowledge(
+        self,
+        knowledge_item_id: str,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> KnowledgeReadDto | None:
         raise NotImplementedError

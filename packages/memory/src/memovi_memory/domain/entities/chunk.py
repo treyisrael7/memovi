@@ -2,6 +2,8 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
+
 from memovi_memory.domain.exceptions import InvalidChunkError, InvalidDocumentReferenceError
 from memovi_memory.domain.value_objects import ChunkId, ChunkIndex, KnowledgeItemId
 
@@ -11,6 +13,7 @@ class Chunk:
     """Deterministic structural unit derived from a normalized document."""
 
     id: ChunkId
+    workspace_id: WorkspaceId
     knowledge_item_id: KnowledgeItemId | None
     document_id: str
     document_version_id: str
@@ -32,6 +35,7 @@ class Chunk:
     def create(
         cls,
         *,
+        workspace_id: WorkspaceId,
         document_id: str,
         document_version_id: str,
         chunk_index: ChunkIndex,
@@ -45,6 +49,7 @@ class Chunk:
 
         return cls(
             id=ChunkId.new(),
+            workspace_id=workspace_id,
             knowledge_item_id=knowledge_item_id,
             document_id=document_id,
             document_version_id=document_version_id,

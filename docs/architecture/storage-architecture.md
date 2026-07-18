@@ -199,6 +199,8 @@ Each storage responsibility owns different categories of information.
 
 Ownership should remain exclusive.
 
+User-facing knowledge rows (documents, knowledge items, chunks, search documents, conversations) store a mandatory `workspace_id`. Child tables stay scoped through parent foreign keys. Embeddings inherit isolation via their search-document relationship.
+
 Information should not exist permanently in multiple locations unless intentionally duplicated for performance.
 
 # Data Lifecycle

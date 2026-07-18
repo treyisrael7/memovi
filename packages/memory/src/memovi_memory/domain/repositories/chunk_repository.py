@@ -1,5 +1,7 @@
 from typing import Protocol
 
+from memovi_shared import WorkspaceId
+
 from memovi_memory.domain.entities import Chunk
 
 
@@ -14,6 +16,7 @@ class ChunkRepository(Protocol):
         *,
         document_id: str,
         document_version_id: str,
+        workspace_id: WorkspaceId | None = None,
     ) -> list[Chunk]:
         raise NotImplementedError
 
@@ -22,5 +25,6 @@ class ChunkRepository(Protocol):
         *,
         document_id: str,
         document_version_id: str,
+        workspace_id: WorkspaceId | None = None,
     ) -> None:
         raise NotImplementedError

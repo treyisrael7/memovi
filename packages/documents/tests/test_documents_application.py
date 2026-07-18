@@ -10,6 +10,7 @@ from documents.domain.entities import Document, DocumentVersion, ProcessingJob
 from documents.domain.enums import ProcessingStatus
 from documents.domain.repositories import DocumentRepository, ProcessingJobRepository
 from documents.domain.value_objects import DocumentId
+from memovi_shared import WorkspaceId
 
 
 class InMemoryDocumentRepository(DocumentRepository):
@@ -17,14 +18,29 @@ class InMemoryDocumentRepository(DocumentRepository):
         self.documents: dict[str, Document] = {}
         self.versions: dict[str, DocumentVersion] = {}
 
-    def get_by_id(self, document_id: DocumentId) -> Document | None:
+    def get_by_id(
+        self,
+        document_id: DocumentId,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> Document | None:
+        document = self.documents.get(document_id.value)
+        if document is None or document.workspace_id != workspace_id:
+            return None
+        return document
+
+    def get_by_id_unscoped(self, document_id: DocumentId) -> Document | None:
         return self.documents.get(document_id.value)
 
     def add(self, document: Document) -> None:
         self.documents[document.id.value] = document
 
-    def list_all(self) -> list[Document]:
-        return list(self.documents.values())
+    def list_by_workspace(self, *, workspace_id: WorkspaceId) -> list[Document]:
+        return [
+            document
+            for document in self.documents.values()
+            if document.workspace_id == workspace_id
+        ]
 
     def add_version(self, version: DocumentVersion) -> None:
         self.versions[version.id] = version
@@ -94,9 +110,11 @@ def build_use_case() -> tuple[
 
 def test_ingest_local_document_persists_metadata_and_stores_artifact() -> None:
     use_case, documents, processing_jobs, object_storage = build_use_case()
+    workspace_id = WorkspaceId.default()
 
     result = use_case.execute(
         IngestLocalDocumentCommand(
+            workspace_id=workspace_id,
             filename="notes.md",
             mime_type="text/markdown",
             content=b"# Notes",
@@ -104,7 +122,7 @@ def test_ingest_local_document_persists_metadata_and_stores_artifact() -> None:
     )
 
     assert result.processing_status is ProcessingStatus.PENDING
-    assert documents.get_by_id(DocumentId(result.document_id)) is not None
+    assert documents.get_by_id(DocumentId(result.document_id), workspace_id=workspace_id) is not None
     assert processing_jobs.get_by_id(result.processing_job_id) is not None
 
     version = documents.get_latest_version(DocumentId(result.document_id))
@@ -118,6 +136,7 @@ def test_ingest_local_document_rejects_empty_upload() -> None:
     with pytest.raises(EmptyUploadError):
         use_case.execute(
             IngestLocalDocumentCommand(
+                workspace_id=WorkspaceId.default(),
                 filename="empty.txt",
                 mime_type="text/plain",
                 content=b"",
@@ -131,6 +150,7 @@ def test_ingest_local_document_rejects_unsupported_mime_type() -> None:
     with pytest.raises(UnsupportedMimeTypeError):
         use_case.execute(
             IngestLocalDocumentCommand(
+                workspace_id=WorkspaceId.default(),
                 filename="archive.zip",
                 mime_type="application/zip",
                 content=b"zip-bytes",
@@ -144,6 +164,7 @@ def test_ingest_local_document_creates_pending_processing_job() -> None:
 
     result = use_case.execute(
         IngestLocalDocumentCommand(
+            workspace_id=WorkspaceId.default(),
             filename="readme.txt",
             mime_type="text/plain",
             content=b"hello",
@@ -154,3 +175,37 @@ def test_ingest_local_document_creates_pending_processing_job() -> None:
     assert job is not None
     assert job.status is ProcessingStatus.PENDING
     assert job.created_at >= before
+
+
+def test_document_repository_isolates_workspaces() -> None:
+    documents = InMemoryDocumentRepository()
+    processing_jobs = InMemoryProcessingJobRepository()
+    object_storage = InMemoryObjectStorage()
+    use_case = IngestLocalDocument(
+        documents=documents,
+        processing_jobs=processing_jobs,
+        object_storage=object_storage,
+    )
+    workspace_a = WorkspaceId.new()
+    workspace_b = WorkspaceId.new()
+
+    result_a = use_case.execute(
+        IngestLocalDocumentCommand(
+            workspace_id=workspace_a,
+            filename="a.txt",
+            mime_type="text/plain",
+            content=b"a",
+        )
+    )
+    use_case.execute(
+        IngestLocalDocumentCommand(
+            workspace_id=workspace_b,
+            filename="b.txt",
+            mime_type="text/plain",
+            content=b"b",
+        )
+    )
+
+    assert documents.get_by_id(DocumentId(result_a.document_id), workspace_id=workspace_b) is None
+    assert len(documents.list_by_workspace(workspace_id=workspace_a)) == 1
+    assert len(documents.list_by_workspace(workspace_id=workspace_b)) == 1

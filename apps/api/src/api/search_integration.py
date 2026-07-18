@@ -29,6 +29,7 @@ from memovi_search.infrastructure.repositories import (
     SqlAlchemyEmbeddingRepository,
     SqlAlchemySearchRepository,
 )
+from memovi_shared import WorkspaceId
 from sqlalchemy.orm import Session as OrmSession
 
 from api.events import InProcessEventDispatcher
@@ -40,13 +41,18 @@ class SqlAlchemyKnowledgeReader:
     def __init__(self, session_factory: Callable[[], OrmSession]) -> None:
         self._session_factory = session_factory
 
-    def get_knowledge(self, knowledge_item_id: str) -> KnowledgeReadDto | None:
+    def get_knowledge(
+        self,
+        knowledge_item_id: str,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> KnowledgeReadDto | None:
         session = self._session_factory()
         try:
             knowledge = GetKnowledge(
                 knowledge_repository=SqlAlchemyKnowledgeRepository(session),
                 chunk_repository=SqlAlchemyChunkRepository(session),
-            ).execute(knowledge_item_id)
+            ).execute(knowledge_item_id, workspace_id=workspace_id)
         except KnowledgeItemNotFoundError:
             return None
         finally:
@@ -166,6 +172,7 @@ def register_search_event_handlers(
         materialize_handler.handle(
             KnowledgeMaterializedNotification(
                 knowledge_item_id=event.knowledge_item_id,
+                workspace_id=event.workspace_id,
                 document_id=event.document_id,
                 document_version_id=event.document_version_id,
                 occurred_at=event.occurred_at,
@@ -185,6 +192,7 @@ def register_search_event_handlers(
 def _to_knowledge_read_dto(knowledge: KnowledgeDto) -> KnowledgeReadDto:
     return KnowledgeReadDto(
         id=knowledge.id,
+        workspace_id=knowledge.workspace_id,
         document_id=knowledge.document_id,
         document_version_id=knowledge.document_version_id,
         source_type=knowledge.source_type,

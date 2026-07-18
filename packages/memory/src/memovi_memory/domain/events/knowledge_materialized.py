@@ -7,6 +7,7 @@ class KnowledgeMaterialized:
     """Domain fact emitted after knowledge is materialized from a processed document."""
 
     knowledge_item_id: str
+    workspace_id: str
     document_id: str
     document_version_id: str
     chunk_count: int

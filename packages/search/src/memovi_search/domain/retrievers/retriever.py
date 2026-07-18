@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+from memovi_shared import WorkspaceId
+
 from memovi_search.domain.entities.search_result import SearchResult
 
 
@@ -10,6 +12,7 @@ class RetrievalRequest:
 
     query: str
     limit: int
+    workspace_id: WorkspaceId
 
 
 class Retriever(Protocol):

@@ -2,6 +2,8 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
+
 from documents.application.dto import DocumentDto
 from documents.domain.entities import Document, DocumentVersion, ProcessingJob
 from documents.domain.events import DocumentCreated
@@ -11,6 +13,7 @@ from documents.domain.value_objects import DocumentName, MimeType, SourceType
 
 @dataclass(frozen=True, slots=True)
 class CreateDocumentCommand:
+    workspace_id: WorkspaceId
     name: str
     mime_type: str
     source_type: str
@@ -35,6 +38,7 @@ class CreateDocument:
     def execute(self, command: CreateDocumentCommand) -> CreateDocumentResult:
         now = datetime.now(UTC)
         document = Document.create(
+            workspace_id=command.workspace_id,
             name=DocumentName(command.name),
             mime_type=MimeType(command.mime_type),
             source_type=SourceType(command.source_type),

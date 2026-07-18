@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
+
 from memovi_intelligence.domain.exceptions import InvalidConversationError
 from memovi_intelligence.domain.value_objects.conversation_history import (
     ConversationHistory,
@@ -14,6 +16,7 @@ class Conversation:
     """Immutable multi-turn conversation state for reasoning workflows."""
 
     id: ConversationId
+    workspace_id: WorkspaceId
     history: ConversationHistory
     created_at: datetime
     updated_at: datetime
@@ -21,6 +24,8 @@ class Conversation:
     def __post_init__(self) -> None:
         if not isinstance(self.id, ConversationId):
             raise InvalidConversationError("id must be a ConversationId.")
+        if not isinstance(self.workspace_id, WorkspaceId):
+            raise InvalidConversationError("workspace_id must be a WorkspaceId.")
         if not isinstance(self.history, ConversationHistory):
             raise InvalidConversationError("history must be a ConversationHistory.")
         if not isinstance(self.created_at, datetime):
@@ -36,12 +41,14 @@ class Conversation:
     def create(
         cls,
         *,
+        workspace_id: WorkspaceId,
         conversation_id: ConversationId | None = None,
         created_at: datetime | None = None,
     ) -> Conversation:
         now = created_at if created_at is not None else datetime.now(UTC)
         return cls(
             id=conversation_id or ConversationId.new(),
+            workspace_id=workspace_id,
             history=ConversationHistory.empty(),
             created_at=now,
             updated_at=now,
@@ -56,6 +63,7 @@ class Conversation:
         timestamp = updated_at if updated_at is not None else turn.timestamp
         return Conversation(
             id=self.id,
+            workspace_id=self.workspace_id,
             history=self.history.append(turn),
             created_at=self.created_at,
             updated_at=timestamp,

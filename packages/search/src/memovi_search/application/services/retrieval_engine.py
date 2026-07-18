@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
+from memovi_shared import WorkspaceId
+
 from memovi_search.application.dto import SearchFilters
 from memovi_search.domain.entities.search_document import SearchDocument
 from memovi_search.domain.entities.search_result import SearchResult
@@ -27,6 +29,7 @@ class RetrievalEngineRequest:
     mode: RetrievalMode
     limit: int
     offset: int
+    workspace_id: WorkspaceId
     filters: SearchFilters | None = None
 
 
@@ -52,11 +55,20 @@ class RetrievalEngine:
             return []
 
         candidate_limit = _candidate_limit(limit=request.limit, offset=request.offset)
-        retrieval_request = RetrievalRequest(query=normalized_query, limit=candidate_limit)
+        retrieval_request = RetrievalRequest(
+            query=normalized_query,
+            limit=candidate_limit,
+            workspace_id=request.workspace_id,
+        )
 
         ranked_lists = self._execute_retrievers(request.mode, retrieval_request)
         fused = self._rank_fusion.fuse(ranked_lists)
-        filtered = _apply_metadata_filters(fused, request.filters or SearchFilters())
+        filters = request.filters or SearchFilters()
+        filtered = _apply_metadata_filters(
+            fused,
+            filters,
+            workspace_id=request.workspace_id,
+        )
         normalized = self._score_normalizer.normalize(filtered)
         return normalized[request.offset : request.offset + request.limit]
 
@@ -85,11 +97,26 @@ def _candidate_limit(*, limit: int, offset: int) -> int:
 def _apply_metadata_filters(
     results: list[SearchResult],
     filters: SearchFilters,
+    *,
+    workspace_id: WorkspaceId,
 ) -> list[SearchResult]:
-    return [result for result in results if _matches_filters(result.search_document, filters)]
+    return [
+        result
+        for result in results
+        if _matches_filters(result.search_document, filters, workspace_id=workspace_id)
+    ]
 
 
-def _matches_filters(document: SearchDocument, filters: SearchFilters) -> bool:
+def _matches_filters(
+    document: SearchDocument,
+    filters: SearchFilters,
+    *,
+    workspace_id: WorkspaceId,
+) -> bool:
+    if document.workspace_id != workspace_id:
+        return False
+    if filters.workspace_id is not None and document.workspace_id != filters.workspace_id:
+        return False
     if filters.document_id is not None and document.document_id != filters.document_id:
         return False
     if (

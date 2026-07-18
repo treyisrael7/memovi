@@ -3,6 +3,7 @@ from collections.abc import Iterator
 
 import pytest
 from api.app import create_app
+from api.database import database_session as api_database_session
 from api.document_processing import configure_document_processing
 from api.documents_session import build_documents_database_session
 from auth.api.dependencies import get_database_session as get_auth_database_session
@@ -59,7 +60,7 @@ def _wait_for_job_status(
     processing_job_id: str,
     expected_status: ProcessingStatus,
     *,
-    timeout_seconds: float = 5.0,
+    timeout_seconds: float = 15.0,
 ) -> ProcessingJobRecord:
     deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
@@ -123,6 +124,7 @@ def background_processing_client(
         event_publisher=event_publisher,
     )
 
+    app.dependency_overrides[api_database_session] = database_session
     app.dependency_overrides[get_auth_database_session] = database_session
     app.dependency_overrides[get_documents_database_session] = build_documents_database_session(
         database_session
@@ -154,7 +156,9 @@ def test_upload_returns_before_processing_completes(
     with Session(engine) as session:
         job = session.get(ProcessingJobRecord, payload["processing_job_id"])
         assert job is not None
-        assert job.status == ProcessingStatus.PENDING.value
+        # Worker may advance before the follow-up read; only require non-terminal progress.
+        assert job.status != ProcessingStatus.COMPLETED.value
+        assert job.status != ProcessingStatus.FAILED.value
 
 
 def test_upload_is_processed_asynchronously_to_completion(

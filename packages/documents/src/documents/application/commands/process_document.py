@@ -52,7 +52,7 @@ class ProcessDocument:
 
     def execute(self, command: ProcessDocumentCommand) -> ProcessDocumentResult:
         job = self._load_pending_job(command.processing_job_id)
-        document = self._documents.get_by_id(job.document_id)
+        document = self._documents.get_by_id_unscoped(job.document_id)
         if document is None:
             raise DocumentNotFoundError("Document was not found.")
 

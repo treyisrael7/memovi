@@ -7,6 +7,7 @@ class ProcessedDocumentSnapshot:
 
     document_id: str
     document_version_id: str
+    workspace_id: str
     source_type: str
     mime_type: str
     normalized_content: str | None

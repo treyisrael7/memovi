@@ -2,6 +2,8 @@ import re
 import uuid
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
+
 from memovi_search.domain.entities import SearchDocument
 from memovi_search.domain.exceptions import InvalidSearchMaterializationError
 from memovi_search.domain.value_objects import SearchDocumentId
@@ -16,6 +18,7 @@ class SearchMaterializer:
     def materialize(
         self,
         *,
+        workspace_id: WorkspaceId,
         knowledge_item_id: str,
         document_id: str,
         document_version_id: str,
@@ -38,6 +41,7 @@ class SearchMaterializer:
         timestamp = now or datetime.now(UTC)
         return SearchDocument(
             id=_search_document_id(knowledge_item_id),
+            workspace_id=workspace_id,
             knowledge_item_id=knowledge_item_id,
             document_id=document_id,
             document_version_id=document_version_id,

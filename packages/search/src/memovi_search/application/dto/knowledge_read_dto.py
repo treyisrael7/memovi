@@ -12,6 +12,7 @@ class KnowledgeReadDto:
     """Canonical knowledge read through the search application boundary."""
 
     id: str
+    workspace_id: str
     document_id: str
     document_version_id: str
     source_type: str

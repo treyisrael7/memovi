@@ -41,6 +41,8 @@ Search does not own:
 
 Search retrieves. It does not generate answers.
 
+Retrieval is workspace-scoped. Keyword, semantic, and hybrid paths require `workspace_id` at the SQL/filter boundary before ranking so results cannot leak across ownership contexts.
+
 # Retrieval Strategies
 
 Retrieval may combine multiple techniques.

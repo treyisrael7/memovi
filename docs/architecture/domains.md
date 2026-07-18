@@ -39,6 +39,8 @@ The core platform consists of six primary business domains.
    Documents     Memory      Search
                     │
               Connectors
+
+ Workspace (shared ownership boundary)
 ```
 
 Every feature implemented within Memovi should belong to one of these domains.
@@ -46,6 +48,29 @@ Every feature implemented within Memovi should belong to one of these domains.
 If a feature does not clearly belong to an existing domain, a new domain should only be introduced after careful consideration.
 
 # Domain Responsibilities
+
+## Workspace
+
+### Purpose
+
+Workspace is the platform ownership boundary for user-facing knowledge resources.
+
+It answers the question:
+
+> Which ownership context owns this document, memory, search index entry, or conversation?
+
+### Owns
+
+* Workspace aggregate lifecycle (create, get, list)
+* Workspace persistence
+* Seeded Default Workspace used for V1 API fallback
+
+### Does Not Own
+
+* Document, memory, search, or conversation content
+* Authentication identity, membership, or roles (deferred)
+
+Knowledge domains depend only on the shared `WorkspaceId` primitive. Active workspace resolution happens at the API composition root (`X-Memovi-Workspace-Id`, falling back to Default Workspace).
 
 ## Authentication
 
@@ -263,6 +288,7 @@ Every business capability should have exactly one owner.
 | Capability | Owning Domain |
 | --- | --- |
 | User authentication | Authentication |
+| Workspace ownership boundary | Workspace |
 | File uploads | Documents |
 | Knowledge storage | Memory |
 | Semantic retrieval | Search |

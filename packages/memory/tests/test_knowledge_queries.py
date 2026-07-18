@@ -7,6 +7,7 @@ from memovi_memory.application.queries import GetKnowledge, ListDocumentKnowledg
 from memovi_memory.domain.entities import Chunk, KnowledgeItem
 from memovi_memory.domain.repositories import ChunkRepository, KnowledgeRepository
 from memovi_memory.domain.value_objects import ChunkIndex, KnowledgeItemId
+from memovi_shared import WorkspaceId
 
 DOCUMENT_A_ID = "d62fa912-48a9-4d57-abf2-40a137f48ffa"
 DOCUMENT_B_ID = "8e1b0f2a-1c3d-4e5f-9a0b-1c2d3e4f5a6b"
@@ -19,6 +20,7 @@ EARLIER = datetime(2026, 7, 10, 10, 0, tzinfo=UTC)
 LATER = datetime(2026, 7, 10, 11, 0, tzinfo=UTC)
 SOURCE_TYPE = "upload"
 MIME_TYPE = "text/markdown"
+WORKSPACE = WorkspaceId.default()
 
 
 class InMemoryKnowledgeRepository(KnowledgeRepository):
@@ -28,34 +30,59 @@ class InMemoryKnowledgeRepository(KnowledgeRepository):
     def save(self, knowledge_item: KnowledgeItem) -> None:
         raise NotImplementedError
 
-    def get_by_id(self, knowledge_item_id: KnowledgeItemId) -> KnowledgeItem | None:
+    def get_by_id(
+        self,
+        knowledge_item_id: KnowledgeItemId,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> KnowledgeItem | None:
         for item in self._items:
-            if item.id == knowledge_item_id:
+            if item.id == knowledge_item_id and item.workspace_id == workspace_id:
                 return item
         return None
 
-    def list(self) -> builtins.list[KnowledgeItem]:
-        return sorted(self._items, key=lambda item: item.created_at)
-
-    def list_by_document(self, *, document_id: str) -> builtins.list[KnowledgeItem]:
+    def list_by_workspace(self, *, workspace_id: WorkspaceId) -> builtins.list[KnowledgeItem]:
         return sorted(
-            [item for item in self._items if item.document_id == document_id],
+            [item for item in self._items if item.workspace_id == workspace_id],
+            key=lambda item: item.created_at,
+        )
+
+    def list_by_document(
+        self,
+        *,
+        workspace_id: WorkspaceId,
+        document_id: str,
+    ) -> builtins.list[KnowledgeItem]:
+        return sorted(
+            [
+                item
+                for item in self._items
+                if item.document_id == document_id and item.workspace_id == workspace_id
+            ],
             key=lambda item: item.created_at,
         )
 
     def list_by_document_version(
         self,
         *,
+        workspace_id: WorkspaceId,
         document_id: str,
         document_version_id: str,
     ) -> builtins.list[KnowledgeItem]:
         return [
             item
             for item in self._items
-            if item.document_id == document_id and item.document_version_id == document_version_id
+            if item.document_id == document_id
+            and item.document_version_id == document_version_id
+            and item.workspace_id == workspace_id
         ]
 
-    def delete(self, knowledge_item_id: KnowledgeItemId) -> None:
+    def delete(
+        self,
+        knowledge_item_id: KnowledgeItemId,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> None:
         raise NotImplementedError
 
 
@@ -71,6 +98,7 @@ class InMemoryChunkRepository(ChunkRepository):
         *,
         document_id: str,
         document_version_id: str,
+        workspace_id: WorkspaceId | None = None,
     ) -> list[Chunk]:
         return sorted(
             [
@@ -78,6 +106,7 @@ class InMemoryChunkRepository(ChunkRepository):
                 for chunk in self._chunks
                 if chunk.document_id == document_id
                 and chunk.document_version_id == document_version_id
+                and (workspace_id is None or chunk.workspace_id == workspace_id)
             ],
             key=lambda chunk: chunk.chunk_index.value,
         )
@@ -87,6 +116,7 @@ class InMemoryChunkRepository(ChunkRepository):
         *,
         document_id: str,
         document_version_id: str,
+        workspace_id: WorkspaceId | None = None,
     ) -> None:
         raise NotImplementedError
 
@@ -95,6 +125,7 @@ def _build_fixtures() -> tuple[InMemoryKnowledgeRepository, InMemoryChunkReposit
     knowledge_items = [
         KnowledgeItem(
             id=KNOWLEDGE_A1_ID,
+            workspace_id=WORKSPACE,
             document_id=DOCUMENT_A_ID,
             document_version_id=VERSION_A1_ID,
             source_type=SOURCE_TYPE,
@@ -104,6 +135,7 @@ def _build_fixtures() -> tuple[InMemoryKnowledgeRepository, InMemoryChunkReposit
         ),
         KnowledgeItem(
             id=KNOWLEDGE_A2_ID,
+            workspace_id=WORKSPACE,
             document_id=DOCUMENT_A_ID,
             document_version_id=VERSION_A2_ID,
             source_type=SOURCE_TYPE,
@@ -113,6 +145,7 @@ def _build_fixtures() -> tuple[InMemoryKnowledgeRepository, InMemoryChunkReposit
         ),
         KnowledgeItem(
             id=KNOWLEDGE_B1_ID,
+            workspace_id=WORKSPACE,
             document_id=DOCUMENT_B_ID,
             document_version_id=VERSION_A1_ID,
             source_type=SOURCE_TYPE,
@@ -123,6 +156,7 @@ def _build_fixtures() -> tuple[InMemoryKnowledgeRepository, InMemoryChunkReposit
     ]
     chunks = [
         Chunk.create(
+            workspace_id=WORKSPACE,
             document_id=DOCUMENT_A_ID,
             document_version_id=VERSION_A1_ID,
             chunk_index=ChunkIndex(0),
@@ -131,6 +165,7 @@ def _build_fixtures() -> tuple[InMemoryKnowledgeRepository, InMemoryChunkReposit
             now=EARLIER,
         ),
         Chunk.create(
+            workspace_id=WORKSPACE,
             document_id=DOCUMENT_A_ID,
             document_version_id=VERSION_A2_ID,
             chunk_index=ChunkIndex(0),
@@ -139,6 +174,7 @@ def _build_fixtures() -> tuple[InMemoryKnowledgeRepository, InMemoryChunkReposit
             now=LATER,
         ),
         Chunk.create(
+            workspace_id=WORKSPACE,
             document_id=DOCUMENT_B_ID,
             document_version_id=VERSION_A1_ID,
             chunk_index=ChunkIndex(0),
@@ -156,9 +192,7 @@ def test_get_knowledge_returns_canonical_dto_with_chunks() -> None:
         knowledge_repository=knowledge_repository,
         chunk_repository=chunk_repository,
     )
-
-    result = query.execute(KNOWLEDGE_A1_ID.value)
-
+    result = query.execute(KNOWLEDGE_A1_ID.value, workspace_id=WORKSPACE)
     assert result.id == KNOWLEDGE_A1_ID.value
     assert result.document_id == DOCUMENT_A_ID
     assert result.document_version_id == VERSION_A1_ID
@@ -172,9 +206,8 @@ def test_get_knowledge_raises_when_item_is_missing() -> None:
         knowledge_repository=knowledge_repository,
         chunk_repository=chunk_repository,
     )
-
     with pytest.raises(KnowledgeItemNotFoundError):
-        query.execute("00000000-0000-0000-0000-000000000000")
+        query.execute("00000000-0000-0000-0000-000000000000", workspace_id=WORKSPACE)
 
 
 def test_list_knowledge_returns_all_items_in_created_at_order() -> None:
@@ -183,9 +216,7 @@ def test_list_knowledge_returns_all_items_in_created_at_order() -> None:
         knowledge_repository=knowledge_repository,
         chunk_repository=chunk_repository,
     )
-
-    results = query.execute()
-
+    results = query.execute(workspace_id=WORKSPACE)
     assert [item.id for item in results] == [
         KNOWLEDGE_A1_ID.value,
         KNOWLEDGE_A2_ID.value,
@@ -200,9 +231,7 @@ def test_list_document_knowledge_returns_only_matching_document() -> None:
         knowledge_repository=knowledge_repository,
         chunk_repository=chunk_repository,
     )
-
-    results = query.execute(DOCUMENT_A_ID)
-
+    results = query.execute(DOCUMENT_A_ID, workspace_id=WORKSPACE)
     assert [item.id for item in results] == [KNOWLEDGE_A1_ID.value, KNOWLEDGE_A2_ID.value]
     assert all(item.document_id == DOCUMENT_A_ID for item in results)
     assert results[0].chunks[0].text == "Document A version 1 chunk."
@@ -215,5 +244,4 @@ def test_list_document_knowledge_returns_empty_list_for_unknown_document() -> No
         knowledge_repository=knowledge_repository,
         chunk_repository=chunk_repository,
     )
-
-    assert query.execute("00000000-0000-0000-0000-000000000000") == []
+    assert query.execute("00000000-0000-0000-0000-000000000000", workspace_id=WORKSPACE) == []

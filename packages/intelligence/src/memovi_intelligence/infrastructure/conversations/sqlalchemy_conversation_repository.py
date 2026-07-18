@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
+from memovi_shared import WorkspaceId
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session as OrmSession
 
@@ -26,11 +27,12 @@ class SqlAlchemyConversationRepository:
     def __init__(self, session: OrmSession) -> None:
         self._session = session
 
-    def create(self) -> Conversation:
-        conversation = Conversation.create()
+    def create(self, *, workspace_id: WorkspaceId) -> Conversation:
+        conversation = Conversation.create(workspace_id=workspace_id)
         self._session.add(
             ConversationRecord(
                 id=conversation.id.value,
+                workspace_id=conversation.workspace_id.value,
                 created_at=conversation.created_at,
                 updated_at=conversation.updated_at,
             )
@@ -38,8 +40,20 @@ class SqlAlchemyConversationRepository:
         self._session.flush()
         return conversation
 
-    def get(self, conversation_id: ConversationId) -> Conversation | None:
-        record = self._session.get(ConversationRecord, conversation_id.value)
+    def get(
+        self,
+        conversation_id: ConversationId,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> Conversation | None:
+        record = (
+            self._session.query(ConversationRecord)
+            .filter(
+                ConversationRecord.id == conversation_id.value,
+                ConversationRecord.workspace_id == workspace_id.value,
+            )
+            .one_or_none()
+        )
         if record is None:
             return None
         return self._to_domain(record)
@@ -48,8 +62,17 @@ class SqlAlchemyConversationRepository:
         self,
         conversation_id: ConversationId,
         turn: ConversationTurn,
+        *,
+        workspace_id: WorkspaceId,
     ) -> Conversation:
-        record = self._session.get(ConversationRecord, conversation_id.value)
+        record = (
+            self._session.query(ConversationRecord)
+            .filter(
+                ConversationRecord.id == conversation_id.value,
+                ConversationRecord.workspace_id == workspace_id.value,
+            )
+            .one_or_none()
+        )
         if record is None:
             raise ConversationNotFoundError(
                 f"Conversation '{conversation_id.value}' was not found.",
@@ -71,8 +94,20 @@ class SqlAlchemyConversationRepository:
         self._session.flush()
         return self._to_domain(record)
 
-    def list_turns(self, conversation_id: ConversationId) -> tuple[ConversationTurn, ...]:
-        record = self._session.get(ConversationRecord, conversation_id.value)
+    def list_turns(
+        self,
+        conversation_id: ConversationId,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> tuple[ConversationTurn, ...]:
+        record = (
+            self._session.query(ConversationRecord)
+            .filter(
+                ConversationRecord.id == conversation_id.value,
+                ConversationRecord.workspace_id == workspace_id.value,
+            )
+            .one_or_none()
+        )
         if record is None:
             raise ConversationNotFoundError(
                 f"Conversation '{conversation_id.value}' was not found.",
@@ -98,6 +133,7 @@ class SqlAlchemyConversationRepository:
     def _to_domain(self, record: ConversationRecord) -> Conversation:
         return Conversation(
             id=ConversationId(record.id),
+            workspace_id=WorkspaceId(record.workspace_id),
             history=ConversationHistory(turns=self._load_turns(record.id)),
             created_at=_as_utc(record.created_at),
             updated_at=_as_utc(record.updated_at),

@@ -182,13 +182,14 @@ Make knowledge ownership explicit for a self-hosted instance.
 
 * Local registration and authentication
 * Session-based identity
-* Ownership-aware request context
+* Ownership-aware request context (Workspace + `WorkspaceId`; V1 header/`Default` fallback delivered)
 * Audit trail for ownership-sensitive actions
 
 **Success Criteria**
 
 * Every ownership-sensitive request can identify the acting user.
 * Auth remains isolated from knowledge domains.
+* Knowledge reads/writes are workspace-scoped at repository and search boundaries.
 
 ---
 
@@ -297,7 +298,7 @@ Finish a production-ready, client-agnostic V1 backend platform.
 * Memory — durable knowledge organization foundations
 * Search — stable retrieval contracts and quality hardening
 * Intelligence — production-ready conversation and reasoning APIs
-* Ownership — enforce ownership on knowledge-sensitive paths
+* Ownership — workspace isolation delivered; auth membership and audit remain
 * Observability — logging, metrics, and traces that explain cost and failure
 * Production hardening — resilience, backups, worker maturity
 * API stability — versioned, documented contracts for clients

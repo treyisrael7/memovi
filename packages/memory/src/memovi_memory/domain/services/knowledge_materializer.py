@@ -2,6 +2,8 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from memovi_shared import WorkspaceId
+
 from memovi_memory.domain.entities import Chunk, KnowledgeItem
 from memovi_memory.domain.exceptions import InvalidKnowledgeMaterializationError
 from memovi_memory.domain.services.chunk_generator import ChunkDraft
@@ -24,6 +26,7 @@ class KnowledgeMaterializer:
     def materialize(
         self,
         *,
+        workspace_id: WorkspaceId,
         document_id: str,
         document_version_id: str,
         source_type: str,
@@ -39,6 +42,7 @@ class KnowledgeMaterializer:
         timestamp = now or datetime.now(UTC)
         knowledge_item = KnowledgeItem(
             id=_knowledge_item_id(document_id, document_version_id),
+            workspace_id=workspace_id,
             document_id=document_id,
             document_version_id=document_version_id,
             source_type=source_type,
@@ -49,6 +53,7 @@ class KnowledgeMaterializer:
         chunks = [
             Chunk(
                 id=_chunk_id(document_id, document_version_id, draft.chunk_index.value),
+                workspace_id=workspace_id,
                 knowledge_item_id=knowledge_item.id,
                 document_id=document_id,
                 document_version_id=document_version_id,

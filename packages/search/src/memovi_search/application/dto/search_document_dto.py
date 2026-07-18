@@ -7,6 +7,7 @@ from memovi_search.domain.entities import SearchDocument
 @dataclass(frozen=True, slots=True)
 class SearchDocumentDto:
     id: str
+    workspace_id: str
     knowledge_item_id: str
     document_id: str
     document_version_id: str
@@ -20,6 +21,7 @@ class SearchDocumentDto:
     def from_search_document(cls, search_document: SearchDocument) -> SearchDocumentDto:
         return cls(
             id=search_document.id.value,
+            workspace_id=search_document.workspace_id.value,
             knowledge_item_id=search_document.knowledge_item_id,
             document_id=search_document.document_id,
             document_version_id=search_document.document_version_id,
