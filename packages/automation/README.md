@@ -14,9 +14,10 @@ Intelligence can discover and invoke:
 * Immutable contracts: `CapabilityMetadata`, `CapabilityPermission`,
   `CapabilityRequest`, `CapabilityResult`, `CapabilityContext`,
   `CapabilityExecutionPolicy`
+* `FilesystemCapability` — first production capability (read-only, root-scoped)
 
-It does **not** implement concrete product capabilities (filesystem, git,
-terminal, browser), approval UI, multi-step planning, or autonomous agents.
+It does **not** implement filesystem writes, git/terminal/browser capabilities,
+approval UI, multi-step planning, or autonomous agents.
 
 ## Layout
 
@@ -24,7 +25,8 @@ terminal, browser), approval UI, multi-step planning, or autonomous agents.
 src/memovi_automation/
 ├── application/          # Ports, registry, invoker
 ├── domain/               # Value objects and exceptions
-└── infrastructure/       # Reserved for future capability adapters
+├── filesystem/           # Read-only Filesystem Capability
+└── infrastructure/       # Reserved notes for future adapters
 ```
 
 ## Relationship to Intelligence Tools

@@ -1050,7 +1050,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 |-------|--------|----------|
 | 1 Complete V1 Platform | **In Progress** | Core pipeline + ownership + observability foundation exist; hardening and API stability remain |
 | 2 Desktop Client | **Not Started** | Flagship desktop client absent; optional `apps/web` shell only |
-| 3 Capability Framework | **In Progress** | `packages/automation` contracts/registry/invoker done; no concrete FS/terminal/plugins yet |
+| 3 Capability Framework | **In Progress** | Framework + read-only FilesystemCapability; terminal/git/plugins/approval UX remain |
 | 4 Automation | **Not Started** | No approval workflow or capability orchestration product path |
 | 5 Knowledge Evolution | **Not Started** | Summaries, long-term memory, graph, reasoning cache absent |
 | 6 Ecosystem | **Not Started** | Optional web/mobile, cloud sync, enterprise, connector marketplace absent |

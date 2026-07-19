@@ -57,7 +57,7 @@ If you are not using Task, the equivalent commands are documented in
 |   `-- web/                  # Optional web client workspace (shell)
 |-- packages/
 |   |-- auth/
-|   |-- automation/           # Capability Framework (no concrete capabilities yet)
+|   |-- automation/           # Capability Framework + Filesystem Capability
 |   |-- connectors/
 |   |-- config/
 |   |-- contracts/

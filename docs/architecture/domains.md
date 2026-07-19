@@ -261,7 +261,7 @@ This domain is not an agent runtime. It defines what Memovi can do in the enviro
 * Capability abstractions and registry
 * Capability metadata and permission declarations
 * Invocation contracts and execution context
-* Future concrete capability adapters (filesystem, git, terminal, browser, and similar)
+* Read-only Filesystem Capability (`filesystem`) and future adapters (git, terminal, browser, and similar)
 * Future automation composition built on capabilities
 
 ### Does Not Own
@@ -363,4 +363,5 @@ New domains should never exist simply to separate implementation details. They s
 * [`search-architecture.md`](search-architecture.md)
 * [`intelligence-architecture.md`](intelligence-architecture.md)
 * [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md)
+* [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md)
 * [`connector-framework.md`](connector-framework.md)

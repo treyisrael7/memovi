@@ -1,0 +1,10 @@
+"""Stable error codes for the Filesystem Capability."""
+
+PERMISSION_DENIED = "permission_denied"
+FILE_NOT_FOUND = "file_not_found"
+INVALID_PATH = "invalid_path"
+UNSUPPORTED_OPERATION = "unsupported_operation"
+NOT_A_FILE = "not_a_file"
+NOT_A_DIRECTORY = "not_a_directory"
+NOT_TEXT_FILE = "not_text_file"
+FILE_TOO_LARGE = "file_too_large"

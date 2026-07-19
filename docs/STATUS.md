@@ -342,7 +342,9 @@ delivered. Backend APIs are the platform boundary for all clients.
 * Declarative permission model (metadata only; no approval UI)
 * Unit and integration tests for registry, permissions, execution, cancellation, timeouts, and error contracts
 * Smoke tests for MockFilesystem / MockTerminal registration, invocation, unknown-capability structured errors, and deterministic re-composition
-* Architecture reference: `docs/architecture/CAPABILITY_FRAMEWORK.md`
+* Read-only `FilesystemCapability` (`filesystem`) with root-scoped path safety, structured errors, and `filesystem.read` enforcement
+* Filesystem smoke tests: register, read file, list directory, reject traversal, structured missing-file error
+* Architecture references: `docs/architecture/CAPABILITY_FRAMEWORK.md`, `docs/architecture/FILESYSTEM_CAPABILITY.md`
 
 **In Progress**
 
@@ -350,17 +352,19 @@ delivered. Backend APIs are the platform boundary for all clients.
 
 **Remaining**
 
-* Concrete capabilities: Filesystem, Terminal, Browser, Git, Clipboard, Notifications
-* Permission enforcement and user approval UX
+* Concrete capabilities: Terminal, Browser, Git, Clipboard, Notifications
+* Filesystem write operations (separate `filesystem.write` permission)
+* User approval UX for granted permissions
 * Plugin system / loading
+* Intelligence discovery wiring for registered capabilities
 
 **Known Risks**
 
-* Concrete capabilities without enforcement of the declared permission model become an unsafe automation surface
+* Hosts that grant `filesystem.read` over overly broad roots expand the trusted surface
 
 **Next Recommended Work**
 
-* Implement the first concrete capability (Filesystem read) behind `CapabilityContext`, then wire discovery for Intelligence
+* Wire Filesystem Capability registration into the composition root with explicit allowed roots, then add the next concrete capability (Terminal or Git)
 
 ---
 

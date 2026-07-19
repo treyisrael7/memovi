@@ -1,5 +1,5 @@
 """Infrastructure adapters for concrete capabilities.
 
-This package foundation intentionally ships no product capabilities.
-Future filesystem, git, terminal, and browser adapters belong here.
+Production filesystem access lives in ``memovi_automation.filesystem``.
+Future git, terminal, and browser adapters may follow the same pattern.
 """

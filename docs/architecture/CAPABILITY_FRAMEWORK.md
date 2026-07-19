@@ -187,57 +187,42 @@ safe host actions.
 
 # Extension Example
 
+The first production capability is the read-only Filesystem Capability:
+
 ```python
+from pathlib import Path
+
 from memovi_automation import (
     FILESYSTEM_READ,
     CapabilityContext,
     CapabilityInvoker,
-    CapabilityMetadata,
-    CapabilityParameter,
     CapabilityRegistry,
     CapabilityRequest,
+    FilesystemCapabilityConfig,
+    register_filesystem_capability,
 )
 from memovi_shared import WorkspaceId
 
-
-class ReadTextFileCapability:
-    def metadata(self) -> CapabilityMetadata:
-        return CapabilityMetadata(
-            id="filesystem.read_text",
-            description="Read a UTF-8 text file from the local filesystem.",
-            permissions=(FILESYSTEM_READ,),
-            parameters=(
-                CapabilityParameter(
-                    name="path",
-                    type="string",
-                    description="Absolute or workspace-relative file path.",
-                ),
-            ),
-        )
-
-    def execute(self, request: CapabilityRequest, context: CapabilityContext) -> object:
-        context.check_cancelled()
-        # Future: perform I/O through a host filesystem port on context.
-        path = str(request.arguments["path"])
-        return {"path": path, "content": ""}
-
-
 registry = CapabilityRegistry()
-registry.register(ReadTextFileCapability())
+register_filesystem_capability(
+    registry,
+    FilesystemCapabilityConfig.from_roots([Path("sandbox")]),
+)
 invoker = CapabilityInvoker(registry=registry)
 
 result = invoker.invoke(
     CapabilityRequest.create(
-        capability_id="filesystem.read_text",
-        arguments={"path": "README.md"},
+        capability_id="filesystem",
+        arguments={"operation": "read_file", "path": "README.md"},
     ),
-    CapabilityContext.create(workspace_id=WorkspaceId.default()),
+    CapabilityContext.create(
+        workspace_id=WorkspaceId.default(),
+        granted_permissions=frozenset({FILESYSTEM_READ}),
+    ),
 )
 ```
 
-No concrete product capability ships in this milestone. The example above is an
-extension sketch for future adapters under
-`packages/automation/src/memovi_automation/infrastructure/`.
+See [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md).
 
 # Future Plugin Architecture
 
@@ -256,8 +241,8 @@ should extend this framework rather than invent a parallel execution stack.
 
 | Stage | Outcome |
 | --- | --- |
-| Now | Capability Framework contracts, registry, invoker, tests, docs |
-| Next | Concrete capabilities: Filesystem, Git, Terminal, Browser, Clipboard, Notifications |
+| Now | Capability Framework + read-only Filesystem Capability |
+| Next | Concrete capabilities: Git, Terminal, Browser, Clipboard, Notifications; filesystem writes |
 | Then | Permission enforcement and user approval UX (desktop-first) |
 | Later | Automation composition, provenance, background jobs |
 | Eventually | Plugin packaging and third-party capability distribution |

@@ -33,12 +33,19 @@ from memovi_automation.domain import (
     InvalidCapabilityError,
     UnknownCapabilityError,
 )
+from memovi_automation.filesystem import (
+    CAPABILITY_ID as FILESYSTEM_CAPABILITY_ID,
+    FilesystemCapability,
+    FilesystemCapabilityConfig,
+    register_filesystem_capability,
+)
 
 __all__ = [
     "BROWSER_READ",
     "CLIPBOARD_READ",
     "CLIPBOARD_WRITE",
     "DEFAULT_EXECUTION_POLICY",
+    "FILESYSTEM_CAPABILITY_ID",
     "FILESYSTEM_READ",
     "FILESYSTEM_WRITE",
     "GIT_READ",
@@ -61,7 +68,10 @@ __all__ = [
     "CapabilityRequest",
     "CapabilityResult",
     "CapabilityTimeoutError",
+    "FilesystemCapability",
+    "FilesystemCapabilityConfig",
     "InvalidCapabilityArgumentsError",
     "InvalidCapabilityError",
     "UnknownCapabilityError",
+    "register_filesystem_capability",
 ]
