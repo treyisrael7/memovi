@@ -343,6 +343,7 @@ Give the desktop OS safe, permissioned access to the user’s environment.
 
 **Primary Deliverables**
 
+* Capability Framework foundation (`packages/automation`)
 * Filesystem
 * Terminal
 * Browser
@@ -350,13 +351,14 @@ Give the desktop OS safe, permissioned access to the user’s environment.
 * Clipboard
 * Notifications
 * Plugin system
-* Permission model
+* Permission model (declarative now; enforcement with approval UX next)
 
 **Success Criteria**
 
 * Capabilities are explicit, auditable, and permissioned.
 * Plugins cannot bypass knowledge or ownership boundaries.
 * The backend remains the source of durable knowledge truth.
+* Intelligence discovers capabilities through the registry; capabilities remain provider-agnostic.
 
 ---
 

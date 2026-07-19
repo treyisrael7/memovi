@@ -11,6 +11,7 @@ members = [
     "memovi",
     "memovi-api",
     "memovi-auth",
+    "memovi-automation",
     "memovi-config",
     "memovi-connectors",
     "memovi-contracts",
@@ -772,6 +773,17 @@ requires-dist = [
     { name = "fastapi" },
     { name = "sqlalchemy", specifier = ">=2" },
 ]
+
+[[package]]
+name = "memovi-automation"
+version = "0.1.0"
+source = { editable = "packages/automation" }
+dependencies = [
+    { name = "memovi-shared" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "memovi-shared", editable = "packages/shared" }]
 
 [[package]]
 name = "memovi-config"

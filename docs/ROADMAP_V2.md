@@ -411,6 +411,7 @@ Expose controlled desktop capabilities through a permissioned framework.
 
 **Primary Deliverables**
 
+* Capability Framework foundation (`packages/automation`)
 * Filesystem
 * Terminal
 * Browser
@@ -418,13 +419,14 @@ Expose controlled desktop capabilities through a permissioned framework.
 * Clipboard
 * Notifications
 * Plugin system
-* Permission model
+* Permission model (declarative now; enforcement with approval UX next)
 
 **Success Criteria**
 
 * Capabilities are granted explicitly and remain auditable.
 * Plugins extend the OS without bypassing knowledge or ownership rules.
 * Durable knowledge still lives in backend domains.
+* Intelligence discovers capabilities through the registry; capabilities remain provider-agnostic.
 
 ---
 

@@ -3,7 +3,7 @@ version: "3"
 vars:
   WEB_PACKAGE: "@memovi/web"
   PNPM_VERSION: "10.33.4"
-  BACKEND_PYTHONPATH: "apps/api/src;packages/auth/src;packages/config/src;packages/connectors/src;packages/contracts/src;packages/documents/src;packages/intelligence/src;packages/memory/src;packages/observability/src;packages/search/src;packages/shared/src"
+  BACKEND_PYTHONPATH: "apps/api/src;packages/auth/src;packages/automation/src;packages/config/src;packages/connectors/src;packages/contracts/src;packages/documents/src;packages/intelligence/src;packages/memory/src;packages/observability/src;packages/search/src;packages/shared/src;packages/workspace/src"
 
 tasks:
   setup:

@@ -35,6 +35,7 @@ document that matches the concern being changed or reviewed.
 | [`search-architecture.md`](search-architecture.md) | Search responsibility, retrieval strategies, indexes, ranking, and boundaries |
 | [`intelligence-architecture.md`](intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |
 | [`connector-framework.md`](connector-framework.md) | Connector responsibilities, external sync, acquisition, and normalization |
+| [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
 | [`observability.md`](observability.md) | Telemetry for requests, workers, events, AI, connectors, search, errors, and performance |
 | [`deployment.md`](deployment.md) | Self-hostable posture, runtime components, infrastructure isolation, and deployment constraints |
 | [`scaling.md`](scaling.md) | Evolution strategy, worker scaling, storage scaling, and future service extraction |

@@ -111,6 +111,8 @@ mypy_path = [
     "$MYPY_CONFIG_FILE_DIR/apps/api/src",
     "$MYPY_CONFIG_FILE_DIR/apps/api/tests",
     "$MYPY_CONFIG_FILE_DIR/packages/auth/src",
+    "$MYPY_CONFIG_FILE_DIR/packages/automation/src",
+    "$MYPY_CONFIG_FILE_DIR/packages/automation/tests",
     "$MYPY_CONFIG_FILE_DIR/packages/config/src",
     "$MYPY_CONFIG_FILE_DIR/packages/connectors/src",
     "$MYPY_CONFIG_FILE_DIR/packages/contracts/src",
@@ -124,6 +126,7 @@ mypy_path = [
     "$MYPY_CONFIG_FILE_DIR/packages/search/src",
     "$MYPY_CONFIG_FILE_DIR/packages/search/tests",
     "$MYPY_CONFIG_FILE_DIR/packages/shared/src",
+    "$MYPY_CONFIG_FILE_DIR/packages/workspace/src",
 ]
 exclude = [
     "^\\.venv/",
@@ -151,6 +154,8 @@ pythonpath = [
     "apps/api/src",
     "apps/api/tests",
     "packages/auth/src",
+    "packages/automation/src",
+    "packages/automation/tests",
     "packages/config/src",
     "packages/connectors/src",
     "packages/contracts/src",

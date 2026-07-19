@@ -57,6 +57,7 @@ If you are not using Task, the equivalent commands are documented in
 |   `-- web/                  # Optional web client workspace (shell)
 |-- packages/
 |   |-- auth/
+|   |-- automation/           # Capability Framework (no concrete capabilities yet)
 |   |-- connectors/
 |   |-- config/
 |   |-- contracts/
@@ -65,7 +66,8 @@ If you are not using Task, the equivalent commands are documented in
 |   |-- memory/
 |   |-- observability/
 |   |-- search/
-|   `-- shared/
+|   |-- shared/
+|   `-- workspace/
 |-- database/
 |-- docker/
 |-- docs/                     # Product, planning, architecture, development docs

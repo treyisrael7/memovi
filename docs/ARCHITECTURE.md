@@ -104,6 +104,7 @@ Core domains include:
 * Search
 * Connectors
 * Intelligence
+* Automation (Capability Framework)
 
 Each domain contains everything required to fulfill its responsibility. Business rules remain independent of frameworks, databases, and infrastructure.
 
@@ -306,6 +307,7 @@ Responsibilities include chat, retrieval-augmented generation, prompt constructi
 
 The `packages/intelligence` package currently defines the reasoning domain foundation (`ReasoningRequest`, `ReasoningContext`, `ReasoningResult` with citations, provider metadata, optional `tool_calls` / `tool_results`, and a read-only `execution_trace`), conversation memory (`Conversation`, `ConversationTurn`, `ConversationHistory`, `ConversationService`), a tool execution framework (`Tool`, `ToolRegistry`, `ToolExecutor`), immutable execution tracing value objects (`ExecutionTrace`, `ExecutionStage`, `StageTiming`, `ExecutionMetrics`), `ContextAssembler` for deterministic context assembly with optional conversation history, provider-agnostic `PromptBuilder` / `Prompt` construction, `ModelGateway` as the single prompt-execution entry point (provider selection + execution metadata), application ports (`KnowledgeRetriever`, `ReasoningProvider`, `ConversationRepository`), the `Reason` command for retrieve → assemble → prompt → gateway orchestration with per-stage timing, the `SendConversationMessage` use case that persists conversation turns around Reason, a Conversation REST API (`/conversations` and `/conversations/{id}/messages`), and provider adapters including `FakeReasoningProvider` and `OpenAIReasoningProvider`. The composition root wires Search-backed retrieval through `SearchKnowledgeRetriever` and durable conversations through `SqlAlchemyConversationRepository` without importing Search into Intelligence. Concrete product tools, streaming, WebSockets, and agents are not implemented yet.
 
+The `packages/automation` package defines the Capability Framework (`Capability`, `CapabilityRegistry`, `CapabilityInvoker`, `CapabilityMetadata`, `CapabilityPermission`, `CapabilityRequest`, `CapabilityResult`, `CapabilityContext`, `CapabilityExecutionPolicy`). Capabilities are provider-agnostic, permission-declared environment actions that Intelligence can discover and invoke. This is not an agent framework: there is no autonomous execution, multi-step planning, approval UI, or concrete filesystem/git/terminal/browser capability yet. See [`architecture/CAPABILITY_FRAMEWORK.md`](architecture/CAPABILITY_FRAMEWORK.md).
 
 Provider-specific logic remains isolated so replacing one AI provider with another requires minimal architectural change.
 
@@ -336,14 +338,14 @@ Memovi is organized around business capabilities rather than technical concerns.
 
               Application
                     │
-    ┌───────────────┼───────────────┐
-    │               │               │
-    ▼               ▼               ▼
- Authentication  Knowledge      Intelligence
-                    │
-        ┌───────────┼───────────┐
-        ▼           ▼           ▼
-   Documents     Memory      Search
+    ┌───────────────┼───────────────────┐
+    │               │                   │
+    ▼               ▼                   ▼
+ Authentication  Knowledge         Intelligence
+                    │                   │
+        ┌───────────┼───────────┐       │
+        ▼           ▼           ▼       ▼
+   Documents     Memory      Search  Automation
                     │
               Connectors
 
@@ -363,6 +365,7 @@ Primary domain responsibilities:
 | Search | Retrieval, ranking, filtering, and query planning |
 | Connectors | External system integration and normalization |
 | Intelligence | Reasoning over retrieved knowledge |
+| Automation | Capability Framework for permissioned environment actions |
 
 Request ownership context is resolved once at the API composition root. Optional `X-Memovi-Workspace-Id` selects an existing workspace; when omitted, requests use the seeded Default Workspace. Downstream domains receive a required `WorkspaceId` and never invent ownership.
 
@@ -561,6 +564,7 @@ The following documents expand this blueprint without redefining it.
 | [`architecture/search-architecture.md`](architecture/search-architecture.md) | Search responsibility, retrieval strategies, indexes, ranking, and boundaries |
 | [`architecture/intelligence-architecture.md`](architecture/intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |
 | [`architecture/connector-framework.md`](architecture/connector-framework.md) | Connector responsibilities, acquisition, synchronization, and normalization |
+| [`architecture/CAPABILITY_FRAMEWORK.md`](architecture/CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
 | [`architecture/observability.md`](architecture/observability.md) | Request, worker, event, AI, connector, search, error, and performance telemetry |
 | [`architecture/deployment.md`](architecture/deployment.md) | Self-hostable deployment posture, infrastructure isolation, and runtime concerns |
 | [`architecture/scaling.md`](architecture/scaling.md) | Evolution strategy, future extraction, storage scaling, workers, and operational thresholds |

@@ -22,22 +22,22 @@ No domain should become responsible for functionality that belongs elsewhere. St
 
 # Domain Overview
 
-The core platform consists of six primary business domains.
+The core platform consists of primary business domains around knowledge, intelligence, and capabilities.
 
 ```text
                  Memovi
 
               Application
                     │
-    ┌───────────────┼───────────────┐
-    │               │               │
-    ▼               ▼               ▼
- Authentication  Knowledge      Intelligence
-                    │
-        ┌───────────┼───────────┐
-        ▼           ▼           ▼
-   Documents     Memory      Search
-                    │
+    ┌───────────────┼───────────────────┐
+    │               │                   │
+    ▼               ▼                   ▼
+ Authentication  Knowledge         Intelligence
+                    │                   │
+        ┌───────────┼───────────┐       │
+        ▼           ▼           ▼       ▼
+   Documents     Memory      Search  Automation
+                    │            (Capability Framework)
               Connectors
 
  Workspace (shared ownership boundary)
@@ -248,6 +248,31 @@ Artificial intelligence is a consumer of knowledge rather than its owner. This d
 
 See [`intelligence-architecture.md`](intelligence-architecture.md).
 
+## Automation
+
+### Purpose
+
+Automation owns the Capability Framework: safe, composable, permissioned actions that Intelligence can discover and invoke.
+
+This domain is not an agent runtime. It defines what Memovi can do in the environment, not when or why those actions should run.
+
+### Owns
+
+* Capability abstractions and registry
+* Capability metadata and permission declarations
+* Invocation contracts and execution context
+* Future concrete capability adapters (filesystem, git, terminal, browser, and similar)
+* Future automation composition built on capabilities
+
+### Does Not Own
+
+* Knowledge persistence or search indexes
+* LLM provider routing or prompt construction
+* Desktop approval UI (consumes capability metadata later)
+* Autonomous multi-step agents
+
+See [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md).
+
 # Domain Communication
 
 Domains should communicate through stable interfaces.
@@ -294,6 +319,7 @@ Every business capability should have exactly one owner.
 | Semantic retrieval | Search |
 | External integrations | Connectors |
 | AI reasoning | Intelligence |
+| Capability registry and environment actions | Automation |
 
 Shared ownership should be avoided whenever practical.
 
@@ -320,6 +346,7 @@ New domains should never exist simply to separate implementation details. They s
 * Knowledge is centered around the Memory domain.
 * Search retrieves knowledge but never owns it.
 * Intelligence consumes knowledge without persisting it.
+* Automation owns capability contracts; Intelligence decides when to invoke them.
 * Connectors normalize information before it enters the platform.
 * Documents represent raw information.
 * Memory represents structured knowledge.
@@ -335,4 +362,5 @@ New domains should never exist simply to separate implementation details. They s
 * [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md)
 * [`search-architecture.md`](search-architecture.md)
 * [`intelligence-architecture.md`](intelligence-architecture.md)
+* [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md)
 * [`connector-framework.md`](connector-framework.md)

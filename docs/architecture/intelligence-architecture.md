@@ -86,6 +86,12 @@ metadata, and returns an immutable `ToolResult`. Domain errors cover unknown too
 invalid arguments, execution failures, and timeouts. Concrete product tools and agent
 loops are out of scope for this foundation.
 
+Environment actions (filesystem, git, terminal, browser, and similar) belong to the
+Capability Framework in `packages/automation`, not to Intelligence Tools. Tools are
+LLM-facing orchestration contracts; Capabilities are permissioned host actions.
+Intelligence may later discover and invoke capabilities through that framework.
+See [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md).
+
 `ContextAssembler` builds that context through the `KnowledgeRetriever` port. It orders
 by retrieval ranking, removes duplicate chunks, skips excess documents when limits
 require it, and trims to configurable document, chunk, and estimated-token budgets.
@@ -237,6 +243,7 @@ See [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md).
 
 * [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`domains.md`](domains.md)
+* [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md)
 * [`search-architecture.md`](search-architecture.md)
 * [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md)
 * [`storage-architecture.md`](storage-architecture.md)

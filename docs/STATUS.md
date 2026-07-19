@@ -333,11 +333,16 @@ delivered. Backend APIs are the platform boundary for all clients.
 
 # Phase 3 — Capability Framework
 
-**Overall Status:** Not started
+**Overall Status:** In progress
 
 **Completed**
 
-* None
+* `packages/automation` Capability Framework foundation
+* Core contracts: `Capability`, `CapabilityRegistry`, `CapabilityInvoker`, `CapabilityMetadata`, `CapabilityPermission`, `CapabilityRequest`, `CapabilityResult`, `CapabilityContext`, `CapabilityExecutionPolicy`
+* Declarative permission model (metadata only; no approval UI)
+* Unit and integration tests for registry, permissions, execution, cancellation, timeouts, and error contracts
+* Smoke tests for MockFilesystem / MockTerminal registration, invocation, unknown-capability structured errors, and deterministic re-composition
+* Architecture reference: `docs/architecture/CAPABILITY_FRAMEWORK.md`
 
 **In Progress**
 
@@ -345,17 +350,17 @@ delivered. Backend APIs are the platform boundary for all clients.
 
 **Remaining**
 
-* Filesystem, Terminal, Browser, Git, Clipboard, Notifications
-* Plugin system
-* Permission model
+* Concrete capabilities: Filesystem, Terminal, Browser, Git, Clipboard, Notifications
+* Permission enforcement and user approval UX
+* Plugin system / loading
 
 **Known Risks**
 
-* Capabilities without a permission model become an unsafe automation surface
+* Concrete capabilities without enforcement of the declared permission model become an unsafe automation surface
 
 **Next Recommended Work**
 
-* Begin after Desktop Client has a stable product shell
+* Implement the first concrete capability (Filesystem read) behind `CapabilityContext`, then wire discovery for Intelligence
 
 ---
 
