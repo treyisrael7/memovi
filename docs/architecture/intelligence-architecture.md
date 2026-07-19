@@ -151,7 +151,14 @@ Desktop (and other) client UX, streaming/realtime channels, and agents remain ou
 
 # Provider Isolation
 
-Provider-specific logic remains isolated within Intelligence.
+Provider-specific logic remains isolated within Intelligence adapters today.
+
+The long-term provider-neutral boundary is `packages/models` (`ModelProvider`,
+`ModelRegistry`, capability discovery, health, and normalized errors). Concrete
+vendor adapters should land there so Intelligence never depends on provider SDKs
+in domain or application code.
+
+See [`MODEL_PROVIDER_FRAMEWORK.md`](MODEL_PROVIDER_FRAMEWORK.md).
 
 Replacing one AI provider with another should require minimal architectural change because knowledge storage, retrieval, and memory remain independent from provider implementations.
 
@@ -238,12 +245,14 @@ See [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md).
 * AI summaries are derived and should not become the source of truth.
 * Future agents consume platform capabilities without redefining ownership.
 * Knowledge remains independently useful when no language model is available.
+* Provider-neutral model contracts live in `packages/models`; Intelligence should consume them rather than vendor SDKs.
 
 # Related Documents
 
 * [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`domains.md`](domains.md)
 * [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md)
+* [`MODEL_PROVIDER_FRAMEWORK.md`](MODEL_PROVIDER_FRAMEWORK.md)
 * [`search-architecture.md`](search-architecture.md)
 * [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md)
 * [`storage-architecture.md`](storage-architecture.md)

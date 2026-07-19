@@ -246,13 +246,47 @@ Reasoning pipeline, conversation memory, Conversation REST API, and Search-backe
 **Next Recommended Work**
 
 * Close Phase 1 platform gaps (ownership, observability, API stability), then Desktop Client
+* Migrate Intelligence `ModelGateway` onto `packages/models` (`ModelRegistry` / `ModelProvider`)
+
+---
+
+# Milestone 17 — Model Provider Framework
+
+**Overall Status:** Complete (architecture foundation)
+
+**Completed**
+
+* `packages/models` (`memovi-models`) Model Provider Framework
+* Core contracts: `ModelProvider`, `ModelRegistry`, `ModelRequest`, `ModelResponse`, `ModelMetadata`, `ModelCapabilities`, `ProviderConfiguration`, `ProviderHealth`
+* Normalized provider error codes (authentication, unavailable, rate_limit, timeout, unsupported_capability, invalid_configuration, …)
+* `FakeModelProvider` for tests and local wiring (no production vendor SDKs)
+* Architecture reference: `docs/architecture/MODEL_PROVIDER_FRAMEWORK.md`
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Concrete adapters: OpenAI, Anthropic, Gemini, Ollama, OpenRouter, LM Studio
+* Intelligence migration from in-package `ReasoningProvider` / `ModelGateway` onto `memovi-models`
+* Optional Search embeddings convergence onto shared capability model
+* Desktop provider settings UI (consumes configuration; not owned here)
+
+**Known Risks**
+
+* Until Intelligence migrates, vendor SDK dependencies remain in `memovi-intelligence`
+
+**Next Recommended Work**
+
+* Implement the first production adapter (OpenAI or Ollama) behind `ModelProvider`, then adapt Intelligence `ModelGateway` to resolve through `ModelRegistry`
 
 ---
 
 # Forward Roadmap Status
 
 Future work tracks [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) Phases 1–6.
-Milestones 0–6 above remain the platform foundation tracker.
+Milestones 0–6 above remain the platform foundation tracker; Milestone 17 adds the shared model provider boundary.
 
 ---
 

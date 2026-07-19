@@ -309,7 +309,7 @@ The `packages/intelligence` package currently defines the reasoning domain found
 
 The `packages/automation` package defines the Capability Framework (`Capability`, `CapabilityRegistry`, `CapabilityInvoker`, `CapabilityMetadata`, `CapabilityPermission`, `CapabilityRequest`, `CapabilityResult`, `CapabilityContext`, `CapabilityExecutionPolicy`) and the first production capability: read-only `FilesystemCapability` (`filesystem`) under `memovi_automation.filesystem`. Capabilities are provider-agnostic, permission-declared environment actions that Intelligence can discover and invoke. This is not an agent framework: there is no autonomous execution, multi-step planning, or approval UI. Filesystem access is root-scoped, traversal-safe, and limited to read operations (`filesystem.read`). See [`architecture/CAPABILITY_FRAMEWORK.md`](architecture/CAPABILITY_FRAMEWORK.md) and [`architecture/FILESYSTEM_CAPABILITY.md`](architecture/FILESYSTEM_CAPABILITY.md).
 
-Provider-specific logic remains isolated so replacing one AI provider with another requires minimal architectural change.
+Provider-specific logic remains isolated so replacing one AI provider with another requires minimal architectural change. The `packages/models` package (`memovi-models`) defines the provider-neutral Model Provider Framework (`ModelProvider`, `ModelRegistry`, `ModelRequest`, `ModelResponse`, `ModelMetadata`, `ModelCapabilities`, `ProviderConfiguration`, `ProviderHealth`) so Intelligence can eventually consume abstractions instead of vendor SDKs. Concrete OpenAI/Anthropic/Gemini/Ollama adapters are not implemented in `packages/models` yet; see [`architecture/MODEL_PROVIDER_FRAMEWORK.md`](architecture/MODEL_PROVIDER_FRAMEWORK.md).
 
 ## Processing Layer
 
@@ -566,6 +566,7 @@ The following documents expand this blueprint without redefining it.
 | [`architecture/connector-framework.md`](architecture/connector-framework.md) | Connector responsibilities, acquisition, synchronization, and normalization |
 | [`architecture/CAPABILITY_FRAMEWORK.md`](architecture/CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
 | [`architecture/FILESYSTEM_CAPABILITY.md`](architecture/FILESYSTEM_CAPABILITY.md) | Read-only filesystem capability safety model and operations |
+| [`architecture/MODEL_PROVIDER_FRAMEWORK.md`](architecture/MODEL_PROVIDER_FRAMEWORK.md) | Provider-neutral model abstractions, registry, capabilities, and health |
 | [`architecture/observability.md`](architecture/observability.md) | Request, worker, event, AI, connector, search, error, and performance telemetry |
 | [`architecture/deployment.md`](architecture/deployment.md) | Self-hostable deployment posture, infrastructure isolation, and runtime concerns |
 | [`architecture/scaling.md`](architecture/scaling.md) | Evolution strategy, future extraction, storage scaling, workers, and operational thresholds |

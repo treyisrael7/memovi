@@ -266,6 +266,7 @@ Enable controlled reasoning over retrieved knowledge.
 
 * Reasoning pipeline (retrieve → assemble → prompt → provider)
 * Provider abstraction and routing
+* Shared Model Provider Framework (`packages/models`) for vendor-neutral contracts
 * Conversation memory and Conversation API
 * Execution traces and citations
 * Tool execution framework
