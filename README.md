@@ -30,6 +30,8 @@ This README is the developer entry point.
 - Docker Desktop or Docker Engine with Compose
 - Git
 - GitHub CLI
+- Rust toolchain (`rustup`) for the desktop client
+- Host C++ / linker tools required by [Tauri](https://v2.tauri.app/start/prerequisites/)
 
 VS Code users can use the Dev Container instead of installing most tools
 directly. See [`docs/development/dev-container.md`](docs/development/dev-container.md).
@@ -54,6 +56,7 @@ If you are not using Task, the equivalent commands are documented in
 .
 |-- apps/
 |   |-- api/                  # FastAPI composition root (platform API)
+|   |-- desktop/              # Flagship Tauri desktop client (shell)
 |   `-- web/                  # Optional web client workspace (shell)
 |-- packages/
 |   |-- auth/
@@ -101,9 +104,10 @@ retrieval and exposes `GET /search` with `mode=keyword|semantic|hybrid` (hybrid
 default). Desktop and other clients consume these APIs; they do not own business
 logic.
 
-A future desktop app workspace will live under `apps/` alongside `api`. The
-existing `apps/web` workspace is an optional client shell, not the primary
-product surface.
+The flagship desktop client lives in `apps/desktop` (Tauri + React shell). It
+consumes the platform API and does not own business logic. `apps/web` remains an
+optional client shell. See
+[`docs/architecture/DESKTOP_CLIENT.md`](docs/architecture/DESKTOP_CLIENT.md).
 
 ## Development Workflow
 
@@ -123,6 +127,12 @@ Start local infrastructure and the backend API development server:
 
 ```bash
 task backend
+```
+
+Start the flagship desktop client (requires Rust / Tauri prerequisites):
+
+```bash
+task desktop
 ```
 
 The API health endpoint is available at `http://localhost:8000/health`.
@@ -149,6 +159,8 @@ commits. CI validates the backend and optional web workspace through GitHub Acti
 - `task backend:check` runs backend lint, format check, typecheck, and tests.
 - `task backend:dev` is an alias for `task backend`.
 - `task frontend` runs optional web-workspace lint, format check, typecheck, and build.
+- `task desktop` starts the flagship Tauri desktop client.
+- `task desktop:typecheck` runs TypeScript checks for the desktop client.
 - `task docker-up` starts local infrastructure.
 - `task docker-down` stops local infrastructure.
 - `task db:migrate` starts PostgreSQL and applies Alembic migrations.
@@ -205,5 +217,6 @@ uv run alembic upgrade head
 Memovi is in early development. The repository currently provides the reusable
 backend platform (Python workspace, FastAPI composition root, local
 infrastructure, developer tooling, CI, Dev Container foundation, and local
-session-based authentication), with an optional web client shell. The flagship
-desktop client is the next product surface on top of the stable API.
+session-based authentication), a flagship desktop shell in `apps/desktop`, and
+an optional web client shell. Desktop product pages (chat, documents, settings)
+build on this foundation next.

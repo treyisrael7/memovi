@@ -2,6 +2,7 @@ version: "3"
 
 vars:
   WEB_PACKAGE: "@memovi/web"
+  DESKTOP_PACKAGE: "@memovi/desktop"
   PNPM_VERSION: "10.33.4"
   BACKEND_PYTHONPATH: "apps/api/src;packages/auth/src;packages/automation/src;packages/config/src;packages/connectors/src;packages/contracts/src;packages/documents/src;packages/intelligence/src;packages/memory/src;packages/models/src;packages/observability/src;packages/search/src;packages/shared/src;packages/workspace/src"
 
@@ -55,6 +56,34 @@ tasks:
       - frontend:format-check
       - frontend:typecheck
       - frontend:build
+
+  desktop:
+    desc: Start the flagship Tauri desktop client (requires Rust toolchain).
+    env:
+      # Keep Cargo artifacts off OneDrive-synced trees when the env var is unset.
+      CARGO_TARGET_DIR: '{{.CARGO_TARGET_DIR | default (printf "%s/memovi-desktop-target" .HOME)}}'
+    cmds:
+      - pnpm --filter {{.DESKTOP_PACKAGE}} tauri:dev
+
+  desktop:dev:
+    desc: Alias for `task desktop`.
+    cmds:
+      - task: desktop
+
+  desktop:typecheck:
+    desc: Run TypeScript checks for the desktop client.
+    cmds:
+      - pnpm --filter {{.DESKTOP_PACKAGE}} typecheck
+
+  desktop:format:
+    desc: Format the desktop client with Prettier.
+    cmds:
+      - pnpm --filter {{.DESKTOP_PACKAGE}} format
+
+  desktop:format-check:
+    desc: Check desktop client formatting with Prettier.
+    cmds:
+      - pnpm --filter {{.DESKTOP_PACKAGE}} format:check
 
   docker-up:
     desc: Start local infrastructure services.

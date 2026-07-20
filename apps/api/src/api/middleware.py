@@ -6,6 +6,7 @@ import time
 import uuid
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from memovi_observability import (
@@ -21,6 +22,17 @@ from memovi_observability.logging.structured import log_operation
 REQUEST_ID_HEADER = "X-Request-Id"
 CORRELATION_ID_HEADER = "X-Correlation-Id"
 LOGGER = get_logger("memovi.api.access")
+
+# Local presentation clients (Tauri desktop shell + optional Next.js web).
+LOCAL_CLIENT_ORIGINS = (
+    "http://localhost:1420",
+    "http://127.0.0.1:1420",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "tauri://localhost",
+    "https://tauri.localhost",
+    "http://tauri.localhost",
+)
 
 
 class RequestContextMiddleware:
@@ -112,3 +124,11 @@ class RequestContextMiddleware:
 
 def register_middleware(app: FastAPI) -> None:
     app.add_middleware(RequestContextMiddleware)
+    # Added last so CORS is the outermost layer and can answer preflight.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(LOCAL_CLIENT_ORIGINS),
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )

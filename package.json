@@ -3,6 +3,11 @@
   "private": true,
   "packageManager": "pnpm@10.33.4",
   "scripts": {
+    "desktop:build": "pnpm --filter @memovi/desktop tauri:build",
+    "desktop:dev": "pnpm --filter @memovi/desktop tauri:dev",
+    "desktop:format": "pnpm --filter @memovi/desktop format",
+    "desktop:format:check": "pnpm --filter @memovi/desktop format:check",
+    "desktop:typecheck": "pnpm --filter @memovi/desktop typecheck",
     "web:build": "pnpm --filter @memovi/web build",
     "web:dev": "pnpm --filter @memovi/web dev",
     "web:format": "pnpm --filter @memovi/web format",

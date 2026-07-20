@@ -267,9 +267,10 @@ Infrastructure
 
 The Presentation Layer contains every interface through which users interact with Memovi.
 
-The primary product surface is the desktop application. An optional web client,
-future mobile clients, browser extensions, CLI tools, and public APIs are
-additional presentation surfaces over the same backend.
+The primary product surface is the desktop application under `apps/desktop`
+(Tauri shell foundation). An optional web client, future mobile clients, browser
+extensions, CLI tools, and public APIs are additional presentation surfaces over
+the same backend. See [`architecture/DESKTOP_CLIENT.md`](architecture/DESKTOP_CLIENT.md).
 
 Responsibilities:
 
@@ -278,6 +279,7 @@ Responsibilities:
 * Display results
 * Authenticate users
 * Call platform APIs
+* Manage window lifecycle, navigation shell, theme, and backend connection status
 
 The Presentation Layer contains no business logic. Business rules belong within
 the Application Layer and domains. Clients remain replaceable; backend domains
@@ -489,7 +491,7 @@ The architecture uses technologies already identified by the project.
 
 ## Clients
 
-* Desktop application (primary product surface; workspace forthcoming)
+* Desktop application (`apps/desktop` Tauri + React shell foundation; primary product surface)
 * Optional web client (`apps/web` shell today; Next.js / React / TypeScript)
 * Future mobile, CLI, and extension clients as needed
 
@@ -567,6 +569,7 @@ The following documents expand this blueprint without redefining it.
 | [`architecture/CAPABILITY_FRAMEWORK.md`](architecture/CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
 | [`architecture/FILESYSTEM_CAPABILITY.md`](architecture/FILESYSTEM_CAPABILITY.md) | Read-only filesystem capability safety model and operations |
 | [`architecture/MODEL_PROVIDER_FRAMEWORK.md`](architecture/MODEL_PROVIDER_FRAMEWORK.md) | Provider-neutral model abstractions, registry, capabilities, and health |
+| [`architecture/DESKTOP_CLIENT.md`](architecture/DESKTOP_CLIENT.md) | Flagship Tauri desktop shell, client boundaries, and API communication |
 | [`architecture/observability.md`](architecture/observability.md) | Request, worker, event, AI, connector, search, error, and performance telemetry |
 | [`architecture/deployment.md`](architecture/deployment.md) | Self-hostable deployment posture, infrastructure isolation, and runtime concerns |
 | [`architecture/scaling.md`](architecture/scaling.md) | Evolution strategy, future extraction, storage scaling, workers, and operational thresholds |

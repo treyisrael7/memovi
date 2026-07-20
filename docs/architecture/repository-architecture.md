@@ -73,13 +73,13 @@ Current applications include:
 ```text
 apps/
     api/        # platform API / composition root
+    desktop/    # flagship Tauri desktop client (shell foundation)
     web/        # optional web client shell
 ```
 
 Future applications may include:
 
 ```text
-desktop/        # flagship desktop client
 mobile/
 cli/
 worker/
@@ -87,7 +87,8 @@ worker/
 
 Every application consumes the same platform capabilities through the API.
 Business logic remains inside backend domains. Desktop is the preferred product
-surface; web and other clients are optional.
+surface; web and other clients are optional. See
+[`DESKTOP_CLIENT.md`](DESKTOP_CLIENT.md).
 
 ## packages/
 
@@ -198,18 +199,19 @@ The repository is expected to evolve gradually.
 
 ```text
 Phase 1
-apps/
+apps/api
+apps/web
 packages/
 
 ↓
 
 Phase 2
+apps/desktop   # flagship client shell (present)
 workers/
 
 ↓
 
 Phase 3
-desktop/
 mobile/
 cli/
 
@@ -231,7 +233,7 @@ Every file within the repository should have a clear owner.
 | --- | --- |
 | `apps/api` | Platform API / composition root |
 | `apps/web` | Optional web client |
-| `apps/desktop` (future) | Flagship desktop client |
+| `apps/desktop` | Flagship Tauri desktop client (shell foundation) |
 | `packages` | Shared platform libraries |
 | `docs` | Engineering documentation |
 | `docker` | Infrastructure |

@@ -332,22 +332,28 @@ API stability remain.
 
 # Phase 2 — Desktop Client
 
-**Overall Status:** Not started
+**Overall Status:** In progress
 
-Optional web workspace exists as a shell. The flagship desktop client is not
-delivered. Backend APIs are the platform boundary for all clients.
+The flagship Tauri desktop shell lives in `apps/desktop`. It launches, probes
+backend health/readiness, and shows connection, workspace, and model placeholders.
+Product pages beyond the shell are not implemented yet. Backend APIs remain the
+platform boundary for all clients.
 
 **Completed**
 
-* None for product clients
+* `apps/desktop` Tauri + React shell foundation
+* Sidebar / main content / status bar layout
+* Backend connection detection, reconnect polling, and friendly errors
+* Navigation registry reserved for Chat, Documents, Search, Workspaces, Models,
+  Activity, Capabilities, and Settings
+* `docs/architecture/DESKTOP_CLIENT.md`
 
 **In Progress**
 
-* None
+* Desktop foundation validation and local developer workflow
 
 **Remaining**
 
-* Native desktop application
 * Conversation UI
 * Collections
 * Settings
@@ -357,11 +363,13 @@ delivered. Backend APIs are the platform boundary for all clients.
 
 **Known Risks**
 
-* Building clients before Phase 1 contracts stabilize creates rework
+* Building rich client pages before Phase 1 contracts stabilize creates rework
+* Desktop requires Rust and host linker tooling beyond Node/Python setup
 
 **Next Recommended Work**
 
-* Keep the desktop client behind stable Conversation, Search, and ownership APIs
+* Keep product pages behind stable Conversation, Search, and ownership APIs
+* Expand the shell into Chat and Search only after those contracts stay stable
 
 ---
 

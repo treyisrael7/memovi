@@ -320,7 +320,7 @@ Ship the flagship desktop knowledge OS on the V1 platform API.
 
 **Primary Deliverables**
 
-* Native desktop application
+* Native desktop application (`apps/desktop` Tauri shell foundation shipped)
 * Conversation UI
 * Collections
 * Settings

@@ -23,6 +23,10 @@ out/
 .turbo/
 *.tsbuildinfo
 
+# Tauri / Rust desktop build artifacts
+apps/desktop/src-tauri/target/
+apps/desktop/dist/
+
 # Build artifacts
 build/
 dist/

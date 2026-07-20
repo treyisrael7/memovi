@@ -84,7 +84,8 @@ memovi/
 | App | Role |
 |-----|------|
 | `apps/api` | Backend composition root / platform API. Registers routers, DB sessions, document processing worker, in-process event bus, memory/search/intelligence integration adapters. |
-| `apps/web` | Optional web client workspace shell. Flagship desktop client is not present yet. |
+| `apps/desktop` | Flagship Tauri desktop client shell foundation (connection status, navigation registry). |
+| `apps/web` | Optional web client workspace shell. |
 
 ## Shared libraries
 
@@ -1049,7 +1050,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 | Phase | Status | Evidence |
 |-------|--------|----------|
 | 1 Complete V1 Platform | **In Progress** | Core pipeline + ownership + observability foundation exist; hardening and API stability remain |
-| 2 Desktop Client | **Not Started** | Flagship desktop client absent; optional `apps/web` shell only |
+| 2 Desktop Client | **In Progress** | Tauri shell foundation in `apps/desktop`; product pages not built yet |
 | 3 Capability Framework | **In Progress** | Framework + read-only FilesystemCapability; terminal/git/plugins/approval UX remain |
 | Model Provider Framework (M17) | **Complete (foundation)** | `packages/models` contracts/registry/fake; vendor adapters + Intelligence migration remain |
 | 4 Automation | **Not Started** | No approval workflow or capability orchestration product path |
@@ -1125,7 +1126,7 @@ Enforced by package layout, ports, and composition practices:
 
 Memovi is a desktop-first knowledge operating system built as a modular-monolith
 Python/FastAPI backend platform. An optional web client shell exists; the
-flagship desktop client is not yet implemented.
+flagship desktop shell exists in `apps/desktop`; product pages are not built yet.
 
 Implemented vertical slices:
 
@@ -1146,4 +1147,4 @@ Not implemented:
 * Real embedding provider integrations
 * Architecture boundary tests
 
-The knowledge pipeline from upload through hybrid search is operational for local development. Conversation reasoning is closed-loop with Search-backed retrieval and durable SQLAlchemy conversation persistence at the composition root. The next product surface is a desktop client over that API.
+The knowledge pipeline from upload through hybrid search is operational for local development. Conversation reasoning is closed-loop with Search-backed retrieval and durable SQLAlchemy conversation persistence at the composition root. The flagship desktop shell in `apps/desktop` consumes that API; Chat, Documents, and Settings pages are the next client work.
