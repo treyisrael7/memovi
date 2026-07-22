@@ -16,6 +16,7 @@ class ConversationRecord(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     workspace_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False, default="New conversation")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

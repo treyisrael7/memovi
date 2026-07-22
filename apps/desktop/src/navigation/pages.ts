@@ -31,7 +31,7 @@ export const PAGES: readonly PageDefinition[] = [
   {
     id: "chat",
     label: "Chat",
-    available: false,
+    available: true,
     description: "Conversation interface over the Reasoning API.",
   },
   {

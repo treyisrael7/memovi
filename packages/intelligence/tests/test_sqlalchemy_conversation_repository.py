@@ -312,6 +312,29 @@ def test_missing_conversation_append_and_list_raise() -> None:
     engine.dispose()
 
 
-def test_deletion_is_not_supported_by_protocol() -> None:
-    """ConversationRepository has no delete method; cascade exists only for SQL integrity."""
-    assert not hasattr(SqlAlchemyConversationRepository, "delete")
+def test_delete_conversation_removes_history() -> None:
+    session_factory, engine = _build_session_factory()
+
+    with session_factory() as session:
+        repository = SqlAlchemyConversationRepository(session)
+        conversation = repository.create(workspace_id=WS)
+        repository.append_turn(
+            conversation.id,
+            _turn(
+                ConversationRole.USER,
+                "to be deleted",
+                base=datetime.now(UTC),
+                seconds=1,
+            ),
+            workspace_id=WS,
+        )
+        session.commit()
+        conversation_id = conversation.id
+
+    with session_factory() as session:
+        repository = SqlAlchemyConversationRepository(session)
+        repository.delete(conversation_id, workspace_id=WS)
+        session.commit()
+        assert repository.get(conversation_id, workspace_id=WS) is None
+
+    engine.dispose()

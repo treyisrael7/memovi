@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from memovi_observability import timed_operation
 from memovi_shared import WorkspaceId
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session as OrmSession
 
 from memovi_intelligence.domain.entities import Conversation
@@ -37,6 +37,7 @@ class SqlAlchemyConversationRepository:
                 ConversationRecord(
                     id=conversation.id.value,
                     workspace_id=conversation.workspace_id.value,
+                    title=conversation.title,
                     created_at=conversation.created_at,
                     updated_at=conversation.updated_at,
                 )
@@ -62,6 +63,76 @@ class SqlAlchemyConversationRepository:
             if record is None:
                 return None
             return self._to_domain(record)
+
+    def list(self, *, workspace_id: WorkspaceId) -> tuple[Conversation, ...]:
+        with timed_operation("repository.list", repository=_REPO):
+            records = (
+                self._session.query(ConversationRecord)
+                .filter(ConversationRecord.workspace_id == workspace_id.value)
+                .order_by(ConversationRecord.updated_at.desc())
+                .all()
+            )
+            return tuple(self._to_domain(record) for record in records)
+
+    def rename(
+        self,
+        conversation_id: ConversationId,
+        title: str,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> Conversation:
+        with timed_operation("repository.rename", repository=_REPO):
+            record = (
+                self._session.query(ConversationRecord)
+                .filter(
+                    ConversationRecord.id == conversation_id.value,
+                    ConversationRecord.workspace_id == workspace_id.value,
+                )
+                .one_or_none()
+            )
+            if record is None:
+                raise ConversationNotFoundError(
+                    f"Conversation '{conversation_id.value}' was not found.",
+                )
+            updated = Conversation(
+                id=ConversationId(record.id),
+                workspace_id=WorkspaceId(record.workspace_id),
+                title=title,
+                history=ConversationHistory(turns=self._load_turns(record.id)),
+                created_at=_as_utc(record.created_at),
+                updated_at=datetime.now(UTC),
+            )
+            record.title = updated.title
+            record.updated_at = updated.updated_at
+            self._session.flush()
+            return updated
+
+    def delete(
+        self,
+        conversation_id: ConversationId,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> None:
+        with timed_operation("repository.delete", repository=_REPO):
+            record = (
+                self._session.query(ConversationRecord)
+                .filter(
+                    ConversationRecord.id == conversation_id.value,
+                    ConversationRecord.workspace_id == workspace_id.value,
+                )
+                .one_or_none()
+            )
+            if record is None:
+                raise ConversationNotFoundError(
+                    f"Conversation '{conversation_id.value}' was not found.",
+                )
+            self._session.execute(
+                delete(ConversationTurnRecord).where(
+                    ConversationTurnRecord.conversation_id == conversation_id.value
+                )
+            )
+            self._session.delete(record)
+            self._session.flush()
 
     def append_turn(
         self,
@@ -139,6 +210,7 @@ class SqlAlchemyConversationRepository:
         return Conversation(
             id=ConversationId(record.id),
             workspace_id=WorkspaceId(record.workspace_id),
+            title=getattr(record, "title", None) or "New conversation",
             history=ConversationHistory(turns=self._load_turns(record.id)),
             created_at=_as_utc(record.created_at),
             updated_at=_as_utc(record.updated_at),

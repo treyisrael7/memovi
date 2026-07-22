@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from time import perf_counter
 from typing import Any, Protocol
 
@@ -55,15 +56,16 @@ class OpenAIReasoningProvider:
     def model(self) -> str:
         return self._settings.model
 
-    def reason(self, prompt: Prompt) -> ReasoningResult:
+    def reason(self, prompt: Prompt, *, model: str | None = None) -> ReasoningResult:
         if not prompt.citations:
             raise InvalidPromptError("Cannot reason over a prompt without citations.")
 
+        resolved_model = model or self._settings.model
         messages = serialize_prompt_messages(prompt)
         started = perf_counter()
         try:
             response = self._client.chat.completions.create(
-                model=self._settings.model,
+                model=resolved_model,
                 messages=messages,
             )
         except Exception as exc:
@@ -81,7 +83,7 @@ class OpenAIReasoningProvider:
                 "chunk_count": len(prompt.citations),
                 "document_count": len(prompt.context.assembled_documents),
                 "estimated_token_count": prompt.context.estimated_token_count,
-                "model": self._settings.model,
+                "model": resolved_model,
                 "prompt_tokens": usage["prompt_tokens"],
                 "completion_tokens": usage["completion_tokens"],
                 "total_tokens": usage["total_tokens"],
@@ -90,6 +92,34 @@ class OpenAIReasoningProvider:
             execution_time=duration,
             context=prompt.context,
         )
+
+    def reason_stream(
+        self,
+        prompt: Prompt,
+        *,
+        model: str | None = None,
+    ) -> Iterator[str]:
+        if not prompt.citations:
+            raise InvalidPromptError("Cannot reason over a prompt without citations.")
+
+        resolved_model = model or self._settings.model
+        messages = serialize_prompt_messages(prompt)
+        try:
+            stream = self._client.chat.completions.create(
+                model=resolved_model,
+                messages=messages,
+                stream=True,
+            )
+        except Exception as exc:
+            raise _translate_openai_error(exc) from exc
+
+        for chunk in stream:
+            try:
+                delta = chunk.choices[0].delta.content
+            except (AttributeError, IndexError, TypeError):
+                continue
+            if delta:
+                yield str(delta)
 
 
 def serialize_prompt_messages(prompt: Prompt) -> list[dict[str, str]]:

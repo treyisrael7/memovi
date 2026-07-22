@@ -8,7 +8,7 @@ class PlaceholderReasoningProvider:
     Concrete LLM provider integrations will replace this implementation later.
     """
 
-    def reason(self, prompt: Prompt) -> ReasoningResult:
+    def reason(self, prompt: Prompt, *, model: str | None = None) -> ReasoningResult:
         raise NotImplementedError(
             "Reasoning provider integrations are not implemented yet.",
         )

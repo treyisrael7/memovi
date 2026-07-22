@@ -27,7 +27,7 @@ automation.
 
 | Layer | Owns | Does not own |
 | --- | --- | --- |
-| `apps/desktop` | Window lifecycle, navigation shell, application UI state, theme, startup experience, backend connection management | Documents, memory, search, intelligence, workspaces (domain rules), models, automation |
+| `apps/desktop` | Window lifecycle, navigation shell, application UI state, theme, startup experience, backend connection management, conversation presentation | Documents, memory, search, intelligence, workspaces (domain rules), models, automation |
 | `apps/api` + `packages/*` | Domain rules, persistence, providers, workers, API contracts | Desktop windowing, UI layout, local theme preference |
 
 Desktop never:
@@ -43,6 +43,7 @@ Desktop may:
 * Cache presentation state for the current session
 * Show connection and readiness status
 * Navigate between reserved product pages
+* Render streaming tokens and markdown for conversation UX
 
 # Package Layout
 
@@ -50,7 +51,7 @@ Desktop may:
 apps/desktop/
   src/                      # React + TypeScript UI (Vite)
     api/                    # Thin HTTP client over platform contracts
-    components/             # Shell chrome (sidebar, content, status)
+    components/             # Shell chrome + Chat page
     navigation/             # Page registry for future surfaces
     state/                  # Application shell state
     styles/                 # Theme and layout
@@ -70,7 +71,8 @@ The shell probes:
 
 1. `GET /health` — process liveness
 2. `GET /ready` — dependency readiness (database, migrations, search, workspace, …)
-3. `GET /workspaces` — display the active workspace label when the API is reachable
+3. `GET /workspaces` — populate the workspace selector when the API is reachable
+4. `GET /conversations/models` — populate the model selector
 
 Connection states:
 
@@ -81,6 +83,10 @@ Connection states:
 | `degraded` | Reachable but `/ready` reports incomplete dependencies |
 | `disconnected` | Unreachable or unhealthy |
 
+Knowledge-scoped requests attach `X-Memovi-Workspace-Id` from the active
+workspace selection. The desktop never invents ownership; it only forwards the
+selected workspace to the API.
+
 The shell reconnects on a short poll interval and exposes a manual retry action.
 Errors are user-facing and operational (`task backend`), not provider internals.
 
@@ -90,22 +96,59 @@ a second transport stack.
 
 # Application Shell
 
-The current milestone ships architecture only:
+The shell provides:
 
 * Sidebar with a page registry
+* Top bar with active workspace, active model, and connection status
 * Main content area
-* Status bar with connection, workspace, and model placeholders
+* Status bar with connection details and retry
 * Light / dark theme toggle
 * Startup connection detection
+* Chat page for the conversation experience
 
-No chat interface, document management UI, settings pages, or automation UI yet.
+# Conversation Flow
+
+Chat is a thin presentation surface over Intelligence conversation APIs.
+
+```text
+Desktop Chat
+  │
+  ├─ GET  /conversations                 list sidebar
+  ├─ POST /conversations                 new conversation
+  ├─ PATCH /conversations/{id}           rename
+  ├─ DELETE /conversations/{id}          delete
+  ├─ GET  /conversations/{id}/messages   load history
+  ├─ GET  /conversations/models          model selector
+  └─ POST /conversations/{id}/messages/stream
+         │
+         ├─ event: token   incremental assistant text
+         ├─ event: done    final answer + citations + metadata
+         └─ event: error   clean failure surface
+```
+
+Send path:
+
+1. User submits a message (Enter) or inserts a newline (Shift+Enter).
+2. Desktop creates a conversation if none is active.
+3. Desktop appends optimistic user + pending assistant bubbles.
+4. Desktop opens an SSE stream with the selected workspace header and model.
+5. Tokens append to the assistant bubble; Stop aborts via `AbortController`.
+6. `done` replaces the pending bubble with the persisted assistant message.
+7. History reloads from the API after navigation or workspace switches.
+
+Workspace switching reloads the conversation list from the backend so chats
+remain isolated by ownership. Model selection is sent on each stream/send
+request (`provider` + `model`) and does not change backend defaults permanently.
+
+Markdown rendering, code-block copy, message copy, retry on failed responses,
+and auto-scroll are presentation concerns only.
 
 # Future Expansion
 
 Pages are registered in `src/navigation/pages.ts`:
 
 * Home (available)
-* Chat
+* Chat (available)
 * Documents
 * Search
 * Workspaces
@@ -120,7 +163,6 @@ navigation, windowing, or connection management.
 
 Future desktop features should continue to consume platform APIs:
 
-* Conversations → Conversation / Reasoning API
 * Documents → Documents API
 * Search → Search API
 * Workspaces → Workspaces API + `X-Memovi-Workspace-Id`
@@ -151,5 +193,6 @@ pnpm --filter @memovi/desktop tauri:dev
 * [`../ARCHITECTURE.md`](../ARCHITECTURE.md) — platform blueprint
 * [`../PRODUCT_VISION.md`](../PRODUCT_VISION.md) — desktop-first product identity
 * [`repository-architecture.md`](repository-architecture.md) — monorepo layout
+* [`intelligence-architecture.md`](intelligence-architecture.md) — reasoning and conversations
 * [`MODEL_PROVIDER_FRAMEWORK.md`](MODEL_PROVIDER_FRAMEWORK.md) — model abstractions
 * [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) — future desktop capabilities

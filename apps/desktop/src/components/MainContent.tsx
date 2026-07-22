@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "../api/config";
 import { getPage } from "../navigation/pages";
 import { useAppState } from "../state/AppStateContext";
+import { ChatPage } from "./ChatPage";
 
 function ConnectionBanner() {
   const { connection } = useAppState();
@@ -47,8 +48,8 @@ function HomePage() {
       <h1>Desktop shell</h1>
       <p className="lede">
         Memovi&apos;s flagship client is a lightweight native shell over the
-        FastAPI platform. This milestone establishes window lifecycle,
-        navigation, theme, and backend connection management only.
+        FastAPI platform. Use Chat for the conversation experience; other pages
+        remain reserved product surfaces.
       </p>
 
       <dl className="meta-grid">
@@ -69,31 +70,15 @@ function HomePage() {
           <dd>{API_BASE_URL}</dd>
         </div>
       </dl>
-
-      {connection.components.length > 0 ? (
-        <div className="components">
-          <h2>Readiness components</h2>
-          <ul className="component-list">
-            {connection.components.map((component) => (
-              <li key={component.name}>
-                <span className="component-name">{component.name}</span>
-                <span
-                  className="component-status"
-                  data-status={component.status}
-                >
-                  {component.status}
-                  {component.detail ? ` · ${component.detail}` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
     </section>
   );
 }
 
-function PlaceholderPage({ pageId }: { pageId: ReturnType<typeof getPage>["id"] }) {
+function PlaceholderPage({
+  pageId,
+}: {
+  pageId: ReturnType<typeof getPage>["id"];
+}) {
   const page = getPage(pageId);
 
   return (
@@ -112,13 +97,18 @@ export function MainContent() {
   const { activePage } = useAppState();
   const page = getPage(activePage);
 
+  let body;
+  if (page.available && page.id === "chat") {
+    body = <ChatPage />;
+  } else if (page.available && page.id === "home") {
+    body = <HomePage />;
+  } else {
+    body = <PlaceholderPage pageId={page.id} />;
+  }
+
   return (
-    <main className="content">
-      {page.available && page.id === "home" ? (
-        <HomePage />
-      ) : (
-        <PlaceholderPage pageId={page.id} />
-      )}
+    <main className="content" data-page={page.id}>
+      {body}
     </main>
   );
 }

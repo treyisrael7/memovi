@@ -1,11 +1,17 @@
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from dataclasses import dataclass
+from time import perf_counter
 
 from memovi_intelligence.application.ports import KnowledgeRetriever
 from memovi_intelligence.application.services.context_assembler import ContextAssembler
 from memovi_intelligence.application.services.execution_tracer import ExecutionTracer
 from memovi_intelligence.application.services.model_gateway import ModelGateway
 from memovi_intelligence.application.services.prompt_builder import PromptBuilder
-from memovi_intelligence.domain.entities import ReasoningRequest, ReasoningResult
+from memovi_intelligence.domain.entities import (
+    ReasoningContext,
+    ReasoningRequest,
+    ReasoningResult,
+)
 from memovi_intelligence.domain.exceptions import (
     IntelligenceDomainError,
     InvalidPromptError,
@@ -16,7 +22,18 @@ from memovi_intelligence.domain.value_objects import (
     ConversationHistory,
     ExecutionMetrics,
     ExecutionStage,
+    Prompt,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class ReasonStreamToken:
+    content: str
+
+
+@dataclass(frozen=True, slots=True)
+class ReasonStreamCompleted:
+    result: ReasoningResult
 
 
 class Reason:
@@ -45,8 +62,86 @@ class Reason:
         request: ReasoningRequest,
         *,
         conversation_history: ConversationHistory | None = None,
+        provider: str | None = None,
+        model: str | None = None,
     ) -> ReasoningResult:
         tracer = ExecutionTracer()
+        prompt, context = self._prepare(request, conversation_history, tracer)
+
+        with tracer.stage(ExecutionStage.PROVIDER_RESOLUTION):
+            resolved_provider = self._model_gateway.resolve_provider(provider)
+
+        with tracer.stage(ExecutionStage.MODEL_EXECUTION):
+            result = self._model_gateway.execute(
+                prompt,
+                provider=resolved_provider,
+                provider_name=provider,
+                model=model,
+            )
+
+        return self._finalize(result, context, tracer, provider=provider, model=model)
+
+    def execute_stream(
+        self,
+        request: ReasoningRequest,
+        *,
+        conversation_history: ConversationHistory | None = None,
+        provider: str | None = None,
+        model: str | None = None,
+    ) -> Iterator[ReasonStreamToken | ReasonStreamCompleted]:
+        tracer = ExecutionTracer()
+        prompt, context = self._prepare(request, conversation_history, tracer)
+
+        with tracer.stage(ExecutionStage.PROVIDER_RESOLUTION):
+            resolved_provider = self._model_gateway.resolve_provider(provider)
+
+        chunks: list[str] = []
+        started = perf_counter()
+        with tracer.stage(ExecutionStage.MODEL_EXECUTION):
+            for delta in self._model_gateway.execute_stream(
+                prompt,
+                provider=resolved_provider,
+                provider_name=provider,
+                model=model,
+            ):
+                chunks.append(delta)
+                yield ReasonStreamToken(content=delta)
+
+        answer = "".join(chunks)
+        duration = perf_counter() - started
+        resolved_model = model or self._model_gateway.model
+        resolved_provider_name = provider or self._model_gateway.provider_name
+        streamed = ReasoningResult.create(
+            answer=answer,
+            citations=prompt.citations,
+            metadata={
+                "query": prompt.query,
+                "chunk_count": len(prompt.citations),
+                "document_count": len(prompt.context.assembled_documents),
+                "estimated_token_count": prompt.context.estimated_token_count,
+                "model": resolved_model,
+                "streamed": True,
+                "duration": duration,
+            },
+            provider=resolved_provider_name,
+            execution_time=duration,
+            context=prompt.context,
+        )
+        result = self._finalize(
+            streamed,
+            context,
+            tracer,
+            provider=provider,
+            model=model,
+        )
+        yield ReasonStreamCompleted(result=result)
+
+    def _prepare(
+        self,
+        request: ReasoningRequest,
+        conversation_history: ConversationHistory | None,
+        tracer: ExecutionTracer,
+    ) -> tuple[Prompt, ReasoningContext]:
         limit = (
             request.limit
             if request.limit is not None
@@ -91,15 +186,22 @@ class Reason:
                     "Failed to build a valid reasoning prompt.",
                 ) from exc
 
-        with tracer.stage(ExecutionStage.PROVIDER_RESOLUTION):
-            provider = self._model_gateway.resolve_provider()
+        return prompt, context
 
-        with tracer.stage(ExecutionStage.MODEL_EXECUTION):
-            result = self._model_gateway.execute(prompt, provider=provider)
-
+    def _finalize(
+        self,
+        result: ReasoningResult,
+        context: ReasoningContext,
+        tracer: ExecutionTracer,
+        *,
+        provider: str | None,
+        model: str | None,
+    ) -> ReasoningResult:
+        resolved_provider = provider or self._model_gateway.provider_name
+        resolved_model = model or self._model_gateway.model
         metrics = ExecutionMetrics(
-            provider=result.provider,
-            model=self._model_gateway.model,
+            provider=resolved_provider,
+            model=resolved_model,
             estimated_input_tokens=context.estimated_token_count,
             output_tokens=_optional_output_tokens(result.metadata),
             retrieved_knowledge_count=len(context.retrieved_knowledge),
@@ -112,7 +214,7 @@ class Reason:
             answer=result.answer,
             citations=result.citations,
             metadata=result.metadata,
-            provider=result.provider,
+            provider=resolved_provider,
             execution_time=execution_trace.total_duration,
             context=result.context,
             execution_trace=execution_trace,

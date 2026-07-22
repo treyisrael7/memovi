@@ -1,22 +1,33 @@
+from __future__ import annotations
+
+import json
+from collections.abc import Iterator
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from memovi_observability import DiagnosticEventEmitter, DiagnosticEventName, timed_operation
 from memovi_shared import WorkspaceId
 
 from memovi_intelligence.api.dependencies import (
     get_active_workspace_id,
     get_conversation_service,
+    get_model_gateway,
     get_send_conversation_message,
 )
 from memovi_intelligence.api.schemas import (
+    AvailableModelResponse,
+    AvailableModelsResponse,
     CitationResponse,
+    ConversationListResponse,
     ConversationMessageResponse,
     ConversationMessagesResponse,
     ConversationMetadataResponse,
+    ConversationSummaryResponse,
     CreateConversationResponse,
     ExecutionMetadataResponse,
     ExecutionMetricsResponse,
+    RenameConversationRequest,
     SendMessageRequest,
     SendMessageResponse,
     StageTimingResponse,
@@ -25,10 +36,15 @@ from memovi_intelligence.application.commands import (
     SendConversationMessage,
     SendConversationMessageCommand,
 )
-from memovi_intelligence.application.services import ConversationService
+from memovi_intelligence.application.commands.send_conversation_message import (
+    SendMessageStreamCompleted,
+    SendMessageStreamToken,
+)
+from memovi_intelligence.application.services import ConversationService, ModelGateway
 from memovi_intelligence.domain.exceptions import (
     ConversationNotFoundError,
     IntelligenceDomainError,
+    InvalidConversationError,
     InvalidConversationIdError,
     InvalidReasoningQueryError,
     NoRetrievedKnowledgeError,
@@ -92,6 +108,21 @@ def _execution_response(
     )
 
 
+def _send_message_response(result: Any) -> SendMessageResponse:
+    return SendMessageResponse(
+        conversation_id=result.conversation_id,
+        assistant_message=result.assistant_message,
+        citations=[_citation_response(citation) for citation in result.citations],
+        provider=result.provider,
+        model=result.model,
+        title=result.title,
+        execution=_execution_response(
+            execution_trace=result.execution_trace,
+            metadata=dict(result.reasoning_result.metadata),
+        ),
+    )
+
+
 def _parse_conversation_id(conversation_id: str) -> ConversationId:
     try:
         return ConversationId(conversation_id)
@@ -100,6 +131,67 @@ def _parse_conversation_id(conversation_id: str) -> ConversationId:
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
+
+
+def _sse(event: str, data: dict[str, Any]) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, default=str)}\n\n"
+
+
+def _map_send_errors(exc: Exception) -> HTTPException:
+    if isinstance(exc, ConversationNotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, (InvalidConversationIdError, InvalidConversationError)):
+        return HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        )
+    if isinstance(exc, (InvalidReasoningQueryError, NoRetrievedKnowledgeError)):
+        return HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        )
+    if isinstance(exc, (UnknownReasoningProviderError, ReasoningProviderUnavailableError)):
+        return HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        )
+    if isinstance(exc, ReasoningProviderTimeoutError):
+        return HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=str(exc))
+    if isinstance(exc, ReasoningProviderError):
+        return HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+    if isinstance(exc, IntelligenceDomainError):
+        return HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        )
+    return HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Conversation request failed.",
+    )
+
+
+@router.get(
+    "/models",
+    response_model=AvailableModelsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List available reasoning models",
+)
+def list_models(
+    gateway: Annotated[ModelGateway, Depends(get_model_gateway)],
+) -> AvailableModelsResponse:
+    models = [
+        AvailableModelResponse(
+            provider=provider,
+            model=model,
+            label=f"{provider}/{model}",
+        )
+        for provider, model in gateway.available_models()
+    ]
+    return AvailableModelsResponse(
+        default_provider=gateway.provider_name,
+        default_model=gateway.model,
+        models=models,
+    )
 
 
 @router.post(
@@ -124,7 +216,33 @@ def create_conversation(
     )
     return CreateConversationResponse(
         conversation_id=conversation.id.value,
+        title=conversation.title,
         created_at=conversation.created_at,
+    )
+
+
+@router.get(
+    "",
+    response_model=ConversationListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List conversations",
+)
+def list_conversations(
+    conversations: Annotated[ConversationService, Depends(get_conversation_service)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+) -> ConversationListResponse:
+    items = conversations.list_conversations(workspace_id=workspace_id)
+    return ConversationListResponse(
+        conversations=[
+            ConversationSummaryResponse(
+                conversation_id=item.id.value,
+                title=item.title,
+                created_at=item.created_at,
+                updated_at=item.updated_at,
+                message_count=len(item.turns),
+            )
+            for item in items
+        ]
     )
 
 
@@ -150,10 +268,70 @@ def get_conversation(
 
     return ConversationMetadataResponse(
         conversation_id=conversation.id.value,
+        title=conversation.title,
         created_at=conversation.created_at,
         updated_at=conversation.updated_at,
         message_count=len(conversation.turns),
     )
+
+
+@router.patch(
+    "/{conversation_id}",
+    response_model=ConversationMetadataResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Rename a conversation",
+)
+def rename_conversation(
+    conversation_id: str,
+    body: RenameConversationRequest,
+    conversations: Annotated[ConversationService, Depends(get_conversation_service)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+) -> ConversationMetadataResponse:
+    parsed_id = _parse_conversation_id(conversation_id)
+    try:
+        conversation = conversations.rename_conversation(
+            parsed_id,
+            body.title,
+            workspace_id=workspace_id,
+        )
+    except ConversationNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except InvalidConversationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
+    return ConversationMetadataResponse(
+        conversation_id=conversation.id.value,
+        title=conversation.title,
+        created_at=conversation.created_at,
+        updated_at=conversation.updated_at,
+        message_count=len(conversation.turns),
+    )
+
+
+@router.delete(
+    "/{conversation_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a conversation",
+)
+def delete_conversation(
+    conversation_id: str,
+    conversations: Annotated[ConversationService, Depends(get_conversation_service)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+) -> None:
+    parsed_id = _parse_conversation_id(conversation_id)
+    try:
+        conversations.delete_conversation(parsed_id, workspace_id=workspace_id)
+    except ConversationNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
 
 
 @router.get(
@@ -207,55 +385,64 @@ def send_message(
                 conversation_id=conversation_id,
                 workspace_id=workspace_id,
                 message=body.message,
+                provider=body.provider,
+                model=body.model,
             ),
         )
-    except ConversationNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
-        ) from exc
-    except InvalidConversationIdError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(exc),
-        ) from exc
-    except (InvalidReasoningQueryError, NoRetrievedKnowledgeError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(exc),
-        ) from exc
-    except (
-        UnknownReasoningProviderError,
-        ReasoningProviderUnavailableError,
-    ) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
-        ) from exc
-    except ReasoningProviderTimeoutError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail=str(exc),
-        ) from exc
-    except ReasoningProviderError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=str(exc),
-        ) from exc
-    except IntelligenceDomainError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(exc),
-        ) from exc
+    except Exception as exc:
+        raise _map_send_errors(exc) from exc
 
-    return SendMessageResponse(
-        conversation_id=result.conversation_id,
-        assistant_message=result.assistant_message,
-        citations=[_citation_response(citation) for citation in result.citations],
-        provider=result.provider,
-        model=result.model,
-        execution=_execution_response(
-            execution_trace=result.execution_trace,
-            metadata=dict(result.reasoning_result.metadata),
-        ),
+    return _send_message_response(result)
+
+
+@router.post(
+    "/{conversation_id}/messages/stream",
+    status_code=status.HTTP_200_OK,
+    summary="Send a conversation message with token streaming",
+    description=(
+        "Server-Sent Events stream of assistant tokens followed by a terminal "
+        "`done` event containing the persisted response metadata."
+    ),
+)
+def stream_message(
+    conversation_id: str,
+    body: SendMessageRequest,
+    use_case: Annotated[SendConversationMessage, Depends(get_send_conversation_message)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+) -> StreamingResponse:
+    _parse_conversation_id(conversation_id)
+    command = SendConversationMessageCommand(
+        conversation_id=conversation_id,
+        workspace_id=workspace_id,
+        message=body.message,
+        provider=body.provider,
+        model=body.model,
+    )
+
+    def generate() -> Iterator[str]:
+        try:
+            for event in use_case.execute_stream(command):
+                if isinstance(event, SendMessageStreamToken):
+                    yield _sse("token", {"content": event.content})
+                elif isinstance(event, SendMessageStreamCompleted):
+                    payload = _send_message_response(event.result).model_dump(mode="json")
+                    yield _sse("done", payload)
+        except Exception as exc:
+            mapped = _map_send_errors(exc)
+            yield _sse(
+                "error",
+                {
+                    "detail": mapped.detail,
+                    "status": mapped.status_code,
+                },
+            )
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )

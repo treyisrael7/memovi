@@ -11,19 +11,45 @@ def _require_non_blank_message(value: str) -> str:
     return normalized
 
 
+def _require_non_blank_title(value: str) -> str:
+    normalized = " ".join(value.split())
+    if not normalized:
+        raise ValueError("must not be empty")
+    return normalized
+
+
 NonBlankMessage = Annotated[str, AfterValidator(_require_non_blank_message)]
+NonBlankTitle = Annotated[str, AfterValidator(_require_non_blank_title)]
 
 
 class CreateConversationResponse(BaseModel):
     conversation_id: str
+    title: str
     created_at: datetime
+
+
+class ConversationSummaryResponse(BaseModel):
+    conversation_id: str
+    title: str
+    created_at: datetime
+    updated_at: datetime
+    message_count: int = Field(ge=0)
+
+
+class ConversationListResponse(BaseModel):
+    conversations: list[ConversationSummaryResponse]
 
 
 class ConversationMetadataResponse(BaseModel):
     conversation_id: str
+    title: str
     created_at: datetime
     updated_at: datetime
     message_count: int = Field(ge=0)
+
+
+class RenameConversationRequest(BaseModel):
+    title: NonBlankTitle = Field(min_length=1, max_length=200)
 
 
 class CitationResponse(BaseModel):
@@ -47,6 +73,8 @@ class ConversationMessagesResponse(BaseModel):
 
 class SendMessageRequest(BaseModel):
     message: NonBlankMessage = Field(min_length=1, max_length=8_000)
+    provider: str | None = Field(default=None, max_length=64)
+    model: str | None = Field(default=None, max_length=128)
 
 
 class StageTimingResponse(BaseModel):
@@ -79,4 +107,17 @@ class SendMessageResponse(BaseModel):
     citations: list[CitationResponse]
     provider: str
     model: str
+    title: str | None = None
     execution: ExecutionMetadataResponse
+
+
+class AvailableModelResponse(BaseModel):
+    provider: str
+    model: str
+    label: str
+
+
+class AvailableModelsResponse(BaseModel):
+    default_provider: str
+    default_model: str
+    models: list[AvailableModelResponse]

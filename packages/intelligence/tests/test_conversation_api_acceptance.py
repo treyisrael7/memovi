@@ -34,8 +34,9 @@ def test_1_create_conversation() -> None:
         response = client.post('/conversations')
     assert response.status_code == 201
     payload = response.json()
-    assert set(payload.keys()) == {'conversation_id', 'created_at'}
+    assert set(payload.keys()) == {'conversation_id', 'title', 'created_at'}
     assert payload['conversation_id']
+    assert payload['title'] == 'New conversation'
     assert payload['created_at']
 
 def test_2_first_message() -> None:

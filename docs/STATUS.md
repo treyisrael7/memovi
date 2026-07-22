@@ -215,15 +215,19 @@ Keyword, semantic, and hybrid retrieval are operational. Query planning, caching
 
 **Overall Status:** In progress
 
-Reasoning pipeline, conversation memory, Conversation REST API, and Search-backed retrieval for conversations are operational. Desktop client UX and summaries remain.
+Reasoning pipeline, conversation memory, Conversation REST API (including list,
+rename, delete, and SSE streaming), and Search-backed retrieval for conversations
+are operational. AI summaries remain.
 
 **Completed**
 
 * Reasoning pipeline (retrieve → assemble → prompt → provider)
 * Conversation memory (`ConversationService`, history-aware context)
-* Conversation REST API (create/get conversation, list/send messages)
+* Conversation REST API (create/list/get/rename/delete, list/send messages, SSE stream)
+* Conversation titles and workspace-scoped listing
+* Per-request provider/model selection on send/stream
 * Execution traces and citations
-* Provider gateway with `fake` and `openai` adapters
+* Provider gateway with `fake` and `openai` adapters (including token streaming)
 * Search-backed knowledge retrieval (`SearchKnowledgeRetriever` in `apps/api`)
 * Durable conversation storage (`SqlAlchemyConversationRepository` in `apps/api`)
 
@@ -236,8 +240,8 @@ Reasoning pipeline, conversation memory, Conversation REST API, and Search-backe
 
 **Remaining**
 
-* Desktop client conversation UX, streaming, and realtime channels as needed
 * AI summaries
+* WebSocket/realtime channels beyond SSE (only if needed)
 
 **Known Risks**
 
@@ -245,7 +249,7 @@ Reasoning pipeline, conversation memory, Conversation REST API, and Search-backe
 
 **Next Recommended Work**
 
-* Close Phase 1 platform gaps (ownership, observability, API stability), then Desktop Client
+* Close Phase 1 platform gaps (ownership, observability, API stability)
 * Migrate Intelligence `ModelGateway` onto `packages/models` (`ModelRegistry` / `ModelProvider`)
 
 ---
@@ -280,6 +284,30 @@ Reasoning pipeline, conversation memory, Conversation REST API, and Search-backe
 **Next Recommended Work**
 
 * Implement the first production adapter (OpenAI or Ollama) behind `ModelProvider`, then adapt Intelligence `ModelGateway` to resolve through `ModelRegistry`
+
+---
+
+# Milestone 19 — Conversation Experience
+
+**Overall Status:** Complete
+
+Desktop Chat is the first functional conversation surface. It consumes Conversation
+and Intelligence APIs only; no domain logic lives in the client.
+
+**Completed**
+
+* Conversation list / create / rename / delete
+* Conversation history persistence via backend APIs
+* SSE token streaming with stop (AbortController) and clean error surfacing
+* Markdown rendering, code blocks, copy message / copy code
+* Enter to send, Shift+Enter newline, auto-scroll, retry failed responses
+* Top-bar workspace and model selection reflected in stream requests
+* Workspace switching reloads isolated conversation lists
+* `docs/architecture/DESKTOP_CLIENT.md` conversation flow
+
+**Remaining**
+
+* Multi-chat tabs, prompt library, agents, voice, images, automation, plugins (explicitly out of scope)
 
 ---
 
@@ -335,17 +363,18 @@ API stability remain.
 **Overall Status:** In progress
 
 The flagship Tauri desktop shell lives in `apps/desktop`. It launches, probes
-backend health/readiness, and shows connection, workspace, and model placeholders.
-Product pages beyond the shell are not implemented yet. Backend APIs remain the
-platform boundary for all clients.
+backend health/readiness, and exposes the Chat conversation experience over the
+platform Conversation APIs. Remaining product pages are still placeholders.
 
 **Completed**
 
 * `apps/desktop` Tauri + React shell foundation
-* Sidebar / main content / status bar layout
+* Sidebar / top bar / main content / status bar layout
 * Backend connection detection, reconnect polling, and friendly errors
 * Navigation registry reserved for Chat, Documents, Search, Workspaces, Models,
   Activity, Capabilities, and Settings
+* Chat conversation experience (list/create/rename/delete, history, SSE streaming,
+  markdown/code copy, stop/retry, workspace + model selectors)
 * `docs/architecture/DESKTOP_CLIENT.md`
 
 **In Progress**
@@ -354,11 +383,10 @@ platform boundary for all clients.
 
 **Remaining**
 
-* Conversation UI
 * Collections
 * Settings
-* Model management
-* Workspace management
+* Model management product page
+* Workspace management product page
 * Indexing status
 
 **Known Risks**
@@ -368,8 +396,7 @@ platform boundary for all clients.
 
 **Next Recommended Work**
 
-* Keep product pages behind stable Conversation, Search, and ownership APIs
-* Expand the shell into Chat and Search only after those contracts stay stable
+* Expand the shell into Search and Documents after those contracts stay stable
 
 ---
 

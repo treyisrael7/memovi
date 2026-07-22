@@ -49,7 +49,53 @@ def test_create_conversation(conversation_client: TestClient) -> None:
     assert response.status_code == 201
     payload = response.json()
     assert "conversation_id" in payload
+    assert payload["title"] == "New conversation"
     assert "created_at" in payload
+
+
+def test_list_rename_and_delete_conversation(conversation_client: TestClient) -> None:
+    created = conversation_client.post("/conversations").json()
+    conversation_id = created["conversation_id"]
+
+    listed = conversation_client.get("/conversations")
+    assert listed.status_code == 200
+    assert listed.json()["conversations"][0]["conversation_id"] == conversation_id
+
+    renamed = conversation_client.patch(
+        f"/conversations/{conversation_id}",
+        json={"title": "Project notes"},
+    )
+    assert renamed.status_code == 200
+    assert renamed.json()["title"] == "Project notes"
+
+    deleted = conversation_client.delete(f"/conversations/{conversation_id}")
+    assert deleted.status_code == 204
+    assert conversation_client.get("/conversations").json()["conversations"] == []
+
+
+def test_stream_message_emits_tokens_and_done(conversation_client: TestClient) -> None:
+    conversation_id = conversation_client.post("/conversations").json()["conversation_id"]
+
+    with conversation_client.stream(
+        "POST",
+        f"/conversations/{conversation_id}/messages/stream",
+        json={"message": "What is Memovi?"},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    assert "event: token" in body
+    assert "event: done" in body
+    assert "Memovi is a self-hosted knowledge platform." in body
+
+
+def test_list_models(conversation_client: TestClient) -> None:
+    response = conversation_client.get("/conversations/models")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["default_provider"] == "fake"
+    assert payload["default_model"] == "fake-reasoning-v1"
+    assert payload["models"][0]["provider"] == "fake"
 
 
 def test_send_first_message(conversation_client: TestClient) -> None:
@@ -131,6 +177,7 @@ def test_get_conversation_metadata(conversation_client: TestClient) -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["conversation_id"] == conversation_id
+    assert payload["title"] == "What is Memovi?"
     assert payload["message_count"] == 2
     assert "created_at" in payload
     assert "updated_at" in payload

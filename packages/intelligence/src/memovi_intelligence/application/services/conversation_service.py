@@ -5,6 +5,7 @@ from memovi_shared import WorkspaceId
 
 from memovi_intelligence.application.ports import ConversationRepository
 from memovi_intelligence.domain.entities import Conversation
+from memovi_intelligence.domain.entities.conversation import title_from_message
 from memovi_intelligence.domain.exceptions import ConversationNotFoundError
 from memovi_intelligence.domain.value_objects import (
     Citation,
@@ -24,6 +25,30 @@ class ConversationService:
     def create_conversation(self, *, workspace_id: WorkspaceId) -> Conversation:
         return self._repository.create(workspace_id=workspace_id)
 
+    def list_conversations(self, *, workspace_id: WorkspaceId) -> tuple[Conversation, ...]:
+        return self._repository.list(workspace_id=workspace_id)
+
+    def rename_conversation(
+        self,
+        conversation_id: ConversationId,
+        title: str,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> Conversation:
+        return self._repository.rename(
+            conversation_id,
+            title,
+            workspace_id=workspace_id,
+        )
+
+    def delete_conversation(
+        self,
+        conversation_id: ConversationId,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> None:
+        self._repository.delete(conversation_id, workspace_id=workspace_id)
+
     def append_user_turn(
         self,
         conversation_id: ConversationId,
@@ -33,7 +58,7 @@ class ConversationService:
         citations: Sequence[Citation] = (),
         timestamp: datetime | None = None,
     ) -> Conversation:
-        return self._append_turn(
+        conversation = self._append_turn(
             conversation_id,
             role=ConversationRole.USER,
             content=content,
@@ -41,6 +66,13 @@ class ConversationService:
             citations=tuple(citations),
             timestamp=timestamp,
         )
+        if conversation.has_default_title:
+            return self._repository.rename(
+                conversation_id,
+                title_from_message(content),
+                workspace_id=workspace_id,
+            )
+        return conversation
 
     def append_assistant_turn(
         self,
@@ -107,3 +139,8 @@ class ConversationService:
             turn,
             workspace_id=workspace_id,
         )
+
+
+__all__ = [
+    "ConversationService",
+]

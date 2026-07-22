@@ -156,9 +156,9 @@ def test_what_is_memovi_reason_uses_gateway_not_provider_directly() -> None:
         def __init__(self) -> None:
             self.calls = 0
 
-        def reason(self, prompt: Prompt) -> ReasoningResult:
+        def reason(self, prompt: Prompt, *, model: str | None = None) -> ReasoningResult:
             self.calls += 1
-            return super().reason(prompt)
+            return super().reason(prompt, model=model)
 
     class RecordingGateway(ModelGateway):
         def __init__(self, **kwargs: object) -> None:
@@ -166,18 +166,25 @@ def test_what_is_memovi_reason_uses_gateway_not_provider_directly() -> None:
             self.execute_calls = 0
             self.resolve_calls = 0
 
-        def resolve_provider(self) -> ReasoningProvider:
+        def resolve_provider(self, provider_name: str | None = None) -> ReasoningProvider:
             self.resolve_calls += 1
-            return super().resolve_provider()
+            return super().resolve_provider(provider_name)
 
         def execute(
             self,
             prompt: Prompt,
             *,
             provider: ReasoningProvider | None = None,
+            provider_name: str | None = None,
+            model: str | None = None,
         ) -> ReasoningResult:
             self.execute_calls += 1
-            return super().execute(prompt, provider=provider)
+            return super().execute(
+                prompt,
+                provider=provider,
+                provider_name=provider_name,
+                model=model,
+            )
 
     provider = RecordingFakeProvider()
     gateway = RecordingGateway(

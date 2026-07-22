@@ -27,6 +27,44 @@ class InMemoryConversationRepository:
             return None
         return conversation
 
+    def list(self, *, workspace_id: WorkspaceId) -> tuple[Conversation, ...]:
+        conversations = [
+            conversation
+            for conversation in self._conversations.values()
+            if conversation.workspace_id == workspace_id
+        ]
+        conversations.sort(key=lambda item: item.updated_at, reverse=True)
+        return tuple(conversations)
+
+    def rename(
+        self,
+        conversation_id: ConversationId,
+        title: str,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> Conversation:
+        conversation = self.get(conversation_id, workspace_id=workspace_id)
+        if conversation is None:
+            raise ConversationNotFoundError(
+                f"Conversation '{conversation_id.value}' was not found.",
+            )
+        updated = conversation.with_title(title)
+        self._conversations[conversation_id.value] = updated
+        return updated
+
+    def delete(
+        self,
+        conversation_id: ConversationId,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> None:
+        conversation = self.get(conversation_id, workspace_id=workspace_id)
+        if conversation is None:
+            raise ConversationNotFoundError(
+                f"Conversation '{conversation_id.value}' was not found.",
+            )
+        del self._conversations[conversation_id.value]
+
     def append_turn(
         self,
         conversation_id: ConversationId,

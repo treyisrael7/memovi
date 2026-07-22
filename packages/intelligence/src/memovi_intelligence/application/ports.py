@@ -27,7 +27,15 @@ class KnowledgeRetriever(Protocol):
 class ReasoningProvider(Protocol):
     """Produces reasoning output from a provider-agnostic prompt."""
 
-    def reason(self, prompt: Prompt) -> ReasoningResult:
+    def reason(self, prompt: Prompt, *, model: str | None = None) -> ReasoningResult:
+        raise NotImplementedError
+
+
+class StreamingReasoningProvider(Protocol):
+    """Optional streaming extension for providers that can emit token deltas."""
+
+    def reason_stream(self, prompt: Prompt, *, model: str | None = None):
+        """Yield content deltas for a prompt."""
         raise NotImplementedError
 
 
@@ -43,6 +51,30 @@ class ConversationRepository(Protocol):
         *,
         workspace_id: WorkspaceId,
     ) -> Conversation | None:
+        raise NotImplementedError
+
+    def list(
+        self,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> tuple[Conversation, ...]:
+        raise NotImplementedError
+
+    def rename(
+        self,
+        conversation_id: ConversationId,
+        title: str,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> Conversation:
+        raise NotImplementedError
+
+    def delete(
+        self,
+        conversation_id: ConversationId,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> None:
         raise NotImplementedError
 
     def append_turn(
