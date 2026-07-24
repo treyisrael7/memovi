@@ -149,6 +149,7 @@ Pages are registered in `src/navigation/pages.ts`:
 
 * Home (available)
 * Chat (available)
+* Knowledge (available) — Knowledge Explorer
 * Documents
 * Search
 * Workspaces
@@ -163,12 +164,37 @@ navigation, windowing, or connection management.
 
 Future desktop features should continue to consume platform APIs:
 
+* Knowledge → Memory + Documents + Search APIs (see [`KNOWLEDGE_EXPLORER.md`](KNOWLEDGE_EXPLORER.md))
 * Documents → Documents API
 * Search → Search API
 * Workspaces → Workspaces API + `X-Memovi-Workspace-Id`
 * Models → future Models HTTP surface over `packages/models`
 * Capabilities → Capability Framework (`packages/automation`) with desktop
   approval UX later
+
+# Knowledge Explorer
+
+Knowledge is a thin inspection surface over Memory, Documents, and Search.
+
+```text
+Desktop Knowledge
+  │
+  ├─ GET /memory/dashboard
+  ├─ GET /memory?document_id&source_type&entity_type
+  ├─ GET /memory/{id}
+  ├─ GET /memory/concepts
+  ├─ GET /memory/relationships
+  ├─ GET /documents
+  ├─ GET /documents/{id}
+  └─ GET /search?q&mode&document_id&source_type
+```
+
+Sections: Overview, Search, Concepts, Entities, Relationships, Sources.
+
+Selecting an item shows summary, source document, related concepts/entities,
+confidence, and last updated. Workspace switching reloads explorer data for the
+active workspace header. Desktop performs no ranking, materialization, or
+ownership logic.
 
 # Running Locally
 
@@ -194,5 +220,6 @@ pnpm --filter @memovi/desktop tauri:dev
 * [`../PRODUCT_VISION.md`](../PRODUCT_VISION.md) — desktop-first product identity
 * [`repository-architecture.md`](repository-architecture.md) — monorepo layout
 * [`intelligence-architecture.md`](intelligence-architecture.md) — reasoning and conversations
+* [`KNOWLEDGE_EXPLORER.md`](KNOWLEDGE_EXPLORER.md) — knowledge inspection surface
 * [`MODEL_PROVIDER_FRAMEWORK.md`](MODEL_PROVIDER_FRAMEWORK.md) — model abstractions
 * [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) — future desktop capabilities

@@ -4,16 +4,86 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from memovi_observability import timed_operation
 from memovi_shared import WorkspaceId
 
-from documents.api.dependencies import get_active_workspace_id, get_ingest_local_document
-from documents.api.schemas import IngestDocumentResponse
+from documents.api.dependencies import (
+    get_active_workspace_id,
+    get_document_query,
+    get_ingest_local_document,
+    get_list_documents_query,
+)
+from documents.api.schemas import DocumentListResponse, DocumentResponse, IngestDocumentResponse
 from documents.application.commands.ingest_local_document import (
     IngestLocalDocument,
     IngestLocalDocumentCommand,
 )
-from documents.application.exceptions import EmptyUploadError, UnsupportedMimeTypeError
+from documents.application.exceptions import (
+    DocumentNotFoundError,
+    EmptyUploadError,
+    UnsupportedMimeTypeError,
+)
+from documents.application.queries import GetDocument, ListDocuments
 from documents.domain.exceptions import DocumentsDomainError
 
 router = APIRouter(prefix="/documents", tags=["documents"])
+
+
+@router.get(
+    "",
+    response_model=DocumentListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List source documents",
+    description=(
+        "List documents in the active workspace for Knowledge Explorer Sources. "
+        "Active workspace is resolved from X-Memovi-Workspace-Id or the Default Workspace."
+    ),
+)
+def list_documents(
+    use_case: Annotated[ListDocuments, Depends(get_list_documents_query)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+) -> DocumentListResponse:
+    documents = use_case.execute(workspace_id=workspace_id)
+    return DocumentListResponse(
+        items=[
+            DocumentResponse(
+                id=document.id,
+                name=document.name,
+                mime_type=document.mime_type,
+                source_type=document.source_type,
+                created_at=document.created_at,
+            )
+            for document in documents
+        ]
+    )
+
+
+@router.get(
+    "/{document_id}",
+    response_model=DocumentResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get source document",
+    responses={
+        200: {"description": "Document detail."},
+        404: {"description": "Document was not found in the active workspace."},
+    },
+)
+def get_document(
+    document_id: str,
+    use_case: Annotated[GetDocument, Depends(get_document_query)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+) -> DocumentResponse:
+    try:
+        document = use_case.execute(document_id, workspace_id=workspace_id)
+    except DocumentNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return DocumentResponse(
+        id=document.id,
+        name=document.name,
+        mime_type=document.mime_type,
+        source_type=document.source_type,
+        created_at=document.created_at,
+    )
 
 
 @router.post(

@@ -5,6 +5,7 @@
 export type PageId =
   | "home"
   | "chat"
+  | "knowledge"
   | "documents"
   | "search"
   | "workspaces"
@@ -33,6 +34,13 @@ export const PAGES: readonly PageDefinition[] = [
     label: "Chat",
     available: true,
     description: "Conversation interface over the Reasoning API.",
+  },
+  {
+    id: "knowledge",
+    label: "Knowledge",
+    available: true,
+    description:
+      "Inspect extracted knowledge: search, concepts, entities, relationships, and sources.",
   },
   {
     id: "documents",

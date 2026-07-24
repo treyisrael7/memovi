@@ -2,6 +2,7 @@ import { API_BASE_URL } from "../api/config";
 import { getPage } from "../navigation/pages";
 import { useAppState } from "../state/AppStateContext";
 import { ChatPage } from "./ChatPage";
+import { KnowledgeExplorerPage } from "./KnowledgeExplorerPage";
 
 function ConnectionBanner() {
   const { connection } = useAppState();
@@ -48,8 +49,8 @@ function HomePage() {
       <h1>Desktop shell</h1>
       <p className="lede">
         Memovi&apos;s flagship client is a lightweight native shell over the
-        FastAPI platform. Use Chat for the conversation experience; other pages
-        remain reserved product surfaces.
+        FastAPI platform. Use Chat for conversations and Knowledge to inspect
+        what Memovi already knows; other pages remain reserved product surfaces.
       </p>
 
       <dl className="meta-grid">
@@ -100,6 +101,8 @@ export function MainContent() {
   let body;
   if (page.available && page.id === "chat") {
     body = <ChatPage />;
+  } else if (page.available && page.id === "knowledge") {
+    body = <KnowledgeExplorerPage />;
   } else if (page.available && page.id === "home") {
     body = <HomePage />;
   } else {

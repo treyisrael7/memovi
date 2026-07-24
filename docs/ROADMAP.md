@@ -322,6 +322,7 @@ Ship the flagship desktop knowledge OS on the V1 platform API.
 
 * Native desktop application (`apps/desktop` Tauri shell foundation shipped)
 * Conversation UI
+* Knowledge Explorer (read-only inspection of memory)
 * Collections
 * Settings
 * Model management

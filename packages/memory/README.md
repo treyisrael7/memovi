@@ -15,9 +15,11 @@ This package establishes the memory domain foundation:
 - Application DTOs, ports, and layer scaffolds for future use cases
 - Application command: `MaterializeKnowledge` for persistence orchestration
 - Application handler: `MemoryProcessingCompletedHandler` for event-driven materialization
-- Application queries: `GetKnowledge`, `ListKnowledge`, and `ListDocumentKnowledge`
-- Read DTOs: `KnowledgeDto`, `KnowledgeItemDto`, and `ChunkDto`
+- Application queries: `GetKnowledge`, `ListKnowledge`, `ListDocumentKnowledge`,
+  `ListConcepts`, `ListRelationships`, and `GetKnowledgeDashboard`
+- Read DTOs: `KnowledgeDto`, `KnowledgeItemDto`, `ChunkDto`, explorer projections
 - SQLAlchemy persistence models and repository implementations
+- HTTP read API for Knowledge Explorer (`/memory` list/detail/dashboard/concepts/relationships)
 
 The import package is `memovi_memory` because the package boundary is already
 clear from `packages/memory`.
@@ -25,21 +27,23 @@ clear from `packages/memory`.
 ## Layout
 
 - `domain` — business model, invariants, repository interfaces, and events
-- `application` — use-case scaffolds, DTOs, ports, and worker placeholders
+- `application` — use cases, DTOs, ports, and worker placeholders
 - `infrastructure` — persistence models and SQLAlchemy repositories
-- `api` — router, dependency, and schema scaffolds without endpoints yet
+- `api` — FastAPI router, dependencies, and response schemas
 
 ## Out of scope for this foundation
 
 - Embeddings and vector indexes
 - Search integration
 - AI summarization or reasoning
-- FastAPI registration and migrations
+- Semantic entity / topic extraction and confidence scoring
+- Mutations (edit/merge/delete) and knowledge version history
 
 Cross-domain wiring from document processing to memory materialization lives in
 the API composition root (`apps/api`), which subscribes to `ProcessingCompleted`
 and invokes `MemoryProcessingCompletedHandler` without creating a compile-time
-dependency from Documents to Memory.
+dependency from Documents to Memory. The composition root also registers the
+Memory router and overrides workspace/session dependencies.
 
 ## Document boundary
 

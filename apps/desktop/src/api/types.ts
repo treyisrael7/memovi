@@ -109,3 +109,104 @@ export interface AvailableModelsResponse {
   default_model: string;
   models: AvailableModel[];
 }
+
+export interface SearchResultItem {
+  search_document_id: string;
+  knowledge_item_id: string;
+  document_id: string;
+  score: number;
+  text: string;
+}
+
+export interface SearchResponse {
+  query: string;
+  count: number;
+  results: SearchResultItem[];
+}
+
+export interface DocumentSummary {
+  id: string;
+  name: string;
+  mime_type: string;
+  source_type: string;
+  created_at: string;
+}
+
+export interface DocumentListResponse {
+  items: DocumentSummary[];
+}
+
+export interface KnowledgeChunk {
+  id: string;
+  knowledge_item_id: string | null;
+  document_id: string;
+  document_version_id: string;
+  chunk_index: number;
+  text: string;
+  created_at: string;
+}
+
+export interface KnowledgeSummary {
+  id: string;
+  workspace_id: string;
+  document_id: string;
+  document_version_id: string;
+  source_type: string;
+  mime_type: string;
+  created_at: string;
+  updated_at: string;
+  chunk_count: number;
+  summary: string;
+  confidence: number | null;
+}
+
+export interface KnowledgeSummaryListResponse {
+  items: KnowledgeSummary[];
+  count: number;
+}
+
+export interface KnowledgeDetail extends KnowledgeSummary {
+  chunks: KnowledgeChunk[];
+}
+
+export interface ConceptSummary {
+  id: string;
+  kind: string;
+  label: string;
+  knowledge_item_count: number;
+  knowledge_item_ids: string[];
+}
+
+export interface ConceptListResponse {
+  items: ConceptSummary[];
+  count: number;
+}
+
+export interface RelationshipSummary {
+  id: string;
+  relationship_type: string;
+  from_kind: string;
+  from_id: string;
+  to_kind: string;
+  to_id: string;
+  workspace_id: string;
+  document_id: string;
+  knowledge_item_id: string | null;
+  created_at: string;
+}
+
+export interface RelationshipListResponse {
+  items: RelationshipSummary[];
+  count: number;
+}
+
+export interface KnowledgeDashboard {
+  workspace_id: string;
+  knowledge_item_count: number;
+  chunk_count: number;
+  source_document_count: number;
+  concept_count: number;
+  relationship_count: number;
+  source_type_counts: Record<string, number>;
+  mime_type_counts: Record<string, number>;
+}

@@ -13,6 +13,9 @@ from memovi_intelligence.api.dependencies import (
     get_knowledge_retriever,
 )
 from memovi_intelligence.api.router import router as conversations_router
+from memovi_memory.api.dependencies import get_active_workspace_id as get_memory_workspace_id
+from memovi_memory.api.dependencies import get_database_session as get_memory_database_session
+from memovi_memory.api.router import router as memory_router
 from memovi_search.api.dependencies import get_active_workspace_id as get_search_workspace_id
 from memovi_search.api.dependencies import get_database_session as get_search_database_session
 from memovi_search.api.router import router as search_router
@@ -34,10 +37,12 @@ def register_routers(app: FastAPI) -> None:
     app.dependency_overrides[get_documents_database_session] = build_documents_database_session(
         database_session
     )
+    app.dependency_overrides[get_memory_database_session] = database_session
     app.dependency_overrides[get_search_database_session] = database_session
     app.dependency_overrides[get_intelligence_database_session] = database_session
     app.dependency_overrides[get_workspace_database_session] = database_session
     app.dependency_overrides[get_documents_workspace_id] = get_active_workspace_id
+    app.dependency_overrides[get_memory_workspace_id] = get_active_workspace_id
     app.dependency_overrides[get_search_workspace_id] = get_active_workspace_id
     app.dependency_overrides[get_intelligence_workspace_id] = get_active_workspace_id
     app.dependency_overrides[get_conversation_repository] = get_sqlalchemy_conversation_repository
@@ -45,6 +50,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(auth_router)
     app.include_router(workspace_router)
     app.include_router(documents_router)
+    app.include_router(memory_router)
     app.include_router(conversations_router)
     app.include_router(search_router)
     app.include_router(health_router)

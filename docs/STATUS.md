@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-07-23.
+system on a reusable backend platform. Last reviewed: 2026-07-24.
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -156,7 +156,7 @@ Memory materialization and chunk persistence work. Organization features and pub
 
 **In Progress**
 
-* Memory domain ownership of knowledge items (HTTP `/memory` surface not exposed)
+* Memory domain ownership of knowledge items (HTTP `/memory` read surface exposed for explorer)
 * Processing status as a knowledge concern (job statuses exist in documents; no public Memory status API)
 * Knowledge independence from AI providers (memory/search do not depend on Intelligence; organization incomplete)
 
@@ -165,7 +165,7 @@ Memory materialization and chunk persistence work. Organization features and pub
 * Collections
 * Tags
 * Version history
-* Knowledge relationships
+* Knowledge relationships beyond provenance edges
 * Metadata management as a first-class platform concern
 
 **Known Risks**
@@ -174,7 +174,7 @@ Memory materialization and chunk persistence work. Organization features and pub
 
 **Next Recommended Work**
 
-* Expose Memory APIs and establish collections/tags foundations
+* Add semantic entity/topic extraction while keeping explorer contracts stable
 
 ---
 
@@ -311,10 +311,36 @@ and Intelligence APIs only; no domain logic lives in the client.
 
 ---
 
+# Milestone 20 — Knowledge Explorer
+
+**Overall Status:** Complete
+
+Desktop Knowledge Explorer is the first read-only inspection surface for answering
+"What does Memovi know?" without asking the AI. It consumes Memory, Documents, and
+Search APIs only; no knowledge business logic lives in the client.
+
+**Completed**
+
+* Memory HTTP read APIs (`/memory`, detail, dashboard, concepts, relationships)
+* Documents list/get HTTP for Sources (`GET /documents`, `GET /documents/{id}`)
+* Desktop Knowledge page with Overview, Search, Concepts, Entities, Relationships, Sources
+* List + detail inspection with source links, related concepts/entities, confidence, timestamps
+* Full-text search with immediate updates and workspace / document / entity-type filters
+* Workspace isolation via `X-Memovi-Workspace-Id`
+* `docs/architecture/KNOWLEDGE_EXPLORER.md`
+
+**Remaining**
+
+* Graph visualization, manual editing, merging, deleting, auto-corrections, version history (explicitly out of scope)
+* Semantic entity/topic extraction and confidence scoring (future pipeline stages)
+
+---
+
 # Forward Roadmap Status
 
 Future work tracks [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) Phases 1–6.
 Milestones 0–6 above remain the platform foundation tracker; Milestone 17 adds the shared model provider boundary.
+Milestone 20 adds the Knowledge Explorer inspection surface.
 
 ---
 
@@ -363,19 +389,21 @@ API stability remain.
 **Overall Status:** In progress
 
 The flagship Tauri desktop shell lives in `apps/desktop`. It launches, probes
-backend health/readiness, and exposes the Chat conversation experience over the
-platform Conversation APIs. Remaining product pages are still placeholders.
+backend health/readiness, and exposes Chat plus the Knowledge Explorer over the
+platform APIs. Remaining product pages are still placeholders.
 
 **Completed**
 
 * `apps/desktop` Tauri + React shell foundation
 * Sidebar / top bar / main content / status bar layout
 * Backend connection detection, reconnect polling, and friendly errors
-* Navigation registry reserved for Chat, Documents, Search, Workspaces, Models,
+* Navigation registry reserved for Chat, Knowledge, Documents, Search, Workspaces, Models,
   Activity, Capabilities, and Settings
 * Chat conversation experience (list/create/rename/delete, history, SSE streaming,
   markdown/code copy, stop/retry, workspace + model selectors)
+* Knowledge Explorer (overview, search, concepts, entities, relationships, sources)
 * `docs/architecture/DESKTOP_CLIENT.md`
+* `docs/architecture/KNOWLEDGE_EXPLORER.md`
 
 **In Progress**
 
@@ -396,7 +424,7 @@ platform Conversation APIs. Remaining product pages are still placeholders.
 
 **Next Recommended Work**
 
-* Expand the shell into Search and Documents after those contracts stay stable
+* Expand Documents ingestion UX and deepen semantic entity/concept extraction behind explorer labels
 
 ---
 
