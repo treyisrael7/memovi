@@ -22,7 +22,7 @@ def register_observability_event_bridge(dispatcher: InProcessEventDispatcher) ->
     Idempotent: repeated registration on the same dispatcher is a no-op so
     diagnostic events are never duplicated.
     """
-    if getattr(dispatcher, "_memovi_observability_bridge_registered", False):
+    if dispatcher.observability_bridge_registered:
         return
 
     def on_document_created(event: object) -> None:
@@ -46,4 +46,4 @@ def register_observability_event_bridge(dispatcher: InProcessEventDispatcher) ->
     dispatcher.subscribe(DocumentCreated, on_document_created)
     dispatcher.subscribe(KnowledgeMaterialized, on_knowledge_materialized)
     dispatcher.subscribe(SearchIndexed, on_search_indexed)
-    dispatcher._memovi_observability_bridge_registered = True
+    dispatcher.observability_bridge_registered = True

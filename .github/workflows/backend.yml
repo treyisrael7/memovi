@@ -67,6 +67,8 @@ jobs:
           import subprocess
           import sys
 
+          # Typecheck application/package source only. Tests and scripts are
+          # exercised by pytest; shared test filenames also collide as modules.
           python_files = [
               path
               for path in subprocess.check_output(
@@ -74,6 +76,8 @@ jobs:
                   text=True,
               ).splitlines()
               if not Path(path).parts[0].startswith(".")
+              and "tests" not in Path(path).parts
+              and "scripts" not in Path(path).parts
           ]
 
           if not python_files:

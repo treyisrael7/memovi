@@ -189,7 +189,7 @@ def test_4_ask_every_time_pauses_until_approval() -> None:
 
     approved = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default())
     assert approved.status is CapabilityExecutionStatus.COMPLETED
-    assert approved.output is not None
+    assert isinstance(approved.output, dict)
     assert approved.output["result"] == "structured-mock-payload"
 
 

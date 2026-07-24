@@ -259,7 +259,9 @@ def _deserialize_citations(raw: object) -> tuple[Citation, ...]:
 def _optional_float(value: object) -> float | None:
     if value is None:
         return None
-    return float(value)
+    if isinstance(value, (int, float, str)):
+        return float(value)
+    raise TypeError(f"Expected numeric metadata value, got {type(value)!r}")
 
 
 def _as_utc(value: datetime) -> datetime:

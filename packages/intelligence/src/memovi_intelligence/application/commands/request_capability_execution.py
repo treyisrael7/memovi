@@ -7,6 +7,7 @@ from memovi_intelligence.application.ports_capability_execution import (
     CapabilityExecutionPort,
     CapabilityExecutionView,
 )
+from memovi_intelligence.application.services.conversation_service import ConversationService
 from memovi_intelligence.domain.exceptions import IntelligenceDomainError
 from memovi_intelligence.domain.value_objects import ConversationId
 
@@ -31,7 +32,7 @@ class RequestCapabilityExecution:
     def __init__(
         self,
         *,
-        conversations,
+        conversations: ConversationService,
         capability_execution: CapabilityExecutionPort | None,
     ) -> None:
         self._conversations = conversations

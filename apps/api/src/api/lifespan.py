@@ -2,6 +2,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from documents.application.ports import ObjectStorage
 from documents.infrastructure.queue import InMemoryProcessingJobQueue
 from documents.infrastructure.storage import InMemoryObjectStorage, MinioObjectStorage
 from fastapi import FastAPI
@@ -15,7 +16,7 @@ from api.document_processing import (
 )
 
 
-def _startup_object_storage():
+def _startup_object_storage() -> ObjectStorage:
     """Prefer MinIO, but fail fast to in-memory when local infra is unavailable."""
     try:
         return MinioObjectStorage.from_env()

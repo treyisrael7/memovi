@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import Header, HTTPException, Request, status
 from memovi_shared import DEFAULT_WORKSPACE_ID, InvalidWorkspaceIdError, WorkspaceId
@@ -28,4 +28,4 @@ def get_capability_execution_engine(request: Request) -> CapabilityExecutionEngi
     engine = getattr(request.app.state, "capability_execution_engine", None)
     if engine is None:
         raise RuntimeError("Capability execution engine was not configured.")
-    return engine
+    return cast(CapabilityExecutionEngine, engine)

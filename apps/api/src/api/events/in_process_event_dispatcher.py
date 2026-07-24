@@ -8,6 +8,7 @@ class InProcessEventDispatcher:
     def __init__(self) -> None:
         self._subscribers: dict[type[object], list[Callable[[object], None]]] = defaultdict(list)
         self.published_events: list[object] = []
+        self.observability_bridge_registered = False
 
     def subscribe(
         self,

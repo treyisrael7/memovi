@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import Depends, Header, HTTPException, Request, status
 from memovi_shared import DEFAULT_WORKSPACE_ID, InvalidWorkspaceIdError, WorkspaceId
@@ -55,7 +55,7 @@ def get_processing_job_queue(request: Request) -> ProcessingJobQueue:
     queue = getattr(request.app.state, "processing_job_queue", None)
     if queue is None:
         raise RuntimeError("Processing job queue was not configured.")
-    return queue
+    return cast(ProcessingJobQueue, queue)
 
 
 ProcessingJobQueueDependency = Annotated[ProcessingJobQueue, Depends(get_processing_job_queue)]

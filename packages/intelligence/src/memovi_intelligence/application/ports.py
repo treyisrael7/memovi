@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from typing import Protocol
 
 from memovi_shared import WorkspaceId
@@ -34,7 +35,7 @@ class ReasoningProvider(Protocol):
 class StreamingReasoningProvider(Protocol):
     """Optional streaming extension for providers that can emit token deltas."""
 
-    def reason_stream(self, prompt: Prompt, *, model: str | None = None):
+    def reason_stream(self, prompt: Prompt, *, model: str | None = None) -> Iterator[str]:
         """Yield content deltas for a prompt."""
         raise NotImplementedError
 
