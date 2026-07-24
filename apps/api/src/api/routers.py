@@ -4,13 +4,19 @@ from documents.api.dependencies import get_active_workspace_id as get_documents_
 from documents.api.dependencies import get_database_session as get_documents_database_session
 from documents.api.router import router as documents_router
 from fastapi import FastAPI
+from memovi_automation.api.dependencies import (
+    get_active_workspace_id as get_automation_workspace_id,
+)
+from memovi_automation.api.router import router as capabilities_router
 from memovi_intelligence.api.dependencies import (
     get_active_workspace_id as get_intelligence_workspace_id,
 )
 from memovi_intelligence.api.dependencies import (
     get_conversation_repository,
-    get_database_session as get_intelligence_database_session,
     get_knowledge_retriever,
+)
+from memovi_intelligence.api.dependencies import (
+    get_database_session as get_intelligence_database_session,
 )
 from memovi_intelligence.api.router import router as conversations_router
 from memovi_memory.api.dependencies import get_active_workspace_id as get_memory_workspace_id
@@ -22,6 +28,7 @@ from memovi_search.api.router import router as search_router
 from memovi_workspace.api.dependencies import get_database_session as get_workspace_database_session
 from memovi_workspace.api.router import router as workspace_router
 
+from api.capability_framework import configure_capability_execution
 from api.database import database_session
 from api.documents_session import build_documents_database_session
 from api.health import router as health_router
@@ -33,6 +40,7 @@ from api.workspace_context import get_active_workspace_id
 
 
 def register_routers(app: FastAPI) -> None:
+    configure_capability_execution(app)
     app.dependency_overrides[get_auth_database_session] = database_session
     app.dependency_overrides[get_documents_database_session] = build_documents_database_session(
         database_session
@@ -45,12 +53,14 @@ def register_routers(app: FastAPI) -> None:
     app.dependency_overrides[get_memory_workspace_id] = get_active_workspace_id
     app.dependency_overrides[get_search_workspace_id] = get_active_workspace_id
     app.dependency_overrides[get_intelligence_workspace_id] = get_active_workspace_id
+    app.dependency_overrides[get_automation_workspace_id] = get_active_workspace_id
     app.dependency_overrides[get_conversation_repository] = get_sqlalchemy_conversation_repository
     app.dependency_overrides[get_knowledge_retriever] = get_search_knowledge_retriever
     app.include_router(auth_router)
     app.include_router(workspace_router)
     app.include_router(documents_router)
     app.include_router(memory_router)
+    app.include_router(capabilities_router)
     app.include_router(conversations_router)
     app.include_router(search_router)
     app.include_router(health_router)

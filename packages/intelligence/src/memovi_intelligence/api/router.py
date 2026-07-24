@@ -11,14 +11,18 @@ from memovi_shared import WorkspaceId
 
 from memovi_intelligence.api.dependencies import (
     get_active_workspace_id,
+    get_capability_execution_port,
     get_conversation_service,
     get_model_gateway,
+    get_request_capability_execution,
     get_send_conversation_message,
 )
 from memovi_intelligence.api.schemas import (
     AvailableModelResponse,
     AvailableModelsResponse,
     CitationResponse,
+    ConversationCapabilityExecutionListResponse,
+    ConversationCapabilityExecutionResponse,
     ConversationListResponse,
     ConversationMessageResponse,
     ConversationMessagesResponse,
@@ -28,17 +32,25 @@ from memovi_intelligence.api.schemas import (
     ExecutionMetadataResponse,
     ExecutionMetricsResponse,
     RenameConversationRequest,
+    RequestCapabilityExecutionBody,
     SendMessageRequest,
     SendMessageResponse,
     StageTimingResponse,
 )
 from memovi_intelligence.application.commands import (
+    CapabilityExecutionUnavailableError,
+    RequestCapabilityExecution,
+    RequestCapabilityExecutionCommand,
     SendConversationMessage,
     SendConversationMessageCommand,
 )
 from memovi_intelligence.application.commands.send_conversation_message import (
     SendMessageStreamCompleted,
     SendMessageStreamToken,
+)
+from memovi_intelligence.application.ports_capability_execution import (
+    CapabilityExecutionPort,
+    CapabilityExecutionView,
 )
 from memovi_intelligence.application.services import ConversationService, ModelGateway
 from memovi_intelligence.domain.exceptions import (
@@ -135,6 +147,26 @@ def _parse_conversation_id(conversation_id: str) -> ConversationId:
 
 def _sse(event: str, data: dict[str, Any]) -> str:
     return f"event: {event}\ndata: {json.dumps(data, default=str)}\n\n"
+
+
+def _capability_execution_response(
+    view: CapabilityExecutionView,
+) -> ConversationCapabilityExecutionResponse:
+    return ConversationCapabilityExecutionResponse(
+        execution_id=view.execution_id,
+        capability_id=view.capability_id,
+        workspace_id=view.workspace_id,
+        status=view.status,
+        permission_mode=view.permission_mode,
+        output=view.output,
+        error_code=view.error_code,
+        error_message=view.error_message,
+        duration=view.duration,
+        conversation_id=view.conversation_id,
+        created_at=view.created_at,
+        updated_at=view.updated_at,
+        metadata=dict(view.metadata),
+    )
 
 
 def _map_send_errors(exc: Exception) -> HTTPException:
@@ -445,4 +477,82 @@ def stream_message(
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
         },
+    )
+
+
+@router.post(
+    "/{conversation_id}/capability-executions",
+    response_model=ConversationCapabilityExecutionResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Request a capability execution from a conversation",
+    description=(
+        "Submits a capability execution through the Capability Execution Engine. "
+        "Intelligence never invokes capabilities directly."
+    ),
+)
+def request_capability_execution(
+    conversation_id: str,
+    body: RequestCapabilityExecutionBody,
+    use_case: Annotated[RequestCapabilityExecution, Depends(get_request_capability_execution)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+) -> ConversationCapabilityExecutionResponse:
+    _parse_conversation_id(conversation_id)
+    try:
+        result = use_case.execute(
+            RequestCapabilityExecutionCommand(
+                workspace_id=workspace_id,
+                conversation_id=conversation_id,
+                capability_id=body.capability_id,
+                arguments=body.arguments,
+                permission_mode=body.permission_mode,
+                correlation_id=body.correlation_id,
+            )
+        )
+    except CapabilityExecutionUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    except ConversationNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except IntelligenceDomainError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+    return _capability_execution_response(result)
+
+
+@router.get(
+    "/{conversation_id}/capability-executions",
+    response_model=ConversationCapabilityExecutionListResponse,
+    summary="List capability executions for a conversation",
+)
+def list_conversation_capability_executions(
+    conversation_id: str,
+    conversations: Annotated[ConversationService, Depends(get_conversation_service)],
+    capability_execution: Annotated[
+        CapabilityExecutionPort | None,
+        Depends(get_capability_execution_port),
+    ],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+) -> ConversationCapabilityExecutionListResponse:
+    conversation_key = _parse_conversation_id(conversation_id)
+    try:
+        conversations.get_conversation(conversation_key, workspace_id=workspace_id)
+    except ConversationNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    if capability_execution is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Capability execution engine is not configured.",
+        )
+    items = capability_execution.list_for_conversation(
+        workspace_id=workspace_id,
+        conversation_id=conversation_id,
+    )
+    return ConversationCapabilityExecutionListResponse(
+        conversation_id=conversation_id,
+        items=[_capability_execution_response(item) for item in items],
+        count=len(items),
     )

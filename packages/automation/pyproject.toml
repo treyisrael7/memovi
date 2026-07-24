@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Capability Framework for Memovi. Owns capability abstractions, registry, permissions, invocation contracts, and execution context. Concrete capabilities and automation orchestration are out of scope for this package foundation."
 requires-python = ">=3.14"
 dependencies = [
+    "fastapi",
     "memovi-shared",
 ]
 

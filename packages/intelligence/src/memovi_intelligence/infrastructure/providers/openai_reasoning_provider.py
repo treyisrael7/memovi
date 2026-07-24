@@ -116,7 +116,7 @@ class OpenAIReasoningProvider:
         for chunk in stream:
             try:
                 delta = chunk.choices[0].delta.content
-            except (AttributeError, IndexError, TypeError):
+            except AttributeError, IndexError, TypeError:
                 continue
             if delta:
                 yield str(delta)

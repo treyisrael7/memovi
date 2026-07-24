@@ -10,6 +10,10 @@ class UnknownCapabilityError(AutomationDomainError):
     """Raised when a requested capability is not registered."""
 
 
+class CapabilityExecutionNotFoundError(AutomationDomainError):
+    """Raised when a capability execution id is unknown in the workspace."""
+
+
 class InvalidCapabilityArgumentsError(AutomationDomainError):
     """Raised when capability arguments fail schema validation."""
 

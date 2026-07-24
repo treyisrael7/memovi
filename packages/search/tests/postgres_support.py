@@ -19,7 +19,14 @@ def postgres_database_url() -> str:
     return f"postgresql+psycopg://{user}:{password}@{host}:{port}/{database}"
 
 
+_POSTGRES_AVAILABLE: bool | None = None
+
+
 def postgres_available() -> bool:
+    """Return whether Postgres is reachable. Result is cached for the process."""
+    global _POSTGRES_AVAILABLE
+    if _POSTGRES_AVAILABLE is not None:
+        return _POSTGRES_AVAILABLE
     try:
         engine = create_engine(
             postgres_database_url(),
@@ -29,9 +36,10 @@ def postgres_available() -> bool:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
         engine.dispose()
-        return True
+        _POSTGRES_AVAILABLE = True
     except Exception:
-        return False
+        _POSTGRES_AVAILABLE = False
+    return _POSTGRES_AVAILABLE
 
 
 requires_postgres = pytest.mark.skipif(
@@ -45,8 +53,16 @@ def ensure_pgvector_extension(engine: Engine) -> None:
         connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
 
+def create_postgres_engine() -> Engine:
+    return create_engine(
+        postgres_database_url(),
+        pool_pre_ping=True,
+        connect_args={"connect_timeout": 2},
+    )
+
+
 def build_postgres_session_factory() -> tuple[sessionmaker[Session], Engine]:
-    engine = create_engine(postgres_database_url(), pool_pre_ping=True)
+    engine = create_postgres_engine()
     ensure_pgvector_extension(engine)
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)

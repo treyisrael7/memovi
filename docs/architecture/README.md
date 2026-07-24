@@ -36,6 +36,7 @@ document that matches the concern being changed or reviewed.
 | [`intelligence-architecture.md`](intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |
 | [`connector-framework.md`](connector-framework.md) | Connector responsibilities, external sync, acquisition, and normalization |
 | [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
+| [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md) | Execution engine lifecycle, permission modes, audit, Intelligence bridge |
 | [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md) | Read-only filesystem capability: safety, permissions, operations |
 | [`MODEL_PROVIDER_FRAMEWORK.md`](MODEL_PROVIDER_FRAMEWORK.md) | Provider-neutral model abstractions, registry, capabilities, health |
 | [`DESKTOP_CLIENT.md`](DESKTOP_CLIENT.md) | Flagship Tauri desktop shell, client boundaries, and API communication |

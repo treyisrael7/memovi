@@ -11,8 +11,6 @@ Checklist:
 from pathlib import Path
 
 import pytest
-from memovi_shared import WorkspaceId
-
 from memovi_automation import (
     FILESYSTEM_READ,
     CapabilityContext,
@@ -23,6 +21,7 @@ from memovi_automation import (
     register_filesystem_capability,
 )
 from memovi_automation.filesystem import CAPABILITY_ID
+from memovi_shared import WorkspaceId
 
 
 @pytest.fixture

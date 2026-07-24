@@ -210,3 +210,68 @@ export interface KnowledgeDashboard {
   source_type_counts: Record<string, number>;
   mime_type_counts: Record<string, number>;
 }
+
+export type CapabilityExecutionStatus =
+  | "pending_approval"
+  | "executing"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | string;
+
+export type PermissionMode =
+  | "always_allow"
+  | "ask_every_time"
+  | "deny"
+  | string;
+
+export interface CapabilityExecution {
+  execution_id: string;
+  capability_id: string;
+  workspace_id: string;
+  status: CapabilityExecutionStatus;
+  permission_mode: PermissionMode;
+  output?: unknown;
+  error?: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  } | null;
+  error_code?: string | null;
+  error_message?: string | null;
+  duration: number;
+  conversation_id?: string | null;
+  correlation_id?: string | null;
+  created_at: string;
+  updated_at: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface CapabilityExecutionListResponse {
+  items: CapabilityExecution[];
+  count: number;
+}
+
+export interface ConversationCapabilityExecutionListResponse {
+  conversation_id: string;
+  items: CapabilityExecution[];
+  count: number;
+}
+
+export interface CapabilityMetadata {
+  id: string;
+  description: string;
+  permissions: string[];
+  parameters: Array<{
+    name: string;
+    type: string;
+    description: string;
+    required: boolean;
+  }>;
+  permission_mode: PermissionMode;
+}
+
+export interface CapabilityListResponse {
+  items: CapabilityMetadata[];
+  count: number;
+}

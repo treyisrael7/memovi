@@ -1,6 +1,7 @@
 import os
 
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 
@@ -17,12 +18,18 @@ class MinioObjectStorage:
         region_name: str = "us-east-1",
     ) -> None:
         self._bucket_name = bucket_name
+        # Keep startup/probes snappy when MinIO is down (tests, offline local runs).
         self._client = boto3.client(
             "s3",
             endpoint_url=endpoint_url,
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
             region_name=region_name,
+            config=Config(
+                connect_timeout=1,
+                read_timeout=1,
+                retries={"max_attempts": 1, "mode": "standard"},
+            ),
         )
         self._ensure_bucket_exists()
 

@@ -7,6 +7,7 @@ dependencies = [
     "alembic",
     "fastapi",
     "memovi-auth",
+    "memovi-automation",
     "memovi-documents",
     "memovi-intelligence",
     "memovi-memory",
@@ -33,6 +34,7 @@ package = true
 
 [tool.uv.sources]
 memovi-auth = { workspace = true }
+memovi-automation = { workspace = true }
 memovi-documents = { workspace = true }
 memovi-intelligence = { workspace = true }
 memovi-memory = { workspace = true }

@@ -2,8 +2,6 @@ from dataclasses import FrozenInstanceError
 from time import sleep
 
 import pytest
-from memovi_shared import WorkspaceId
-
 from memovi_automation import (
     FILESYSTEM_READ,
     FILESYSTEM_WRITE,
@@ -25,6 +23,7 @@ from memovi_automation import (
     InvalidCapabilityError,
     UnknownCapabilityError,
 )
+from memovi_shared import WorkspaceId
 
 
 class _EchoCapability:

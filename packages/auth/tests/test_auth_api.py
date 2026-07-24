@@ -1,8 +1,12 @@
 from collections.abc import Iterator
 
 from api.app import create_app
+from api.document_processing import configure_document_processing
 from auth.api.dependencies import get_database_session
 from auth.infrastructure.persistence import Base
+from documents.application.workers import DocumentProcessingWorkerConfig
+from documents.infrastructure.queue import InMemoryProcessingJobQueue
+from documents.infrastructure.storage import InMemoryObjectStorage
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -30,6 +34,16 @@ def build_test_client() -> tuple[TestClient, Engine]:
             session.close()
 
     app = create_app()
+    configure_document_processing(
+        app,
+        session_factory=session_factory,
+        queue=InMemoryProcessingJobQueue(),
+        worker_config=DocumentProcessingWorkerConfig(
+            max_retries=1,
+            poll_interval_seconds=0.05,
+        ),
+        object_storage=InMemoryObjectStorage(),
+    )
     app.dependency_overrides[get_database_session] = database_session
     return TestClient(app, base_url="https://testserver"), engine
 

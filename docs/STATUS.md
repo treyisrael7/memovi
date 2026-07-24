@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-07-24.
+system on a reusable backend platform. Last reviewed: 2026-07-24 (Milestone 21).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -336,11 +336,37 @@ Search APIs only; no knowledge business logic lives in the client.
 
 ---
 
+# Milestone 21 — Capability Execution Engine
+
+**Overall Status:** Complete
+
+Conversations and API clients invoke registered capabilities only through the
+Capability Execution Engine. Intelligence never calls capabilities directly.
+
+**Completed**
+
+* `CapabilityExecutionEngine` with resolve → authorize → invoke → audit pipeline
+* Execution types: request, context, result, status, audit entry; permission modes
+  (`always_allow`, `ask_every_time`, `deny`)
+* HTTP surface under `/capabilities` (list, submit, approve, cancel, audit, policy)
+* Conversation bridge: `POST/GET /conversations/{id}/capability-executions`
+* Composition-root registration of Filesystem capability + Intelligence port adapter
+* Desktop Chat pending-approval / progress / result presentation
+* `docs/architecture/CAPABILITY_EXECUTION.md`
+
+**Remaining**
+
+* Durable audit persistence, additional concrete capabilities, settings UI for policies
+* Autonomous workflows and background scheduling (explicitly out of scope)
+
+---
+
 # Forward Roadmap Status
 
 Future work tracks [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) Phases 1–6.
 Milestones 0–6 above remain the platform foundation tracker; Milestone 17 adds the shared model provider boundary.
-Milestone 20 adds the Knowledge Explorer inspection surface.
+Milestone 20 adds the Knowledge Explorer inspection surface. Milestone 21 adds the
+Capability Execution Engine.
 
 ---
 
@@ -436,12 +462,14 @@ platform APIs. Remaining product pages are still placeholders.
 
 * `packages/automation` Capability Framework foundation
 * Core contracts: `Capability`, `CapabilityRegistry`, `CapabilityInvoker`, `CapabilityMetadata`, `CapabilityPermission`, `CapabilityRequest`, `CapabilityResult`, `CapabilityContext`, `CapabilityExecutionPolicy`
-* Declarative permission model (metadata only; no approval UI)
+* Capability Execution Engine with permission modes, approval states, and audit trail
+* Composition-root filesystem registration and Intelligence execution port adapter
+* Desktop approval / progress presentation for capability executions
 * Unit and integration tests for registry, permissions, execution, cancellation, timeouts, and error contracts
 * Smoke tests for MockFilesystem / MockTerminal registration, invocation, unknown-capability structured errors, and deterministic re-composition
 * Read-only `FilesystemCapability` (`filesystem`) with root-scoped path safety, structured errors, and `filesystem.read` enforcement
 * Filesystem smoke tests: register, read file, list directory, reject traversal, structured missing-file error
-* Architecture references: `docs/architecture/CAPABILITY_FRAMEWORK.md`, `docs/architecture/FILESYSTEM_CAPABILITY.md`
+* Architecture references: `docs/architecture/CAPABILITY_FRAMEWORK.md`, `docs/architecture/CAPABILITY_EXECUTION.md`, `docs/architecture/FILESYSTEM_CAPABILITY.md`
 
 **In Progress**
 
@@ -451,9 +479,9 @@ platform APIs. Remaining product pages are still placeholders.
 
 * Concrete capabilities: Terminal, Browser, Git, Clipboard, Notifications
 * Filesystem write operations (separate `filesystem.write` permission)
-* User approval UX for granted permissions
+* Desktop settings UI for capability permission policies
 * Plugin system / loading
-* Intelligence discovery wiring for registered capabilities
+* Durable audit persistence
 
 **Known Risks**
 
@@ -461,7 +489,7 @@ platform APIs. Remaining product pages are still placeholders.
 
 **Next Recommended Work**
 
-* Wire Filesystem Capability registration into the composition root with explicit allowed roots, then add the next concrete capability (Terminal or Git)
+* Add the next concrete capability (Terminal or Git) and durable audit storage
 
 ---
 

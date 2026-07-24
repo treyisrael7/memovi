@@ -121,3 +121,32 @@ class AvailableModelsResponse(BaseModel):
     default_provider: str
     default_model: str
     models: list[AvailableModelResponse]
+
+
+class RequestCapabilityExecutionBody(BaseModel):
+    capability_id: str = Field(min_length=1, max_length=128)
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    permission_mode: str | None = Field(default=None, max_length=32)
+    correlation_id: str | None = Field(default=None, max_length=128)
+
+
+class ConversationCapabilityExecutionResponse(BaseModel):
+    execution_id: str
+    capability_id: str
+    workspace_id: str
+    status: str
+    permission_mode: str
+    output: Any | None = None
+    error_code: str | None = None
+    error_message: str | None = None
+    duration: float
+    conversation_id: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ConversationCapabilityExecutionListResponse(BaseModel):
+    conversation_id: str
+    items: list[ConversationCapabilityExecutionResponse]
+    count: int

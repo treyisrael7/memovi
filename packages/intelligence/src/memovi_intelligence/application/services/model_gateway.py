@@ -76,9 +76,7 @@ class ModelGateway:
     ) -> ReasoningResult:
         resolved_name = provider_name or self.provider_name
         resolved = provider if provider is not None else self._resolve_provider(resolved_name)
-        resolved_model = model or (
-            self.model if resolved_name == self.provider_name else model
-        )
+        resolved_model = model or (self.model if resolved_name == self.provider_name else model)
         if resolved_model is None:
             resolved_model = self.model
 

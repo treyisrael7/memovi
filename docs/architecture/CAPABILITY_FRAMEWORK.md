@@ -126,9 +126,10 @@ Well-known examples:
 * `clipboard.write`
 * `notifications.send`
 
-`CapabilityContext.granted_permissions` supports inspection for future approval
-flows. This milestone does not implement user consent UI or enforcement policy
-beyond the declarative model.
+`CapabilityContext.granted_permissions` supports inspection during invoke.
+Capability-specific Always Allow / Ask Every Time / Deny modes, pending
+approval, and audit are owned by the Capability Execution Engine — see
+[`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md).
 
 # Execution Contract
 
@@ -180,10 +181,11 @@ LLM-facing call schemas during reasoning.
 | Permissions | Not modeled | First-class metadata |
 | Product examples | Echo / future LLM tools | Filesystem, Git, Terminal, Browser |
 
-A later integration may bridge Tools to Capabilities so an Intelligence tool call
-resolves to a permissioned capability invocation. That bridge must not collapse
-the two abstractions: tools describe model-callable shapes; capabilities describe
-safe host actions.
+Intelligence submits host actions through a `CapabilityExecutionPort` adapted to
+the Capability Execution Engine in the composition root. That bridge must not
+collapse the two abstractions: tools describe model-callable shapes; capabilities
+describe safe host actions. Intelligence never calls `Capability.execute` or
+`CapabilityInvoker.invoke` directly.
 
 # Extension Example
 

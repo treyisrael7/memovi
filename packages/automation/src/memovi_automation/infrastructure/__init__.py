@@ -1,5 +1,13 @@
-"""Infrastructure adapters for concrete capabilities.
+"""Infrastructure adapters for capability execution (stores, future persistence)."""
 
-Production filesystem access lives in ``memovi_automation.filesystem``.
-Future git, terminal, and browser adapters may follow the same pattern.
-"""
+from memovi_automation.infrastructure.in_memory_execution_audit_store import (
+    InMemoryExecutionAuditStore,
+)
+from memovi_automation.infrastructure.in_memory_permission_policy_store import (
+    InMemoryPermissionPolicyStore,
+)
+
+__all__ = [
+    "InMemoryExecutionAuditStore",
+    "InMemoryPermissionPolicyStore",
+]

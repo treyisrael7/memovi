@@ -48,7 +48,9 @@ def _check_vector_search() -> ComponentCheck:
         with engine().connect() as connection:
             connection.execute(text("SELECT 1 FROM search_embeddings LIMIT 1"))
             if connection.dialect.name == "postgresql":
-                connection.execute(text("SELECT extversion FROM pg_extension WHERE extname = 'vector'"))
+                connection.execute(
+                    text("SELECT extversion FROM pg_extension WHERE extname = 'vector'")
+                )
         return ComponentCheck(name="vector_search", status="up")
     except Exception as exc:
         return ComponentCheck(name="vector_search", status="down", detail=str(exc))
@@ -143,8 +145,20 @@ def _check_search_readiness() -> ComponentCheck:
 
 
 def run_readiness_checks() -> list[ComponentCheck]:
+    database = _check_database()
+    if database.status == "down":
+        # Avoid stacking multiple long connection attempts when Postgres is down.
+        unavailable = "database unavailable"
+        return [
+            database,
+            ComponentCheck(name="vector_search", status="down", detail=unavailable),
+            _check_embedding_provider(),
+            ComponentCheck(name="migrations", status="down", detail=unavailable),
+            ComponentCheck(name="workspace", status="down", detail=unavailable),
+            ComponentCheck(name="search_readiness", status="down", detail=unavailable),
+        ]
     return [
-        _check_database(),
+        database,
         _check_vector_search(),
         _check_embedding_provider(),
         _check_migrations(),

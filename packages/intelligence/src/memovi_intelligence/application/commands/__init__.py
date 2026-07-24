@@ -1,4 +1,9 @@
 from memovi_intelligence.application.commands.reason import Reason
+from memovi_intelligence.application.commands.request_capability_execution import (
+    CapabilityExecutionUnavailableError,
+    RequestCapabilityExecution,
+    RequestCapabilityExecutionCommand,
+)
 from memovi_intelligence.application.commands.send_conversation_message import (
     SendConversationMessage,
     SendConversationMessageCommand,
@@ -8,7 +13,10 @@ from memovi_intelligence.application.commands.send_conversation_message import (
 )
 
 __all__ = [
+    "CapabilityExecutionUnavailableError",
     "Reason",
+    "RequestCapabilityExecution",
+    "RequestCapabilityExecutionCommand",
     "SendConversationMessage",
     "SendConversationMessageCommand",
     "SendConversationMessageResult",

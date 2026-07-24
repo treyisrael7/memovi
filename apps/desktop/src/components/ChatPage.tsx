@@ -9,6 +9,12 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import {
+  approveCapabilityExecution,
+  cancelCapabilityExecution,
+  listConversationExecutions,
+  listPendingExecutions,
+} from "../api/capabilities";
 import { ApiRequestError } from "../api/client";
 import {
   createConversation,
@@ -19,6 +25,7 @@ import {
   streamMessage,
 } from "../api/conversations";
 import type {
+  CapabilityExecution,
   Citation,
   ConversationMessage,
   ConversationSummary,
@@ -102,6 +109,94 @@ function Citations({ citations }: { citations: Citation[] }) {
   );
 }
 
+function executionLabel(execution: CapabilityExecution): string {
+  const error =
+    execution.error?.message ?? execution.error_message ?? null;
+  switch (execution.status) {
+    case "pending_approval":
+      return "Awaiting approval";
+    case "executing":
+      return "Executing…";
+    case "completed":
+      return "Completed";
+    case "failed":
+      return error ? `Failed: ${error}` : "Failed";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return execution.status;
+  }
+}
+
+function CapabilityExecutionPanel({
+  executions,
+  onApprove,
+  onCancel,
+  busyId,
+}: {
+  executions: CapabilityExecution[];
+  onApprove: (executionId: string) => void;
+  onCancel: (executionId: string) => void;
+  busyId: string | null;
+}) {
+  if (executions.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="capability-panel" aria-label="Capability executions">
+      <h2>Capability executions</h2>
+      <ul className="capability-execution-list">
+        {executions.map((execution) => (
+          <li
+            key={execution.execution_id}
+            data-status={execution.status}
+          >
+            <div>
+              <strong>{execution.capability_id}</strong>
+              <span className="capability-status">
+                {executionLabel(execution)}
+              </span>
+              {execution.duration > 0 ? (
+                <span className="muted">
+                  {(execution.duration * 1000).toFixed(0)} ms
+                </span>
+              ) : null}
+            </div>
+            {execution.status === "pending_approval" ? (
+              <div className="capability-actions">
+                <button
+                  type="button"
+                  className="primary-button"
+                  disabled={busyId === execution.execution_id}
+                  onClick={() => onApprove(execution.execution_id)}
+                >
+                  Approve
+                </button>
+                <button
+                  type="button"
+                  className="danger-button"
+                  disabled={busyId === execution.execution_id}
+                  onClick={() => onCancel(execution.execution_id)}
+                >
+                  Deny
+                </button>
+              </div>
+            ) : null}
+            {execution.status === "completed" && execution.output != null ? (
+              <pre className="capability-output">
+                {typeof execution.output === "string"
+                  ? execution.output
+                  : JSON.stringify(execution.output, null, 2)}
+              </pre>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function ChatPage() {
   const { activeWorkspace, activeModel, connection } = useAppState();
   const workspaceId = activeWorkspace?.id ?? null;
@@ -118,6 +213,8 @@ export function ChatPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const [executions, setExecutions] = useState<CapabilityExecution[]>([]);
+  const [executionBusyId, setExecutionBusyId] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -137,6 +234,48 @@ export function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isStreaming]);
+
+  useEffect(() => {
+    if (!workspaceId || !canUseBackend) {
+      setExecutions([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function refreshExecutions() {
+      try {
+        const [pending, conversationScoped] = await Promise.all([
+          listPendingExecutions(workspaceId!),
+          activeConversationId
+            ? listConversationExecutions(workspaceId!, activeConversationId)
+            : Promise.resolve({ items: [] as CapabilityExecution[] }),
+        ]);
+        if (cancelled) return;
+        const byId = new Map<string, CapabilityExecution>();
+        for (const item of [...pending.items, ...conversationScoped.items]) {
+          byId.set(item.execution_id, item);
+        }
+        setExecutions(
+          Array.from(byId.values()).sort((a, b) =>
+            a.updated_at.localeCompare(b.updated_at),
+          ),
+        );
+      } catch {
+        // Keep chat usable if the capability surface is unavailable.
+      }
+    }
+
+    void refreshExecutions();
+    const timer = window.setInterval(() => {
+      void refreshExecutions();
+    }, 2500);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [workspaceId, canUseBackend, activeConversationId]);
 
   useEffect(() => {
     if (!workspaceId || !canUseBackend) {
@@ -489,6 +628,48 @@ export function ChatPage() {
     }
   }
 
+  async function handleApproveExecution(executionId: string) {
+    if (!workspaceId) return;
+    setExecutionBusyId(executionId);
+    try {
+      const result = await approveCapabilityExecution(workspaceId, executionId);
+      setExecutions((current) =>
+        current.map((item) =>
+          item.execution_id === executionId ? result : item,
+        ),
+      );
+    } catch (err) {
+      setError(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Failed to approve capability execution.",
+      );
+    } finally {
+      setExecutionBusyId(null);
+    }
+  }
+
+  async function handleCancelExecution(executionId: string) {
+    if (!workspaceId) return;
+    setExecutionBusyId(executionId);
+    try {
+      const result = await cancelCapabilityExecution(workspaceId, executionId);
+      setExecutions((current) =>
+        current.map((item) =>
+          item.execution_id === executionId ? result : item,
+        ),
+      );
+    } catch (err) {
+      setError(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Failed to cancel capability execution.",
+      );
+    } finally {
+      setExecutionBusyId(null);
+    }
+  }
+
   return (
     <div className="chat-layout">
       <aside className="chat-sidebar" aria-label="Conversations">
@@ -652,6 +833,13 @@ export function ChatPage() {
           )}
           <div ref={bottomRef} />
         </div>
+
+        <CapabilityExecutionPanel
+          executions={executions}
+          busyId={executionBusyId}
+          onApprove={(executionId) => void handleApproveExecution(executionId)}
+          onCancel={(executionId) => void handleCancelExecution(executionId)}
+        />
 
         <form
           className="composer"

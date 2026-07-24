@@ -140,6 +140,11 @@ Workspace switching reloads the conversation list from the backend so chats
 remain isolated by ownership. Model selection is sent on each stream/send
 request (`provider` + `model`) and does not change backend defaults permanently.
 
+Chat also polls capability executions for the active workspace/conversation and
+renders pending-approval prompts plus executing / completed / failed / cancelled
+states. Approve and deny call the Capability Execution Engine over HTTP; desktop
+never invokes capabilities locally. See [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md).
+
 Markdown rendering, code-block copy, message copy, retry on failed responses,
 and auto-scroll are presentation concerns only.
 

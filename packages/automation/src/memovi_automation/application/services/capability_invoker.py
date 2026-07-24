@@ -49,7 +49,9 @@ class CapabilityInvoker:
         default_policy: CapabilityExecutionPolicy | None = None,
     ) -> None:
         self._registry = registry
-        self._default_policy = DEFAULT_EXECUTION_POLICY if default_policy is None else default_policy
+        self._default_policy = (
+            DEFAULT_EXECUTION_POLICY if default_policy is None else default_policy
+        )
 
     @property
     def registry(self) -> CapabilityRegistry:

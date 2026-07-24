@@ -22,7 +22,12 @@ def database_url() -> str:
 @lru_cache(maxsize=1)
 def engine() -> Engine:
     url = database_url()
-    connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
+    if url.startswith("sqlite"):
+        connect_args: dict[str, object] = {"check_same_thread": False}
+    else:
+        # Fail fast when local Postgres is down so /ready and tests do not hang
+        # on OS-level TCP timeouts (often 20-60s+ per attempt).
+        connect_args = {"connect_timeout": 2}
     return create_engine(url, connect_args=connect_args, pool_pre_ping=True)
 
 

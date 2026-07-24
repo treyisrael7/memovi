@@ -4,8 +4,13 @@ from fastapi import Depends, Header, HTTPException, Request, status
 from memovi_shared import DEFAULT_WORKSPACE_ID, InvalidWorkspaceIdError, WorkspaceId
 from sqlalchemy.orm import Session as OrmSession
 
-from memovi_intelligence.application.commands import Reason, SendConversationMessage
+from memovi_intelligence.application.commands import (
+    Reason,
+    RequestCapabilityExecution,
+    SendConversationMessage,
+)
 from memovi_intelligence.application.ports import ConversationRepository, KnowledgeRetriever
+from memovi_intelligence.application.ports_capability_execution import CapabilityExecutionPort
 from memovi_intelligence.application.services import (
     ContextAssembler,
     ConversationService,
@@ -109,4 +114,22 @@ def get_send_conversation_message(
     return SendConversationMessage(
         conversations=conversations,
         reason=reason,
+    )
+
+
+def get_capability_execution_port(request: Request) -> CapabilityExecutionPort | None:
+    """Composition root overrides with the Capability Execution Engine adapter."""
+    return getattr(request.app.state, "capability_execution_port", None)
+
+
+def get_request_capability_execution(
+    conversations: Annotated[ConversationService, Depends(get_conversation_service)],
+    capability_execution: Annotated[
+        CapabilityExecutionPort | None,
+        Depends(get_capability_execution_port),
+    ],
+) -> RequestCapabilityExecution:
+    return RequestCapabilityExecution(
+        conversations=conversations,
+        capability_execution=capability_execution,
     )

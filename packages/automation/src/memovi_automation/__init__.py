@@ -1,10 +1,17 @@
 """Memovi Capability Framework.
 
 Provider-agnostic capability abstractions for discovery, permission metadata,
-and safe single-invocation execution. Not an agent framework.
+safe single-invocation execution, and the Capability Execution Engine.
 """
 
-from memovi_automation.application import Capability, CapabilityInvoker, CapabilityRegistry
+from memovi_automation.application import (
+    Capability,
+    CapabilityExecutionEngine,
+    CapabilityInvoker,
+    CapabilityRegistry,
+    ExecutionAuditStore,
+    PermissionPolicyStore,
+)
 from memovi_automation.domain import (
     BROWSER_READ,
     CLIPBOARD_READ,
@@ -21,23 +28,37 @@ from memovi_automation.domain import (
     CapabilityCancelledError,
     CapabilityContext,
     CapabilityError,
+    CapabilityExecutionContext,
     CapabilityExecutionError,
+    CapabilityExecutionNotFoundError,
     CapabilityExecutionPolicy,
+    CapabilityExecutionRequest,
+    CapabilityExecutionResult,
+    CapabilityExecutionStatus,
     CapabilityMetadata,
     CapabilityParameter,
     CapabilityPermission,
     CapabilityRequest,
     CapabilityResult,
     CapabilityTimeoutError,
+    ExecutionAuditEntry,
     InvalidCapabilityArgumentsError,
     InvalidCapabilityError,
+    PermissionMode,
     UnknownCapabilityError,
+    redact_arguments,
 )
 from memovi_automation.filesystem import (
     CAPABILITY_ID as FILESYSTEM_CAPABILITY_ID,
+)
+from memovi_automation.filesystem import (
     FilesystemCapability,
     FilesystemCapabilityConfig,
     register_filesystem_capability,
+)
+from memovi_automation.infrastructure import (
+    InMemoryExecutionAuditStore,
+    InMemoryPermissionPolicyStore,
 )
 
 __all__ = [
@@ -58,8 +79,14 @@ __all__ = [
     "CapabilityCancelledError",
     "CapabilityContext",
     "CapabilityError",
+    "CapabilityExecutionContext",
+    "CapabilityExecutionEngine",
     "CapabilityExecutionError",
+    "CapabilityExecutionNotFoundError",
     "CapabilityExecutionPolicy",
+    "CapabilityExecutionRequest",
+    "CapabilityExecutionResult",
+    "CapabilityExecutionStatus",
     "CapabilityInvoker",
     "CapabilityMetadata",
     "CapabilityParameter",
@@ -68,10 +95,17 @@ __all__ = [
     "CapabilityRequest",
     "CapabilityResult",
     "CapabilityTimeoutError",
+    "ExecutionAuditEntry",
+    "ExecutionAuditStore",
     "FilesystemCapability",
     "FilesystemCapabilityConfig",
+    "InMemoryExecutionAuditStore",
+    "InMemoryPermissionPolicyStore",
     "InvalidCapabilityArgumentsError",
     "InvalidCapabilityError",
+    "PermissionMode",
+    "PermissionPolicyStore",
     "UnknownCapabilityError",
+    "redact_arguments",
     "register_filesystem_capability",
 ]

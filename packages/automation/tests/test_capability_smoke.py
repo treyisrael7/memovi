@@ -3,8 +3,6 @@
 These are test-only mocks — not product filesystem/terminal capabilities.
 """
 
-from memovi_shared import WorkspaceId
-
 from memovi_automation import (
     FILESYSTEM_READ,
     TERMINAL_EXECUTE,
@@ -15,6 +13,7 @@ from memovi_automation import (
     CapabilityRegistry,
     CapabilityRequest,
 )
+from memovi_shared import WorkspaceId
 
 
 class MockFilesystem:
