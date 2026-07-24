@@ -97,9 +97,11 @@ def _matches_filters(
         return False
     if mime_type is not None and item.mime_type != mime_type:
         return False
-    if entity_type is not None and item.source_type != entity_type and item.mime_type != entity_type:
-        return False
-    return True
+    return not (
+        entity_type is not None
+        and item.source_type != entity_type
+        and item.mime_type != entity_type
+    )
 
 
 @router.get(
@@ -236,9 +238,7 @@ def list_knowledge(
     entity_type: Annotated[
         str | None,
         Query(
-            description=(
-                "Restrict by entity type. Currently matches source_type or mime_type."
-            ),
+            description=("Restrict by entity type. Currently matches source_type or mime_type."),
         ),
     ] = None,
 ) -> KnowledgeSummaryListResponse:

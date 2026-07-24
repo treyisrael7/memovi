@@ -38,9 +38,7 @@ class SearchIndexed:
 def test_domain_to_diagnostic_mapping() -> None:
     assert DOMAIN_TO_DIAGNOSTIC["DocumentCreated"] == DiagnosticEventName.DOCUMENT_UPLOADED
     assert DOMAIN_TO_DIAGNOSTIC["SearchIndexed"] == DiagnosticEventName.DOCUMENT_INDEXED
-    assert (
-        DOMAIN_TO_DIAGNOSTIC["KnowledgeMaterialized"] == DiagnosticEventName.MEMORY_CREATED
-    )
+    assert DOMAIN_TO_DIAGNOSTIC["KnowledgeMaterialized"] == DiagnosticEventName.MEMORY_CREATED
 
 
 def test_emit_records_metric_and_event_name() -> None:

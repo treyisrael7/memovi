@@ -1,5 +1,4 @@
 import pytest
-
 from memovi_shared import DEFAULT_WORKSPACE_ID, InvalidWorkspaceIdError, WorkspaceId
 
 

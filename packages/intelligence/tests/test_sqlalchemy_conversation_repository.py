@@ -184,7 +184,9 @@ def test_ordering_preserves_append_sequence() -> None:
 
     with session_factory() as session:
         repository = SqlAlchemyConversationRepository(session)
-        assert [turn.content for turn in repository.list_turns(conversation_id, workspace_id=WS)] == [
+        assert [
+            turn.content for turn in repository.list_turns(conversation_id, workspace_id=WS)
+        ] == [
             "one",
             "two",
             "three",

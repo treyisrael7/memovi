@@ -138,8 +138,7 @@ def test_conversation_service_load_history() -> None:
         ConversationRole.ASSISTANT,
     ]
     assert (
-        service.get_conversation(conversation.id, workspace_id=workspace_id).turns
-        == history.turns
+        service.get_conversation(conversation.id, workspace_id=workspace_id).turns == history.turns
     )
 
 

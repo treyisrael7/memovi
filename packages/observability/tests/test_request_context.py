@@ -1,5 +1,3 @@
-from memovi_shared import WorkspaceId
-
 from memovi_observability import (
     RequestContext,
     bind_request_context,
@@ -7,6 +5,7 @@ from memovi_observability import (
     get_request_context,
     update_request_context,
 )
+from memovi_shared import WorkspaceId
 
 
 def test_request_context_create_generates_request_id() -> None:

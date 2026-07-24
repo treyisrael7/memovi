@@ -1,7 +1,6 @@
 import logging
 
 import pytest
-
 from memovi_observability import (
     InMemoryMetricsRecorder,
     set_metrics_recorder,
@@ -23,9 +22,11 @@ def test_timed_operation_records_success(caplog) -> None:
     recorder = InMemoryMetricsRecorder()
     set_metrics_recorder(recorder)
 
-    with caplog.at_level(logging.INFO, logger="memovi.timing"):
-        with timed_operation("repo.get", repository="SqlAlchemySearchRepository"):
-            pass
+    with (
+        caplog.at_level(logging.INFO, logger="memovi.timing"),
+        timed_operation("repo.get", repository="SqlAlchemySearchRepository"),
+    ):
+        pass
 
     assert any(name.endswith(".count") for name in recorder.counters)
     assert any("repo.get" in name for name in recorder.timings)
@@ -41,9 +42,11 @@ def test_timed_operation_records_error() -> None:
     recorder = InMemoryMetricsRecorder()
     set_metrics_recorder(recorder)
 
-    with pytest.raises(RuntimeError, match="boom"):
-        with timed_operation("repo.fail", repository="SqlAlchemySearchRepository"):
-            raise RuntimeError("boom")
+    with (
+        pytest.raises(RuntimeError, match="boom"),
+        timed_operation("repo.fail", repository="SqlAlchemySearchRepository"),
+    ):
+        raise RuntimeError("boom")
 
     assert any(
         name.endswith(".count") and tags.get("status") == "error"

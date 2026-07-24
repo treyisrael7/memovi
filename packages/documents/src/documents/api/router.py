@@ -139,4 +139,3 @@ async def ingest_document(
         processing_job_id=result.processing_job_id,
         processing_status=result.processing_status.value,
     )
-

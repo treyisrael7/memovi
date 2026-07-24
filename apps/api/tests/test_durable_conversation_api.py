@@ -12,8 +12,10 @@ from documents.infrastructure.queue import InMemoryProcessingJobQueue
 from fastapi.testclient import TestClient
 from memovi_intelligence.api.dependencies import (
     get_conversation_repository,
-    get_database_session as get_intelligence_database_session,
     get_knowledge_retriever,
+)
+from memovi_intelligence.api.dependencies import (
+    get_database_session as get_intelligence_database_session,
 )
 from memovi_intelligence.domain.value_objects import ConversationId
 from memovi_intelligence.infrastructure import (

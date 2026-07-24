@@ -2,7 +2,6 @@ from datetime import UTC, datetime
 
 import pytest
 from memovi_shared import DEFAULT_WORKSPACE_ID, InvalidWorkspaceIdError, WorkspaceId
-
 from memovi_workspace.application.commands import CreateWorkspace, CreateWorkspaceCommand
 from memovi_workspace.application.queries import GetWorkspace, GetWorkspaceQuery, ListWorkspaces
 from memovi_workspace.domain.entities import Workspace

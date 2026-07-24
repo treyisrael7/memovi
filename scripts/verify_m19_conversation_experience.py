@@ -95,10 +95,7 @@ def step_1_multi_turn(client: TestClient) -> str:
         if not payload.get("assistant_message"):
             _fail(f"send message {index}", "missing assistant_message")
             return conversation_id
-        _ok(
-            f"exchange {index}: assistant reply "
-            f"({payload['provider']}/{payload['model']})"
-        )
+        _ok(f"exchange {index}: assistant reply " f"({payload['provider']}/{payload['model']})")
 
     history = client.get(f"/conversations/{conversation_id}/messages")
     if history.status_code != 200:

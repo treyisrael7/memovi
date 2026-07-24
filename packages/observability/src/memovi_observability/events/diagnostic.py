@@ -79,7 +79,7 @@ class DiagnosticEventEmitter:
                 payload[attr] = str(value) if value is not None else None
 
         if "document_id" not in payload and hasattr(domain_event, "document_id"):
-            doc_id = getattr(domain_event, "document_id")
+            doc_id = domain_event.document_id
             payload["document_id"] = getattr(doc_id, "value", str(doc_id))
 
         self.emit(diagnostic, **payload)

@@ -60,10 +60,9 @@ def _knowledge(
 def _reason(
     *,
     items: tuple[RetrievedKnowledge, ...] = (),
-    provider: FakeReasoningProvider
-    | FailingReasoningProvider
-    | InvalidPromptReasoningProvider
-    | None = None,
+    provider: (
+        FakeReasoningProvider | FailingReasoningProvider | InvalidPromptReasoningProvider | None
+    ) = None,
     config: IntelligenceConfig | None = None,
 ) -> tuple[Reason, StubKnowledgeRetriever]:
     retriever = StubKnowledgeRetriever(items)

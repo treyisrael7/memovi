@@ -210,7 +210,9 @@ def test_unified_retrieval_modes_filters_pagination_and_deduplication(
         memovi_md["document_id"],
         gardening["document_id"],
     }
-    assert all(item["document_id"] != memovi_txt["document_id"] for item in filtered_payload["results"])
+    assert all(
+        item["document_id"] != memovi_txt["document_id"] for item in filtered_payload["results"]
+    )
 
     page = client.get(
         "/search",

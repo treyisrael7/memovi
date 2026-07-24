@@ -258,7 +258,10 @@ def scenario_1_e2e_isolation(report: SuiteReport) -> tuple[str, str]:
 
     personal_doc = upload(
         "resume.md",
-        b"# Resume\n\nJane Doe resume for software engineering roles. Unique token personalresume42.\n",
+        (
+            b"# Resume\n\nJane Doe resume for software engineering roles. "
+            b"Unique token personalresume42.\n"
+        ),
         workspace_id=personal,
     )
     results = wait_for_search("personalresume42", workspace_id=personal, expect_min=1)
@@ -281,7 +284,10 @@ def scenario_1_e2e_isolation(report: SuiteReport) -> tuple[str, str]:
     if status == 200 and len(personal_search) >= 1:
         report.ok("Personal: search 'resume' returns hits", f"count={len(personal_search)}")
     else:
-        report.fail("Personal: search 'resume' returns hits", f"status={status} count={len(personal_search)}")
+        report.fail(
+            "Personal: search 'resume' returns hits",
+            f"status={status} count={len(personal_search)}",
+        )
 
     # Switch to Work — should be empty
     status, work_search = search("resume", workspace_id=work)
@@ -660,9 +666,7 @@ def scenario_8_migration(report: SuiteReport) -> None:
                 f"docs={null_docs} mem={null_mem} search={null_search} conv={null_conv}",
             )
 
-        revision = conn.execute(
-            text("SELECT version_num FROM alembic_version")
-        ).scalar_one()
+        revision = conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
         if revision == "20260718_0009":
             report.ok("alembic head is workspace migration", revision)
         else:
@@ -694,7 +698,10 @@ def scenario_9_restart(report: SuiteReport, personal: str) -> None:
     else:
         report.fail(
             "workspace IDs persist",
-            f"status={status} personal_in_list={personal in ids} default_in_list={DEFAULT_WORKSPACE_ID in ids}",
+            (
+                f"status={status} personal_in_list={personal in ids} "
+                f"default_in_list={DEFAULT_WORKSPACE_ID in ids}"
+            ),
         )
 
     status, after = search("personalresume42", workspace_id=personal)
@@ -703,7 +710,10 @@ def scenario_9_restart(report: SuiteReport, personal: str) -> None:
     else:
         report.fail(
             "search still works with stable result count",
-            f"before={before_count} after_status={status} after={len(after) if status == 200 else 'n/a'}",
+            (
+                f"before={before_count} after_status={status} "
+                f"after={len(after) if status == 200 else 'n/a'}"
+            ),
         )
 
     report.skip(
@@ -729,9 +739,17 @@ def scenario_10_logging(report: SuiteReport) -> None:
     )
     # Broader: search repo for workspace logging patterns in recent API output if path missing
     candidates = [log_path]
-    term_dir = Path.home() / ".cursor" / "projects" / "c-Users-Owner-OneDrive-g-clemson-edu-Desktop-memovi" / "terminals"
+    term_dir = (
+        Path.home()
+        / ".cursor"
+        / "projects"
+        / "c-Users-Owner-OneDrive-g-clemson-edu-Desktop-memovi"
+        / "terminals"
+    )
     if term_dir.exists():
-        candidates.extend(sorted(term_dir.glob("*.txt"), key=lambda p: p.stat().st_mtime, reverse=True)[:5])
+        candidates.extend(
+            sorted(term_dir.glob("*.txt"), key=lambda p: p.stat().st_mtime, reverse=True)[:5]
+        )
 
     text = ""
     for path in candidates:
@@ -739,9 +757,7 @@ def scenario_10_logging(report: SuiteReport) -> None:
             text += path.read_text(encoding="utf-8", errors="replace")
 
     has_workspace_log = (
-        "workspace_id" in text
-        or "workspace=" in text.lower()
-        or "X-Memovi-Workspace-Id" in text
+        "workspace_id" in text or "workspace=" in text.lower() or "X-Memovi-Workspace-Id" in text
     )
     if has_workspace_log:
         report.ok("API logs mention workspace context")

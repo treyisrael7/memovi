@@ -46,4 +46,4 @@ def register_observability_event_bridge(dispatcher: InProcessEventDispatcher) ->
     dispatcher.subscribe(DocumentCreated, on_document_created)
     dispatcher.subscribe(KnowledgeMaterialized, on_knowledge_materialized)
     dispatcher.subscribe(SearchIndexed, on_search_indexed)
-    setattr(dispatcher, "_memovi_observability_bridge_registered", True)
+    dispatcher._memovi_observability_bridge_registered = True

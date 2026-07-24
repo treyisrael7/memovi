@@ -176,15 +176,14 @@ def test_request_id_constant_across_search_memory_intelligence_logs(
 ) -> None:
     fixture = _workspace_app()
     try:
-        with caplog.at_level(logging.INFO):
-            with TestClient(fixture.app) as client:
-                response = client.get(
-                    "/probe",
-                    headers={
-                        REQUEST_ID_HEADER: "req-cross-domain-1",
-                        WORKSPACE_HEADER: fixture.workspace_a.value,
-                    },
-                )
+        with caplog.at_level(logging.INFO), TestClient(fixture.app) as client:
+            response = client.get(
+                "/probe",
+                headers={
+                    REQUEST_ID_HEADER: "req-cross-domain-1",
+                    WORKSPACE_HEADER: fixture.workspace_a.value,
+                },
+            )
 
         assert response.status_code == 200
         assert response.json()["request_id"] == "req-cross-domain-1"
@@ -192,7 +191,7 @@ def test_request_id_constant_across_search_memory_intelligence_logs(
 
         domain_ops = {"search.execute", "memory.lookup", "conversation.create", "http.request"}
         request_ids = {
-            getattr(record, "request_id")
+            record.request_id
             for record in caplog.records
             if getattr(record, "operation", None) in domain_ops
         }
@@ -206,22 +205,21 @@ def test_workspace_switch_changes_logged_workspace_id(
 ) -> None:
     fixture = _workspace_app()
     try:
-        with caplog.at_level(logging.INFO):
-            with TestClient(fixture.app) as client:
-                first = client.get(
-                    "/probe",
-                    headers={
-                        REQUEST_ID_HEADER: "req-ws-a",
-                        WORKSPACE_HEADER: fixture.workspace_a.value,
-                    },
-                )
-                second = client.get(
-                    "/probe",
-                    headers={
-                        REQUEST_ID_HEADER: "req-ws-b",
-                        WORKSPACE_HEADER: fixture.workspace_b.value,
-                    },
-                )
+        with caplog.at_level(logging.INFO), TestClient(fixture.app) as client:
+            first = client.get(
+                "/probe",
+                headers={
+                    REQUEST_ID_HEADER: "req-ws-a",
+                    WORKSPACE_HEADER: fixture.workspace_a.value,
+                },
+            )
+            second = client.get(
+                "/probe",
+                headers={
+                    REQUEST_ID_HEADER: "req-ws-b",
+                    WORKSPACE_HEADER: fixture.workspace_b.value,
+                },
+            )
 
         assert first.status_code == 200
         assert second.status_code == 200
@@ -230,7 +228,7 @@ def test_workspace_switch_changes_logged_workspace_id(
         assert first.json()["workspace_id"] != second.json()["workspace_id"]
 
         workspace_by_request = {
-            getattr(record, "request_id"): getattr(record, "workspace_id")
+            record.request_id: record.workspace_id
             for record in caplog.records
             if getattr(record, "operation", None) == "http.request"
             and hasattr(record, "request_id")

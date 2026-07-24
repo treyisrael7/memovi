@@ -7,8 +7,6 @@ import uuid
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
-
 from memovi_observability import (
     RequestContext,
     bind_request_context,
@@ -18,6 +16,7 @@ from memovi_observability import (
     start_span,
 )
 from memovi_observability.logging.structured import log_operation
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 REQUEST_ID_HEADER = "X-Request-Id"
 CORRELATION_ID_HEADER = "X-Correlation-Id"

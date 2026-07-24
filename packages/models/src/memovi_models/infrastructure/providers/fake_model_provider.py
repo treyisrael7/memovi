@@ -126,7 +126,11 @@ class FakeModelProvider:
             provider_id=self._provider_id,
             model_id=request.model_id,
             content=content,
-            usage=ModelUsage(input_tokens=len(last_user), output_tokens=len(content), total_tokens=len(last_user) + len(content)),
+            usage=ModelUsage(
+                input_tokens=len(last_user),
+                output_tokens=len(content),
+                total_tokens=len(last_user) + len(content),
+            ),
             duration=perf_counter() - started,
             metadata={"fake": True},
         )

@@ -22,7 +22,7 @@ from api.workspace_context import (
 )
 from documents.domain.events import DocumentCreated
 from documents.domain.value_objects import DocumentId
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 from memovi_memory.domain.events import KnowledgeMaterialized
 from memovi_observability import (
@@ -64,7 +64,9 @@ def test_request_id_is_echoed_and_stable_across_handler() -> None:
         return {
             "request_id": context.request_id,
             "correlation_id": context.correlation_id,
-            "bound_request_id": (get_request_context().request_id if get_request_context() else None),
+            "bound_request_id": (
+                get_request_context().request_id if get_request_context() else None
+            ),
         }
 
     with TestClient(app) as client:

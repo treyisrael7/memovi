@@ -122,7 +122,9 @@ def test_ingest_local_document_persists_metadata_and_stores_artifact() -> None:
     )
 
     assert result.processing_status is ProcessingStatus.PENDING
-    assert documents.get_by_id(DocumentId(result.document_id), workspace_id=workspace_id) is not None
+    assert (
+        documents.get_by_id(DocumentId(result.document_id), workspace_id=workspace_id) is not None
+    )
     assert processing_jobs.get_by_id(result.processing_job_id) is not None
 
     version = documents.get_latest_version(DocumentId(result.document_id))

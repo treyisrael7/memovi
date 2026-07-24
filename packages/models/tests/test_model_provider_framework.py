@@ -1,7 +1,6 @@
 from dataclasses import FrozenInstanceError
 
 import pytest
-
 from memovi_models import (
     PROVIDER_FAKE,
     PROVIDER_OLLAMA,

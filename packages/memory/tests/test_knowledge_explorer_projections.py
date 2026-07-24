@@ -1,11 +1,10 @@
 from datetime import UTC, datetime
 
-from memovi_shared import WorkspaceId
-
 from memovi_memory.application.dto import ChunkDto, KnowledgeDto
 from memovi_memory.application.queries.get_knowledge_dashboard import GetKnowledgeDashboard
 from memovi_memory.application.queries.list_concepts import ListConcepts
 from memovi_memory.application.queries.list_relationships import ListRelationships
+from memovi_shared import WorkspaceId
 
 
 class _FakeListKnowledge:

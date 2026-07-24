@@ -21,7 +21,9 @@ class KnowledgeSummaryDto:
     confidence: float | None
 
     @classmethod
-    def from_knowledge(cls, knowledge: KnowledgeDto, *, summary_limit: int = 280) -> "KnowledgeSummaryDto":
+    def from_knowledge(
+        cls, knowledge: KnowledgeDto, *, summary_limit: int = 280
+    ) -> KnowledgeSummaryDto:
         preview = ""
         if knowledge.chunks:
             preview = knowledge.chunks[0].text.strip()

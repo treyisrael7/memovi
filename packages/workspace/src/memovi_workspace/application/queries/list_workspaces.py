@@ -7,6 +7,4 @@ class ListWorkspaces:
         self._workspaces = workspaces
 
     def execute(self) -> list[WorkspaceDto]:
-        return [
-            WorkspaceDto.from_workspace(workspace) for workspace in self._workspaces.list_all()
-        ]
+        return [WorkspaceDto.from_workspace(workspace) for workspace in self._workspaces.list_all()]

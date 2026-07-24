@@ -1,9 +1,8 @@
 """Local presentation clients (desktop/web) need CORS for API calls from webviews."""
 
-from fastapi.testclient import TestClient
-
 from api.app import create_app
 from api.middleware import LOCAL_CLIENT_ORIGINS
+from fastapi.testclient import TestClient
 
 
 def test_cors_allows_tauri_dev_origin() -> None:

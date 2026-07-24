@@ -69,7 +69,6 @@ class ModelRegistry:
             raise InvalidModelError(f"Unknown model '{model_id}'{scope}.")
         if len(matches) > 1 and provider_id is None:
             raise InvalidModelError(
-                f"Model '{model_id}' is advertised by multiple providers; "
-                "specify provider_id.",
+                f"Model '{model_id}' is advertised by multiple providers; " "specify provider_id.",
             )
         return matches[0]

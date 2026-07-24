@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Iterator
+from datetime import UTC, datetime
 
 import pytest
 from api.app import create_app
@@ -31,7 +32,6 @@ from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
 from postgres_support import ensure_pgvector_extension, postgres_available, postgres_database_url
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
-from datetime import UTC, datetime
 
 WORKSPACE_HEADER = "X-Memovi-Workspace-Id"
 

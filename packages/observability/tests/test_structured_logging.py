@@ -2,8 +2,6 @@ import json
 import logging
 
 import pytest
-from memovi_shared import WorkspaceId
-
 from memovi_observability import (
     RequestContext,
     bind_request_context,
@@ -15,6 +13,7 @@ from memovi_observability.logging.structured import (
     RequestContextFilter,
     log_operation,
 )
+from memovi_shared import WorkspaceId
 
 
 def test_json_formatter_includes_request_context_fields() -> None:
