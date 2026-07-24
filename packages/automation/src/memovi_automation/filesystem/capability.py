@@ -6,6 +6,10 @@ from typing import Final
 from memovi_automation.application.services.capability_registry import CapabilityRegistry
 from memovi_automation.domain.exceptions import CapabilityExecutionError
 from memovi_automation.domain.value_objects import (
+    FILESYSTEM_CREATE,
+    FILESYSTEM_DELETE,
+    FILESYSTEM_MODIFY,
+    FILESYSTEM_MOVE,
     FILESYSTEM_READ,
     FILESYSTEM_WRITE,
     CapabilityContext,
@@ -26,6 +30,14 @@ from memovi_automation.filesystem.errors import (
     UNSUPPORTED_OPERATION,
 )
 from memovi_automation.filesystem.path_safety import resolve_safe_path
+from memovi_automation.filesystem.write_operations import (
+    CREATE_OPERATIONS,
+    DELETE_OPERATIONS,
+    MODIFY_OPERATIONS,
+    MOVE_OPERATIONS,
+    WRITE_OPERATIONS,
+    execute_write_operation,
+)
 
 CAPABILITY_ID: Final = "filesystem"
 
@@ -39,26 +51,26 @@ READ_OPERATIONS: Final[frozenset[str]] = frozenset(
     }
 )
 
-# Reserved for future write milestones — kept here so operation routing and
-# permission selection do not need a redesign when writes land.
-WRITE_OPERATIONS: Final[frozenset[str]] = frozenset(
-    {
-        "write_file",
-        "delete_path",
-        "move_path",
-        "rename_path",
-    }
-)
-
 _ALL_KNOWN_OPERATIONS: Final[frozenset[str]] = READ_OPERATIONS | WRITE_OPERATIONS
+
+_FILESYSTEM_PERMISSIONS: Final[tuple[CapabilityPermission, ...]] = (
+    FILESYSTEM_READ,
+    FILESYSTEM_CREATE,
+    FILESYSTEM_MODIFY,
+    FILESYSTEM_MOVE,
+    FILESYSTEM_DELETE,
+    FILESYSTEM_WRITE,
+)
 
 
 class FilesystemCapability:
-    """Read-only filesystem capability — reference production Capability.
+    """Trusted filesystem capability — read and write operations.
 
     Discoverable through ``CapabilityRegistry`` under id ``filesystem``.
-    Declares ``filesystem.read`` now; ``filesystem.write`` is reserved for
-    future write operations and enforced per-operation when those land.
+    Path access is root-scoped. Write operations require fine-grained
+    permissions (create / modify / move / delete) or the coarse
+    ``filesystem.write`` umbrella. The Capability Execution Engine owns
+    approval and audit; this capability never bypasses that boundary.
     """
 
     def __init__(self, config: FilesystemCapabilityConfig) -> None:
@@ -72,18 +84,18 @@ class FilesystemCapability:
         return CapabilityMetadata(
             id=CAPABILITY_ID,
             description=(
-                "Read-only filesystem access restricted to configured roots. "
-                "Supports read_file, read_directory, list_directory, exists, "
-                "and get_metadata."
+                "Root-scoped filesystem access for safe reads and explicit writes. "
+                "Supports read, create, modify, move/copy/rename, and delete "
+                "operations with overwrite and trash policies."
             ),
-            permissions=(FILESYSTEM_READ,),
+            permissions=_FILESYSTEM_PERMISSIONS,
             parameters=(
                 CapabilityParameter(
                     name="operation",
                     type="string",
                     description=(
-                        "Filesystem operation: read_file, read_directory, "
-                        "list_directory, exists, or get_metadata."
+                        "Filesystem operation name (read_file, create_file, "
+                        "replace_file_contents, move_file, delete_file, …)."
                     ),
                 ),
                 CapabilityParameter(
@@ -95,9 +107,41 @@ class FilesystemCapability:
                     ),
                 ),
                 CapabilityParameter(
+                    name="destination",
+                    type="string",
+                    description=(
+                        "Destination path for copy, move, and rename operations."
+                    ),
+                    required=False,
+                ),
+                CapabilityParameter(
+                    name="content",
+                    type="string",
+                    description="Text content for create, replace, append, or write_file.",
+                    required=False,
+                ),
+                CapabilityParameter(
                     name="encoding",
                     type="string",
-                    description="Text encoding for read_file (default: utf-8).",
+                    description="Text encoding for file content operations (default: utf-8).",
+                    required=False,
+                ),
+                CapabilityParameter(
+                    name="overwrite_policy",
+                    type="string",
+                    description=(
+                        "How to treat an existing destination: reject, ask_user, "
+                        "or replace (default: reject)."
+                    ),
+                    required=False,
+                ),
+                CapabilityParameter(
+                    name="delete_mode",
+                    type="string",
+                    description=(
+                        "Deletion mode: trash (Recycle Bin / Trash when available) "
+                        "or permanent (default: trash)."
+                    ),
                     required=False,
                 ),
             ),
@@ -109,7 +153,7 @@ class FilesystemCapability:
         raw_path = request.arguments.get("path")
 
         permission = _permission_for_operation(operation)
-        if not context.has_permission(permission):
+        if not _has_filesystem_permission(context, permission):
             raise CapabilityExecutionError(
                 f"Missing required permission '{permission}'.",
                 code=PERMISSION_DENIED,
@@ -119,13 +163,7 @@ class FilesystemCapability:
                 },
             )
 
-        if operation in WRITE_OPERATIONS:
-            raise CapabilityExecutionError(
-                f"Filesystem operation '{operation}' is not supported yet.",
-                code=UNSUPPORTED_OPERATION,
-                details={"operation": operation},
-            )
-        if operation not in READ_OPERATIONS:
+        if operation not in _ALL_KNOWN_OPERATIONS:
             raise CapabilityExecutionError(
                 f"Unsupported filesystem operation '{operation}'.",
                 code=UNSUPPORTED_OPERATION,
@@ -134,6 +172,32 @@ class FilesystemCapability:
 
         path = resolve_safe_path(raw_path, allowed_roots=self._config.allowed_roots)
         context.check_cancelled()
+
+        # Append / write_file may create a missing file — require create too.
+        if (
+            operation in {"append_to_file", "write_file"}
+            and not path.exists()
+            and not _has_filesystem_permission(context, FILESYSTEM_CREATE)
+        ):
+            raise CapabilityExecutionError(
+                f"Missing required permission '{FILESYSTEM_CREATE}'.",
+                code=PERMISSION_DENIED,
+                details={
+                    "permission": FILESYSTEM_CREATE.name,
+                    "operation": operation,
+                    "creates_file": True,
+                },
+            )
+
+        if operation in WRITE_OPERATIONS:
+            return execute_write_operation(
+                operation,
+                path=path,
+                arguments=request.arguments,
+                config=self._config,
+                resolve_path=resolve_safe_path,
+                check_cancelled=context.check_cancelled,
+            )
 
         if operation == "exists":
             return _exists_result(path)
@@ -172,15 +236,29 @@ def register_filesystem_capability(
 
 
 def _permission_for_operation(operation: str) -> CapabilityPermission:
-    if operation in WRITE_OPERATIONS:
-        return FILESYSTEM_WRITE
     if operation in READ_OPERATIONS:
         return FILESYSTEM_READ
-    # Unknown operations still require read permission to inspect; unsupported
-    # is reported after the permission check.
-    if operation in _ALL_KNOWN_OPERATIONS:
-        return FILESYSTEM_READ
+    if operation in CREATE_OPERATIONS:
+        return FILESYSTEM_CREATE
+    if operation in MODIFY_OPERATIONS:
+        return FILESYSTEM_MODIFY
+    if operation in MOVE_OPERATIONS:
+        return FILESYSTEM_MOVE
+    if operation in DELETE_OPERATIONS:
+        return FILESYSTEM_DELETE
     return FILESYSTEM_READ
+
+
+def _has_filesystem_permission(
+    context: CapabilityContext,
+    required: CapabilityPermission,
+) -> bool:
+    if context.has_permission(required):
+        return True
+    # Coarse umbrella covers any write-side permission.
+    if required is not FILESYSTEM_READ and context.has_permission(FILESYSTEM_WRITE):
+        return True
+    return False
 
 
 def _require_string_argument(arguments: Mapping[str, object], name: str) -> str:
@@ -209,9 +287,12 @@ def _exists_result(path: Path) -> dict[str, object]:
     return {
         "operation": "exists",
         "path": str(path),
+        "target": str(path),
+        "success": True,
         "exists": path.exists(),
         "is_file": path.is_file(),
         "is_directory": path.is_dir(),
+        "metadata": {},
     }
 
 
@@ -223,14 +304,21 @@ def _metadata_result(path: Path) -> dict[str, object]:
             details={"path": str(path)},
         )
     stat = path.stat()
+    modified_at = datetime.fromtimestamp(stat.st_mtime, tz=UTC).isoformat()
     return {
         "operation": "get_metadata",
         "path": str(path),
+        "target": str(path),
+        "success": True,
         "exists": True,
         "is_file": path.is_file(),
         "is_directory": path.is_dir(),
         "size_bytes": stat.st_size,
-        "modified_at": datetime.fromtimestamp(stat.st_mtime, tz=UTC).isoformat(),
+        "modified_at": modified_at,
+        "metadata": {
+            "size_bytes": stat.st_size,
+            "modified_at": modified_at,
+        },
     }
 
 
@@ -240,8 +328,11 @@ def _list_directory_result(path: Path) -> dict[str, object]:
     return {
         "operation": "list_directory",
         "path": str(path),
+        "target": str(path),
+        "success": True,
         "entries": entries,
         "count": len(entries),
+        "metadata": {"count": len(entries)},
     }
 
 
@@ -261,8 +352,11 @@ def _read_directory_result(path: Path) -> dict[str, object]:
     return {
         "operation": "read_directory",
         "path": str(path),
+        "target": str(path),
+        "success": True,
         "entries": entries,
         "count": len(entries),
+        "metadata": {"count": len(entries)},
     }
 
 
@@ -321,9 +415,12 @@ def _read_file_result(
     return {
         "operation": "read_file",
         "path": str(path),
+        "target": str(path),
+        "success": True,
         "encoding": encoding,
         "size_bytes": size,
         "content": content,
+        "metadata": {"encoding": encoding, "size_bytes": size},
     }
 
 

@@ -2,15 +2,14 @@
 
 # Purpose
 
-This document defines Memovi's first production Capability: read-only filesystem
-access implemented on the Capability Framework.
+This document defines Memovi's first production Capability: root-scoped
+filesystem access implemented on the Capability Framework.
 
 # Scope
 
-It covers responsibilities, the safety model, permissions, operation surface,
-result contracts, and extension points for future write operations. It does not
-cover automation orchestration, approval UI, recursive walks, file watching, or
-desktop-specific integration.
+It covers responsibilities, the safety model, permissions, the read operation
+surface, and result contracts. Write operations are documented in
+[`FILESYSTEM_WRITE.md`](FILESYSTEM_WRITE.md).
 
 # Relationship to ARCHITECTURE.md
 
@@ -21,10 +20,10 @@ Filesystem Capability in `memovi_automation.filesystem`.
 
 # Responsibilities
 
-The Filesystem Capability owns safe, synchronous, explicit filesystem reads when
-invoked through the Capability Framework.
+The Filesystem Capability owns safe, synchronous, explicit filesystem reads and
+writes when invoked through the Capability Framework / Execution Engine.
 
-It supports:
+Read operations:
 
 * `read_file` — read text file contents
 * `read_directory` — non-recursive directory listing with entry metadata
@@ -32,11 +31,13 @@ It supports:
 * `exists` — existence / type probe
 * `get_metadata` — size, type, and modification time
 
+Write operations (see [`FILESYSTEM_WRITE.md`](FILESYSTEM_WRITE.md)):
+
+* create, replace, append, rename, copy, move, delete (file and directory)
+
 It does **not** own:
 
-* File writes, deletes, moves, or renames
-* Recursive tree walks
-* File watching
+* Recursive tree walks or file watching
 * HTTP, FastAPI, UI, or desktop code
 * Automation planning or multi-step workflows
 
@@ -67,10 +68,9 @@ register_filesystem_capability(
 invoker = CapabilityInvoker(registry=registry)
 ```
 
-Discovery uses `registry.list()` / `registry.metadata("filesystem")`.
-Execution uses `CapabilityInvoker.invoke(...)` so callers receive a structured
-`CapabilityResult`. Direct OS access outside this capability is out of scope for
-platform filesystem work.
+Production callers submit through the Capability Execution Engine so permission
+modes, approval, and audit apply. Direct OS access outside this capability is
+out of scope for platform filesystem work.
 
 # Safety Model
 
@@ -106,26 +106,23 @@ descent, and no implicit follow-up I/O beyond the requested operation.
 
 | Permission | Role |
 | --- | --- |
-| `filesystem.read` | Required for all current read operations |
-| `filesystem.write` | Reserved for future write operations |
+| `filesystem.read` | Required for all read operations |
+| `filesystem.create` | Create file / directory |
+| `filesystem.modify` | Replace / append / write_file |
+| `filesystem.move` | Rename / copy / move |
+| `filesystem.delete` | Delete file / directory |
+| `filesystem.write` | Coarse umbrella for any write-side check |
 
-The capability metadata currently declares `filesystem.read`.
-
-At execution time:
-
-* Read operations require `filesystem.read` in `CapabilityContext.granted_permissions`
-* Reserved write operation names require `filesystem.write`, then return
-  `unsupported_operation` until write milestones land
-
-This keeps read/write permissions separate while allowing write ops to be added
-without redesigning routing or registration.
+At execution time the capability checks the permission required for the named
+operation. The Execution Engine owns ask/allow/deny policy and audit.
 
 # Result Model
 
-Callers always observe a `CapabilityResult` from `CapabilityInvoker`.
+Callers always observe a `CapabilityResult` from `CapabilityInvoker` (or an
+execution result from the engine).
 
-Success payloads include an `operation` field and operation-specific data
-(`content`, `entries`, `exists`, metadata fields, and similar).
+Success payloads include `operation`, `target`, `success`, and operation-specific
+data (`content`, `entries`, `metadata`, `destination`, and similar).
 
 Structured failure codes include:
 
@@ -134,43 +131,28 @@ Structured failure codes include:
 | `permission_denied` | Required filesystem permission not granted |
 | `file_not_found` | Target path does not exist |
 | `invalid_path` | Blank/null/escaped/outside-root path |
-| `unsupported_operation` | Unknown or not-yet-implemented operation |
+| `unsupported_operation` | Unknown operation |
 | `not_a_file` | File operation used on a non-file |
 | `not_a_directory` | Directory operation used on a non-directory |
 | `not_text_file` | `read_file` could not decode text |
 | `file_too_large` | File exceeds configured read limit |
-
-Invoker metadata (argument count, timeout, cancellability) remains available on
-successful and failed invocations where applicable.
-
-# Extension Points
-
-Future milestones can extend this capability without replacing the framework:
-
-1. **Write operations** — add handlers for names already reserved in
-   `WRITE_OPERATIONS` (`write_file`, `delete_path`, `move_path`, `rename_path`),
-   declare `filesystem.write` in metadata, and keep per-operation permission
-   checks.
-2. **Config** — add write-specific limits (max write bytes, allow-delete flags)
-   to `FilesystemCapabilityConfig` without changing read defaults.
-3. **Roots** — composition roots inject allowed directories; desktop or API hosts
-   decide which roots to expose.
-4. **Additional read ops** — extend `READ_OPERATIONS` carefully; avoid recursive
-   or watch semantics unless a later milestone explicitly adds them.
-
-Do not invent a parallel filesystem API outside the registry.
+| `already_exists` / `overwrite_*` | Write conflict under overwrite policy |
+| `trash_unavailable` | Trash/recycle delete could not be performed |
+| `unsafe_target` | Refused root or other unsafe target |
 
 # Key Decisions
 
 * Filesystem is a Capability, not Automation and not an agent tool loop.
-* Read-only first; write permissions are modeled but not implemented.
 * Safety is root-scoped path normalization, not caller trust.
 * Permission enforcement uses `CapabilityContext.granted_permissions`.
+* Writes never overwrite silently; see [`FILESYSTEM_WRITE.md`](FILESYSTEM_WRITE.md).
 * HTTP/UI/desktop concerns stay outside this package module.
 
 # Related Documents
 
+* [`FILESYSTEM_WRITE.md`](FILESYSTEM_WRITE.md)
 * [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md)
+* [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md)
 * [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`domains.md`](domains.md)
 * [`../STATUS.md`](../STATUS.md)

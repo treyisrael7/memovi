@@ -189,7 +189,7 @@ describe safe host actions. Intelligence never calls `Capability.execute` or
 
 # Extension Example
 
-The first production capability is the read-only Filesystem Capability:
+The first production capability is the root-scoped Filesystem Capability:
 
 ```python
 from pathlib import Path
@@ -243,8 +243,8 @@ should extend this framework rather than invent a parallel execution stack.
 
 | Stage | Outcome |
 | --- | --- |
-| Now | Capability Framework + read-only Filesystem Capability |
-| Next | Concrete capabilities: Git, Terminal, Browser, Clipboard, Notifications; filesystem writes |
+| Now | Capability Framework + Filesystem Capability (read + write) |
+| Next | Concrete capabilities: Git, Terminal, Browser, Clipboard, Notifications |
 | Then | Permission enforcement and user approval UX (desktop-first) |
 | Later | Automation composition, provenance, background jobs |
 | Eventually | Plugin packaging and third-party capability distribution |

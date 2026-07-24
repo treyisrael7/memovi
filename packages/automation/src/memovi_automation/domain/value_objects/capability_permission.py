@@ -33,6 +33,11 @@ class CapabilityPermission:
 
 # Well-known permission names for future concrete capabilities.
 FILESYSTEM_READ = CapabilityPermission("filesystem.read")
+FILESYSTEM_CREATE = CapabilityPermission("filesystem.create")
+FILESYSTEM_MODIFY = CapabilityPermission("filesystem.modify")
+FILESYSTEM_MOVE = CapabilityPermission("filesystem.move")
+FILESYSTEM_DELETE = CapabilityPermission("filesystem.delete")
+# Coarse umbrella: satisfies any filesystem write permission check.
 FILESYSTEM_WRITE = CapabilityPermission("filesystem.write")
 TERMINAL_EXECUTE = CapabilityPermission("terminal.execute")
 GIT_READ = CapabilityPermission("git.read")

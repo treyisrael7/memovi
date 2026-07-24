@@ -961,6 +961,42 @@ button.linkish {
   gap: 0.45rem;
 }
 
+.capability-operation-summary {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.capability-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.capability-confirm-copy,
+.capability-progress,
+.capability-undo,
+.capability-result {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.capability-progress {
+  color: var(--text-muted);
+}
+
+.capability-result-success {
+  color: var(--status-ok);
+}
+
+.capability-result-failure {
+  color: var(--status-bad);
+}
+
+.capability-undo {
+  color: var(--text-muted);
+}
+
 .capability-output {
   margin: 0;
   max-height: 6rem;

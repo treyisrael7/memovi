@@ -141,9 +141,12 @@ remain isolated by ownership. Model selection is sent on each stream/send
 request (`provider` + `model`) and does not change backend defaults permanently.
 
 Chat also polls capability executions for the active workspace/conversation and
-renders pending-approval prompts plus executing / completed / failed / cancelled
-states. Approve and deny call the Capability Execution Engine over HTTP; desktop
-never invokes capabilities locally. See [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md).
+renders confirmation dialogs, progress, success/failure, overwrite Replace
+prompts, and undo messaging for trash deletes. Approve, deny, and overwrite
+retries call the Capability Execution Engine over HTTP; desktop never invokes
+capabilities or touches the filesystem locally. See
+[`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md) and
+[`FILESYSTEM_WRITE.md`](FILESYSTEM_WRITE.md).
 
 Markdown rendering, code-block copy, message copy, retry on failed responses,
 and auto-scroll are presentation concerns only.

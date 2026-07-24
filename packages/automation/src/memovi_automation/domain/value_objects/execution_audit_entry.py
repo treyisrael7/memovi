@@ -20,13 +20,18 @@ _SENSITIVE_KEY_FRAGMENTS = (
     "private_key",
 )
 
+# File contents and similar payloads are never stored in audit arguments.
+_CONTENT_KEYS = frozenset({"content", "body", "text", "data", "file_content"})
+
 
 def redact_arguments(arguments: Mapping[str, object]) -> dict[str, object]:
     """Return a copy of arguments with sensitive values redacted for audit storage."""
     redacted: dict[str, object] = {}
     for key, value in arguments.items():
         lowered = key.lower()
-        if any(fragment in lowered for fragment in _SENSITIVE_KEY_FRAGMENTS):
+        if lowered in _CONTENT_KEYS or any(
+            fragment in lowered for fragment in _SENSITIVE_KEY_FRAGMENTS
+        ):
             redacted[key] = "[REDACTED]"
         elif isinstance(value, Mapping):
             redacted[key] = redact_arguments(value)

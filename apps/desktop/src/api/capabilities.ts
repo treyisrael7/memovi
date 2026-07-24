@@ -52,6 +52,23 @@ export async function requestConversationCapabilityExecution(
   );
 }
 
+export async function submitCapabilityExecution(
+  workspaceId: string,
+  body: {
+    capability_id: string;
+    arguments?: Record<string, unknown>;
+    conversation_id?: string | null;
+    permission_mode?: PermissionMode;
+  },
+): Promise<CapabilityExecution> {
+  return apiFetch<CapabilityExecution>("/capabilities/executions", {
+    workspaceId,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 export async function approveCapabilityExecution(
   workspaceId: string,
   executionId: string,

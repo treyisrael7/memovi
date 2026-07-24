@@ -37,7 +37,8 @@ document that matches the concern being changed or reviewed.
 | [`connector-framework.md`](connector-framework.md) | Connector responsibilities, external sync, acquisition, and normalization |
 | [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
 | [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md) | Execution engine lifecycle, permission modes, audit, Intelligence bridge |
-| [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md) | Read-only filesystem capability: safety, permissions, operations |
+| [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md) | Filesystem capability baseline: safety, read ops, permissions |
+| [`FILESYSTEM_WRITE.md`](FILESYSTEM_WRITE.md) | Filesystem writes: overwrite/trash policies, create/modify/move/delete |
 | [`MODEL_PROVIDER_FRAMEWORK.md`](MODEL_PROVIDER_FRAMEWORK.md) | Provider-neutral model abstractions, registry, capabilities, health |
 | [`DESKTOP_CLIENT.md`](DESKTOP_CLIENT.md) | Flagship Tauri desktop shell, client boundaries, and API communication |
 | [`KNOWLEDGE_EXPLORER.md`](KNOWLEDGE_EXPLORER.md) | Read-only knowledge inspection, provenance navigation, explorer contracts |

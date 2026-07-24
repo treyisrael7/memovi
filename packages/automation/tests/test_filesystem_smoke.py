@@ -75,8 +75,10 @@ def test_smoke_register_filesystem_capability(smoke_root: Path) -> None:
     assert registry.ids == ("filesystem",)
     metadata = registry.metadata("filesystem")
     assert metadata.id == CAPABILITY_ID
-    assert metadata.permissions == (FILESYSTEM_READ,)
-    assert registry.permissions("filesystem") == (FILESYSTEM_READ,)
+    assert FILESYSTEM_READ in metadata.permissions
+    assert "filesystem.read" in metadata.permission_names()
+    assert "filesystem.create" in metadata.permission_names()
+    assert FILESYSTEM_READ in registry.permissions("filesystem")
 
 
 def test_smoke_read_known_file_through_registry(smoke_root: Path) -> None:

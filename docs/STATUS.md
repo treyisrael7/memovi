@@ -357,6 +357,42 @@ Capability Execution Engine. Intelligence never calls capabilities directly.
 **Remaining**
 
 * Durable audit persistence, additional concrete capabilities, settings UI for policies
+
+---
+
+# Milestone 22 — Filesystem Write Capability
+
+**Overall Status:** Complete
+
+The Filesystem Capability is the trusted interface for creating, modifying,
+moving, copying, renaming, and deleting files. The Capability Execution Engine
+remains responsible for permission modes, approval, and audit.
+
+**Completed**
+
+* Write operations: create file/directory, replace, append, rename, copy, move, delete
+* Overwrite policies: `reject` (default), `ask_user`, `replace` — never silent overwrite
+* Deletion modes: `trash` (default when available) and explicit `permanent`
+* Fine-grained permissions: `filesystem.create` / `modify` / `move` / `delete`
+  plus coarse `filesystem.write` umbrella
+* Structured success/error payloads; content redacted in audit arguments
+* Desktop confirmation, progress, success/failure, overwrite Replace, and undo messaging
+* `docs/architecture/FILESYSTEM_WRITE.md`
+
+**Verified**
+
+* Filesystem — existing read operations still function
+* Capability Engine — writes execute through the Execution Engine (production path)
+* Permissions — read-only cannot write; ask-every-time prompts before run; deny blocks
+* Knowledge — indexed documents untouched (no documents/memory coupling)
+* Desktop — confirmation, progress, and friendly failure messages
+* Observability — audit records for writes; request/correlation IDs on execution + audit
+* Regression — automation suite green; full suite green aside from intermittent unrelated documents worker flake
+
+**Remaining**
+
+* Durable audit persistence (shared with Milestone 21)
+* Desktop settings UI for capability permission policies
 * Autonomous workflows and background scheduling (explicitly out of scope)
 
 ---
@@ -467,9 +503,10 @@ platform APIs. Remaining product pages are still placeholders.
 * Desktop approval / progress presentation for capability executions
 * Unit and integration tests for registry, permissions, execution, cancellation, timeouts, and error contracts
 * Smoke tests for MockFilesystem / MockTerminal registration, invocation, unknown-capability structured errors, and deterministic re-composition
-* Read-only `FilesystemCapability` (`filesystem`) with root-scoped path safety, structured errors, and `filesystem.read` enforcement
-* Filesystem smoke tests: register, read file, list directory, reject traversal, structured missing-file error
-* Architecture references: `docs/architecture/CAPABILITY_FRAMEWORK.md`, `docs/architecture/CAPABILITY_EXECUTION.md`, `docs/architecture/FILESYSTEM_CAPABILITY.md`
+* `FilesystemCapability` (`filesystem`) with root-scoped path safety, structured errors, and read/write permission enforcement
+* Filesystem write operations with overwrite/trash policies and fine-grained create/modify/move/delete permissions
+* Filesystem smoke and write tests: register, read/write, traversal rejection, permission and audit coverage
+* Architecture references: `docs/architecture/CAPABILITY_FRAMEWORK.md`, `docs/architecture/CAPABILITY_EXECUTION.md`, `docs/architecture/FILESYSTEM_CAPABILITY.md`, `docs/architecture/FILESYSTEM_WRITE.md`
 
 **In Progress**
 
@@ -478,14 +515,13 @@ platform APIs. Remaining product pages are still placeholders.
 **Remaining**
 
 * Concrete capabilities: Terminal, Browser, Git, Clipboard, Notifications
-* Filesystem write operations (separate `filesystem.write` permission)
 * Desktop settings UI for capability permission policies
 * Plugin system / loading
 * Durable audit persistence
 
 **Known Risks**
 
-* Hosts that grant `filesystem.read` over overly broad roots expand the trusted surface
+* Hosts that grant filesystem permissions over overly broad roots expand the trusted surface
 
 **Next Recommended Work**
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from threading import Lock
 from time import perf_counter
@@ -144,9 +145,10 @@ class CapabilityExecutionEngine:
                 created_at=now,
                 updated_at=now,
                 metadata={
+                    **dict(request.metadata),
                     "source": request.source,
                     "awaiting_approval": True,
-                    **dict(request.metadata),
+                    "operation_summary": _operation_summary(request.arguments),
                 },
             )
             with self._lock:
@@ -340,7 +342,11 @@ class CapabilityExecutionEngine:
             correlation_id=request.correlation_id,
             created_at=now,
             updated_at=now,
-            metadata={"source": request.source, **dict(request.metadata)},
+            metadata={
+                **dict(request.metadata),
+                "source": request.source,
+                "operation_summary": _operation_summary(request.arguments),
+            },
         )
         with self._lock:
             self._executions[request.id] = executing
@@ -416,6 +422,20 @@ class CapabilityExecutionEngine:
         else:
             status = CapabilityExecutionStatus.FAILED
 
+        result_metadata: dict[str, object] = {
+            **dict(request.metadata),
+            "source": request.source,
+            "operation_summary": _operation_summary(request.arguments),
+            "invoker": dict(invoke_result.metadata),
+        }
+        # Preserve arguments for desktop/Intelligence overwrite confirmation retries.
+        # Audit storage still redacts sensitive values separately.
+        if (
+            invoke_result.error is not None
+            and invoke_result.error.code == "overwrite_confirmation_required"
+        ):
+            result_metadata["retry_arguments"] = dict(request.arguments)
+
         result = CapabilityExecutionResult(
             execution_id=request.id,
             capability_id=request.capability_id,
@@ -429,11 +449,7 @@ class CapabilityExecutionEngine:
             correlation_id=request.correlation_id,
             created_at=executing.created_at,
             updated_at=datetime.now(UTC),
-            metadata={
-                "source": request.source,
-                "invoker": dict(invoke_result.metadata),
-                **dict(request.metadata),
-            },
+            metadata=result_metadata,
         )
         self._store_result(result)
         self._audit(request, result)
@@ -476,12 +492,20 @@ class CapabilityExecutionEngine:
         summary: dict[str, object] = {
             "status": result.status.value,
             "success": result.status is CapabilityExecutionStatus.COMPLETED,
+            **_operation_summary(request.arguments),
         }
         if result.error is not None:
             summary["error_code"] = result.error.code
             summary["error_message"] = result.error.message
         if result.output is not None:
             summary["has_output"] = True
+            if isinstance(result.output, dict):
+                output_meta = result.output.get("metadata")
+                if isinstance(output_meta, dict):
+                    if "undo_available" in output_meta:
+                        summary["undo_available"] = output_meta["undo_available"]
+                    if "delete_mode" in output_meta:
+                        summary["delete_mode"] = output_meta["delete_mode"]
 
         entry = ExecutionAuditEntry(
             id=str(uuid4()),
@@ -499,3 +523,28 @@ class CapabilityExecutionEngine:
             source=request.source,
         )
         self._audit_store.append(entry)
+
+
+def _operation_summary(arguments: object) -> dict[str, object]:
+    """Build a redacted operation/target summary for UI and audit records."""
+    if not isinstance(arguments, Mapping):
+        return {}
+    summary: dict[str, object] = {}
+    operation = arguments.get("operation")
+    if isinstance(operation, str) and operation.strip():
+        summary["operation"] = operation.strip()
+    path = arguments.get("path")
+    if isinstance(path, str) and path.strip():
+        summary["target"] = path.strip()
+    destination = arguments.get("destination")
+    if isinstance(destination, str) and destination.strip():
+        summary["destination"] = destination.strip()
+    overwrite_policy = arguments.get("overwrite_policy")
+    if isinstance(overwrite_policy, str) and overwrite_policy.strip():
+        summary["overwrite_policy"] = overwrite_policy.strip()
+    delete_mode = arguments.get("delete_mode")
+    if isinstance(delete_mode, str) and delete_mode.strip():
+        summary["delete_mode"] = delete_mode.strip()
+    if "content" in arguments:
+        summary["has_content"] = True
+    return summary

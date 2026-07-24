@@ -75,11 +75,16 @@ def test_filesystem_capability_is_discoverable_through_registry(sandbox: Path) -
     assert registry.contains(CAPABILITY_ID)
     metadata = registry.metadata(CAPABILITY_ID)
     assert metadata.id == "filesystem"
-    assert metadata.permissions == (FILESYSTEM_READ,)
-    assert {parameter.name for parameter in metadata.parameters} == {
+    assert "filesystem.read" in metadata.permission_names()
+    assert "filesystem.create" in metadata.permission_names()
+    assert {parameter.name for parameter in metadata.parameters} >= {
         "operation",
         "path",
         "encoding",
+        "content",
+        "destination",
+        "overwrite_policy",
+        "delete_mode",
     }
     assert registry.get(CAPABILITY_ID) is capability
 
@@ -110,13 +115,14 @@ def test_read_file_list_directory_read_directory_exists_and_metadata(sandbox: Pa
 
     exists = _invoke(invoker, operation="exists", path="notes.txt")
     assert exists.success is True
-    assert exists.output == {
-        "operation": "exists",
-        "path": str((sandbox / "notes.txt").resolve()),
-        "exists": True,
-        "is_file": True,
-        "is_directory": False,
-    }
+    assert exists.output is not None
+    assert exists.output["operation"] == "exists"
+    assert exists.output["path"] == str((sandbox / "notes.txt").resolve())
+    assert exists.output["target"] == str((sandbox / "notes.txt").resolve())
+    assert exists.output["success"] is True
+    assert exists.output["exists"] is True
+    assert exists.output["is_file"] is True
+    assert exists.output["is_directory"] is False
 
     missing = _invoke(invoker, operation="exists", path="missing.txt")
     assert missing.success is True
@@ -184,7 +190,7 @@ def test_file_not_found_and_type_errors(sandbox: Path) -> None:
     assert not_dir.error.code == "not_a_directory"
 
 
-def test_unsupported_operation_and_future_write_reserved(sandbox: Path) -> None:
+def test_unsupported_operation_and_write_permission_routing(sandbox: Path) -> None:
     _registry, invoker, _capability = _stack(sandbox)
 
     unknown = _invoke(invoker, operation="watch", path="notes.txt")
@@ -192,26 +198,35 @@ def test_unsupported_operation_and_future_write_reserved(sandbox: Path) -> None:
     assert unknown.error is not None
     assert unknown.error.code == "unsupported_operation"
 
-    write_without_perm = _invoke(
-        invoker,
-        operation="write_file",
-        path="notes.txt",
-        granted=frozenset({FILESYSTEM_READ}),
+    write_without_perm = invoker.invoke(
+        CapabilityRequest.create(
+            capability_id=CAPABILITY_ID,
+            arguments={
+                "operation": "write_file",
+                "path": "created-by-write.txt",
+                "content": "body",
+            },
+        ),
+        _context(granted=frozenset({FILESYSTEM_READ})),
     )
     assert write_without_perm.success is False
     assert write_without_perm.error is not None
     assert write_without_perm.error.code == PERMISSION_DENIED
-    assert write_without_perm.error.details["permission"] == "filesystem.write"
+    assert write_without_perm.error.details["permission"] == "filesystem.modify"
 
-    write_with_perm = _invoke(
-        invoker,
-        operation="write_file",
-        path="notes.txt",
-        granted=frozenset({FILESYSTEM_READ, FILESYSTEM_WRITE}),
+    write_with_perm = invoker.invoke(
+        CapabilityRequest.create(
+            capability_id=CAPABILITY_ID,
+            arguments={
+                "operation": "write_file",
+                "path": "created-by-write.txt",
+                "content": "body",
+            },
+        ),
+        _context(granted=frozenset({FILESYSTEM_READ, FILESYSTEM_WRITE})),
     )
-    assert write_with_perm.success is False
-    assert write_with_perm.error is not None
-    assert write_with_perm.error.code == "unsupported_operation"
+    assert write_with_perm.success is True
+    assert (sandbox / "created-by-write.txt").read_text(encoding="utf-8") == "body"
 
 
 def test_binary_and_oversized_files(sandbox: Path) -> None:

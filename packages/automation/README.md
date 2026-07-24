@@ -17,11 +17,11 @@ Intelligence can discover and invoke:
   `CapabilityRequest`, `CapabilityResult`, `CapabilityContext`,
   `CapabilityExecutionPolicy`, `CapabilityExecutionRequest/Result/Context`,
   `ExecutionAuditEntry`, `PermissionMode`
-* `FilesystemCapability` — first production capability (read-only, root-scoped)
+* `FilesystemCapability` — first production capability (root-scoped read + write)
 * HTTP API under `/capabilities` for discovery, execution, approval, and audit
 
-It does **not** implement filesystem writes, git/terminal/browser capabilities,
-multi-step planning, background scheduling, or autonomous agents.
+It does **not** implement git/terminal/browser capabilities, multi-step planning,
+background scheduling, or autonomous agents.
 
 ## Layout
 
@@ -30,7 +30,7 @@ src/memovi_automation/
 ├── api/                  # FastAPI capability execution routes
 ├── application/          # Ports, registry, invoker, execution engine
 ├── domain/               # Value objects and exceptions
-├── filesystem/           # Read-only Filesystem Capability
+├── filesystem/           # Root-scoped Filesystem Capability (read + write)
 └── infrastructure/       # In-memory policy + audit stores
 ```
 
@@ -45,3 +45,5 @@ See:
 
 * [`docs/architecture/CAPABILITY_FRAMEWORK.md`](../../docs/architecture/CAPABILITY_FRAMEWORK.md)
 * [`docs/architecture/CAPABILITY_EXECUTION.md`](../../docs/architecture/CAPABILITY_EXECUTION.md)
+* [`docs/architecture/FILESYSTEM_CAPABILITY.md`](../../docs/architecture/FILESYSTEM_CAPABILITY.md)
+* [`docs/architecture/FILESYSTEM_WRITE.md`](../../docs/architecture/FILESYSTEM_WRITE.md)

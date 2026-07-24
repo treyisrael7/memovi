@@ -346,7 +346,7 @@ Give the desktop OS safe, permissioned access to the user’s environment.
 **Primary Deliverables**
 
 * Capability Framework foundation (`packages/automation`)
-* Filesystem (read-only capability shipped; writes later)
+* Filesystem (read + write capability shipped)
 * Terminal
 * Browser
 * Git

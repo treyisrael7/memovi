@@ -14,6 +14,7 @@ import {
   cancelCapabilityExecution,
   listConversationExecutions,
   listPendingExecutions,
+  submitCapabilityExecution,
 } from "../api/capabilities";
 import { ApiRequestError } from "../api/client";
 import {
@@ -109,16 +110,52 @@ function Citations({ citations }: { citations: Citation[] }) {
   );
 }
 
+function operationSummaryText(execution: CapabilityExecution): string | null {
+  const summary = execution.metadata?.operation_summary;
+  if (!summary || typeof summary !== "object") {
+    return null;
+  }
+  const record = summary as Record<string, unknown>;
+  const operation =
+    typeof record.operation === "string" ? record.operation : null;
+  const target = typeof record.target === "string" ? record.target : null;
+  const destination =
+    typeof record.destination === "string" ? record.destination : null;
+  if (!operation && !target) {
+    return null;
+  }
+  if (operation && target && destination) {
+    return `${operation}: ${target} → ${destination}`;
+  }
+  if (operation && target) {
+    return `${operation}: ${target}`;
+  }
+  return operation ?? target;
+}
+
+function undoMessage(execution: CapabilityExecution): string | null {
+  const output = execution.output;
+  if (!output || typeof output !== "object") {
+    return null;
+  }
+  const metadata = (output as { metadata?: Record<string, unknown> }).metadata;
+  if (!metadata || typeof metadata !== "object") {
+    return null;
+  }
+  const message = metadata.undo_message;
+  return typeof message === "string" && message.trim() ? message : null;
+}
+
 function executionLabel(execution: CapabilityExecution): string {
   const error =
     execution.error?.message ?? execution.error_message ?? null;
   switch (execution.status) {
     case "pending_approval":
-      return "Awaiting approval";
+      return "Awaiting confirmation";
     case "executing":
-      return "Executing…";
+      return "In progress…";
     case "completed":
-      return "Completed";
+      return "Succeeded";
     case "failed":
       return error ? `Failed: ${error}` : "Failed";
     case "cancelled":
@@ -128,15 +165,24 @@ function executionLabel(execution: CapabilityExecution): string {
   }
 }
 
+function isOverwriteConfirmation(execution: CapabilityExecution): boolean {
+  return (
+    execution.status === "failed" &&
+    execution.error?.code === "overwrite_confirmation_required"
+  );
+}
+
 function CapabilityExecutionPanel({
   executions,
   onApprove,
   onCancel,
+  onReplace,
   busyId,
 }: {
   executions: CapabilityExecution[];
   onApprove: (executionId: string) => void;
   onCancel: (executionId: string) => void;
+  onReplace: (execution: CapabilityExecution) => void;
   busyId: string | null;
 }) {
   if (executions.length === 0) {
@@ -147,51 +193,107 @@ function CapabilityExecutionPanel({
     <section className="capability-panel" aria-label="Capability executions">
       <h2>Capability executions</h2>
       <ul className="capability-execution-list">
-        {executions.map((execution) => (
-          <li
-            key={execution.execution_id}
-            data-status={execution.status}
-          >
-            <div>
-              <strong>{execution.capability_id}</strong>
-              <span className="capability-status">
-                {executionLabel(execution)}
-              </span>
-              {execution.duration > 0 ? (
-                <span className="muted">
-                  {(execution.duration * 1000).toFixed(0)} ms
+        {executions.map((execution) => {
+          const summary = operationSummaryText(execution);
+          const undo = undoMessage(execution);
+          const confirmOverwrite = isOverwriteConfirmation(execution);
+          return (
+            <li
+              key={execution.execution_id}
+              data-status={execution.status}
+            >
+              <div>
+                <strong>{execution.capability_id}</strong>
+                <span className="capability-status">
+                  {executionLabel(execution)}
                 </span>
-              ) : null}
-            </div>
-            {execution.status === "pending_approval" ? (
-              <div className="capability-actions">
-                <button
-                  type="button"
-                  className="primary-button"
-                  disabled={busyId === execution.execution_id}
-                  onClick={() => onApprove(execution.execution_id)}
-                >
-                  Approve
-                </button>
-                <button
-                  type="button"
-                  className="danger-button"
-                  disabled={busyId === execution.execution_id}
-                  onClick={() => onCancel(execution.execution_id)}
-                >
-                  Deny
-                </button>
+                {execution.duration > 0 ? (
+                  <span className="muted">
+                    {(execution.duration * 1000).toFixed(0)} ms
+                  </span>
+                ) : null}
               </div>
-            ) : null}
-            {execution.status === "completed" && execution.output != null ? (
-              <pre className="capability-output">
-                {typeof execution.output === "string"
-                  ? execution.output
-                  : JSON.stringify(execution.output, null, 2)}
-              </pre>
-            ) : null}
-          </li>
-        ))}
+              {summary ? (
+                <p className="capability-operation-summary">{summary}</p>
+              ) : null}
+              {execution.status === "pending_approval" ? (
+                <div className="capability-confirm">
+                  <p className="capability-confirm-copy">
+                    Confirm this capability action? It will run only after you
+                    approve.
+                  </p>
+                  <div className="capability-actions">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={busyId === execution.execution_id}
+                      onClick={() => onApprove(execution.execution_id)}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-button"
+                      disabled={busyId === execution.execution_id}
+                      onClick={() => onCancel(execution.execution_id)}
+                    >
+                      Deny
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+              {execution.status === "executing" ? (
+                <p className="capability-progress" role="status">
+                  Running…
+                </p>
+              ) : null}
+              {confirmOverwrite ? (
+                <div className="capability-confirm">
+                  <p className="capability-confirm-copy">
+                    A file already exists at the destination. Replace it?
+                  </p>
+                  <div className="capability-actions">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={busyId === execution.execution_id}
+                      onClick={() => onReplace(execution)}
+                    >
+                      Replace
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-button"
+                      disabled={busyId === execution.execution_id}
+                      onClick={() => onCancel(execution.execution_id)}
+                    >
+                      Keep existing
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+              {execution.status === "completed" ? (
+                <div className="capability-result capability-result-success">
+                  {undo ? <p className="capability-undo">{undo}</p> : null}
+                  {execution.output != null ? (
+                    <pre className="capability-output">
+                      {typeof execution.output === "string"
+                        ? execution.output
+                        : JSON.stringify(execution.output, null, 2)}
+                    </pre>
+                  ) : null}
+                </div>
+              ) : null}
+              {execution.status === "failed" && !confirmOverwrite ? (
+                <p className="capability-result capability-result-failure">
+                  {execution.error?.message ??
+                    execution.error_message ??
+                    "Capability execution failed."}
+                </p>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
@@ -649,6 +751,39 @@ export function ChatPage() {
     }
   }
 
+  async function handleReplaceExecution(execution: CapabilityExecution) {
+    if (!workspaceId) return;
+    const retry = execution.metadata?.retry_arguments;
+    if (!retry || typeof retry !== "object") {
+      setError("Cannot replace: original capability arguments are unavailable.");
+      return;
+    }
+    setExecutionBusyId(execution.execution_id);
+    try {
+      const result = await submitCapabilityExecution(workspaceId, {
+        capability_id: execution.capability_id,
+        conversation_id: execution.conversation_id,
+        permission_mode: execution.permission_mode,
+        arguments: {
+          ...(retry as Record<string, unknown>),
+          overwrite_policy: "replace",
+        },
+      });
+      setExecutions((current) => [
+        ...current.filter((item) => item.execution_id !== execution.execution_id),
+        result,
+      ]);
+    } catch (err) {
+      setError(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Failed to replace existing file.",
+      );
+    } finally {
+      setExecutionBusyId(null);
+    }
+  }
+
   async function handleCancelExecution(executionId: string) {
     if (!workspaceId) return;
     setExecutionBusyId(executionId);
@@ -839,6 +974,7 @@ export function ChatPage() {
           busyId={executionBusyId}
           onApprove={(executionId) => void handleApproveExecution(executionId)}
           onCancel={(executionId) => void handleCancelExecution(executionId)}
+          onReplace={(execution) => void handleReplaceExecution(execution)}
         />
 
         <form
