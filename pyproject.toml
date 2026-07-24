@@ -27,6 +27,7 @@ runtime = [
     "fastapi",
     "httpx",
     "openai>=1.0",
+    "opentelemetry-api",
     "pgvector",
     "psycopg[binary]",
     "pydantic>=2",

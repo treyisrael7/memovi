@@ -52,7 +52,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        # --all-packages installs workspace members (and their deps such as
+        # opentelemetry-api). Root is a virtual project with only tool groups.
+        run: uv sync --all-packages --all-groups
 
       - name: Ruff
         run: uv run ruff check .
