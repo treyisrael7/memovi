@@ -397,12 +397,87 @@ remains responsible for permission modes, approval, and audit.
 
 ---
 
+# Milestone 23 — Terminal Capability
+
+**Overall Status:** Complete
+
+The Terminal Capability executes operating-system commands through the Capability
+Execution Engine. The LLM never receives a raw shell; all runs are structured
+capability requests with engine-owned permission modes, approval, and audit.
+
+**Completed**
+
+* `TerminalCapability` (`terminal`) with `terminal.execute` permission
+* Execute command / working directory / env / timeout support
+* Capture stdout, stderr, exit code, and duration in structured results
+* Safety: Ask/Allow/Deny via engine, max timeout, max output size, process termination
+* Reject empty commands and invalid working directories
+* Cancellation of pending and in-flight terminal processes
+* Audit records with command, cwd, duration, exit code; sensitive env redacted
+* Desktop: command preview, approval dialog, live status, streaming stdout when available, exit status, cancel
+* Composition-root registration (`MEMOVI_TERMINAL_ROOTS`, fallback to filesystem roots)
+* `docs/architecture/TERMINAL_CAPABILITY.md`
+
+**Verified**
+
+* Filesystem — read and write operations remain unaffected
+* Capability Engine — terminal executes exclusively through the Execution Engine; existing capabilities continue functioning
+* Desktop — approval dialogs, progress during execution, and cancellation UI updates
+* Observability — request/correlation IDs propagate; audit/result summaries include terminal execution metadata
+* Permissions — Allow / Ask Every Time / Deny continue working across capabilities
+* Regression — full automated suite green (`468 passed, 23 skipped`) including terminal acceptance checklist
+
+**Remaining**
+
+* Durable audit persistence (shared with Milestones 21–22)
+* Desktop settings UI for capability permission policies
+* True push/SSE streaming for capability output (polling + best-effort progress today)
+
+---
+
+# Milestone 24 — Git Capability
+
+**Overall Status:** Complete
+
+The Git Capability exposes structured repository operations through the Capability
+Execution Engine. Intelligence requests status, branches, commits, diffs, and
+remotes without constructing shell commands. CLI details stay private to
+`memovi_automation.git`.
+
+**Completed**
+
+* `GitCapability` (`git`) with `git.read` / `git.write` / `git.network`
+* Repository detect/info, status, branches, stage/unstage/commit/history, diff, fetch/pull/push
+* Structured results (no raw CLI dumps); normalized Git errors
+* Root-scoped repository paths (`MEMOVI_GIT_ROOTS`), timeouts, cancellation
+* Desktop status/branch/history/diff presentation + write/network approval copy
+* Composition-root registration and Ask Every Time seeding
+* `docs/architecture/GIT_CAPABILITY.md`
+
+**Verified**
+
+* Filesystem — read/write capabilities remain unaffected
+* Terminal — continues functioning independently; Git does not expose raw terminal commands
+* Capability Engine — all Git operations execute through the Execution Engine
+* Desktop — approval dialogs and progress indicators continue working
+* Permissions — `git.read` blocks repository modifications; `git.network` controls fetch/pull/push
+* Observability — structured audit/result summaries include Git metadata; request/correlation IDs propagate
+* Regression — full automated suite green (`491 passed, 23 skipped`) including git acceptance checklist
+
+**Remaining**
+
+* Durable audit persistence (shared with Milestones 21–23)
+* Desktop settings UI for capability permission policies
+* Richer dedicated Git product page beyond Chat capability panel
+
+---
+
 # Forward Roadmap Status
 
 Future work tracks [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) Phases 1–6.
 Milestones 0–6 above remain the platform foundation tracker; Milestone 17 adds the shared model provider boundary.
 Milestone 20 adds the Knowledge Explorer inspection surface. Milestone 21 adds the
-Capability Execution Engine.
+Capability Execution Engine. Milestone 23 adds Terminal; Milestone 24 adds Git.
 
 ---
 
@@ -506,7 +581,11 @@ platform APIs. Remaining product pages are still placeholders.
 * `FilesystemCapability` (`filesystem`) with root-scoped path safety, structured errors, and read/write permission enforcement
 * Filesystem write operations with overwrite/trash policies and fine-grained create/modify/move/delete permissions
 * Filesystem smoke and write tests: register, read/write, traversal rejection, permission and audit coverage
-* Architecture references: `docs/architecture/CAPABILITY_FRAMEWORK.md`, `docs/architecture/CAPABILITY_EXECUTION.md`, `docs/architecture/FILESYSTEM_CAPABILITY.md`, `docs/architecture/FILESYSTEM_WRITE.md`
+* `TerminalCapability` (`terminal`) with root-scoped cwd safety, timeouts, output caps, cancellation, and process termination
+* Terminal unit/engine/smoke tests: execute, cwd, env, timeout, cancel, audit redaction, engine-only production path
+* `GitCapability` (`git`) with structured status/branch/commit/diff/remote ops and `git.read` / `git.write` / `git.network`
+* Git unit/engine/acceptance tests: structured results, permission tiers, approval, audit, engine-only path
+* Architecture references: `docs/architecture/CAPABILITY_FRAMEWORK.md`, `docs/architecture/CAPABILITY_EXECUTION.md`, `docs/architecture/FILESYSTEM_CAPABILITY.md`, `docs/architecture/FILESYSTEM_WRITE.md`, `docs/architecture/TERMINAL_CAPABILITY.md`, `docs/architecture/GIT_CAPABILITY.md`
 
 **In Progress**
 
@@ -514,18 +593,19 @@ platform APIs. Remaining product pages are still placeholders.
 
 **Remaining**
 
-* Concrete capabilities: Terminal, Browser, Git, Clipboard, Notifications
+* Concrete capabilities: Browser, Clipboard, Notifications
 * Desktop settings UI for capability permission policies
 * Plugin system / loading
 * Durable audit persistence
 
 **Known Risks**
 
-* Hosts that grant filesystem permissions over overly broad roots expand the trusted surface
+* Hosts that grant filesystem, terminal, or git roots over overly broad directories expand the trusted surface
+* Shell/Git write and network ops remain powerful; Ask Every Time should stay the default
 
 **Next Recommended Work**
 
-* Add the next concrete capability (Terminal or Git) and durable audit storage
+* Add the next concrete capability (Browser or Clipboard) and durable audit storage
 
 ---
 

@@ -1005,3 +1005,62 @@ button.linkish {
   white-space: pre-wrap;
   color: var(--text-muted);
 }
+
+.capability-terminal-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.capability-terminal-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.capability-terminal-stdout,
+.capability-terminal-stderr {
+  max-height: 8rem;
+  font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas,
+    monospace;
+  background: color-mix(in srgb, var(--bg-panel) 70%, var(--bg-app));
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  padding: 0.4rem 0.5rem;
+}
+
+.capability-terminal-stderr {
+  color: var(--status-bad);
+}
+
+.capability-git-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.capability-git-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.capability-git-files ul,
+.capability-git-branches,
+.capability-git-history {
+  margin: 0.15rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.capability-git-branches li[data-current="true"] {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.capability-git-diff {
+  max-height: 10rem;
+  font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas,
+    monospace;
+}

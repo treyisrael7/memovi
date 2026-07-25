@@ -379,10 +379,15 @@ class CapabilityExecutionEngine:
             correlation_id=request.correlation_id,
             granted_permissions=frozenset(metadata.permissions),
             metadata={
+                **dict(request.metadata),
                 "execution_id": request.id,
                 "conversation_id": request.conversation_id,
                 "source": request.source,
-                **dict(request.metadata),
+                # Host progress port — must win over caller-supplied metadata.
+                "report_progress": lambda output: self._publish_progress(
+                    request.id,
+                    output,
+                ),
             },
         )
         invoke_policy = request.policy or CapabilityExecutionPolicy()
@@ -484,6 +489,30 @@ class CapabilityExecutionEngine:
         with self._lock:
             self._executions[result.execution_id] = result
 
+    def _publish_progress(self, execution_id: str, output: object) -> None:
+        """Publish best-effort streaming output while an execution is still running."""
+        with self._lock:
+            current = self._executions.get(execution_id)
+            if current is None:
+                return
+            if current.status is not CapabilityExecutionStatus.EXECUTING:
+                return
+            self._executions[execution_id] = CapabilityExecutionResult(
+                execution_id=current.execution_id,
+                capability_id=current.capability_id,
+                workspace_id=current.workspace_id,
+                status=current.status,
+                permission_mode=current.permission_mode,
+                output=output,
+                error=current.error,
+                duration=current.duration,
+                conversation_id=current.conversation_id,
+                correlation_id=current.correlation_id,
+                created_at=current.created_at,
+                updated_at=datetime.now(UTC),
+                metadata=dict(current.metadata),
+            )
+
     def _audit(
         self,
         request: CapabilityExecutionRequest,
@@ -500,12 +529,27 @@ class CapabilityExecutionEngine:
         if result.output is not None:
             summary["has_output"] = True
             if isinstance(result.output, dict):
+                if "exit_code" in result.output:
+                    summary["exit_code"] = result.output["exit_code"]
+                if "duration_seconds" in result.output:
+                    summary["command_duration_seconds"] = result.output["duration_seconds"]
+                if "working_directory" in result.output:
+                    summary["working_directory"] = result.output["working_directory"]
+                if "repository" in result.output:
+                    summary["repository"] = result.output["repository"]
+                if "branch" in result.output:
+                    summary["branch"] = result.output["branch"]
+                if result.output.get("operation") == "commit" and "short_sha" in result.output:
+                    summary["short_sha"] = result.output["short_sha"]
                 output_meta = result.output.get("metadata")
                 if isinstance(output_meta, dict):
                     if "undo_available" in output_meta:
                         summary["undo_available"] = output_meta["undo_available"]
                     if "delete_mode" in output_meta:
                         summary["delete_mode"] = output_meta["delete_mode"]
+                    if "clean" in output_meta:
+                        summary["clean"] = output_meta["clean"]
+
 
         entry = ExecutionAuditEntry(
             id=str(uuid4()),
@@ -545,6 +589,27 @@ def _operation_summary(arguments: object) -> dict[str, object]:
     delete_mode = arguments.get("delete_mode")
     if isinstance(delete_mode, str) and delete_mode.strip():
         summary["delete_mode"] = delete_mode.strip()
+    command = arguments.get("command")
+    if isinstance(command, str) and command.strip():
+        summary["command"] = command.strip()
+        if "target" not in summary:
+            summary["target"] = command.strip()
+    working_directory = arguments.get("working_directory")
+    if isinstance(working_directory, str) and working_directory.strip():
+        summary["working_directory"] = working_directory.strip()
+    repository = arguments.get("repository")
+    if isinstance(repository, str) and repository.strip():
+        summary["repository"] = repository.strip()
+        if "target" not in summary:
+            summary["target"] = repository.strip()
+    branch = arguments.get("branch") or arguments.get("name")
+    if isinstance(branch, str) and branch.strip():
+        summary["branch"] = branch.strip()
+    message = arguments.get("message")
+    if isinstance(message, str) and message.strip():
+        summary["has_message"] = True
     if "content" in arguments:
         summary["has_content"] = True
+    if "env" in arguments:
+        summary["has_env"] = True
     return summary

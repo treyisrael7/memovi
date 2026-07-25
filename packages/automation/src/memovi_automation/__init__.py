@@ -23,6 +23,7 @@ from memovi_automation.domain import (
     FILESYSTEM_MOVE,
     FILESYSTEM_READ,
     FILESYSTEM_WRITE,
+    GIT_NETWORK,
     GIT_READ,
     GIT_WRITE,
     NOTIFICATIONS_SEND,
@@ -64,6 +65,22 @@ from memovi_automation.infrastructure import (
     InMemoryExecutionAuditStore,
     InMemoryPermissionPolicyStore,
 )
+from memovi_automation.git import (
+    CAPABILITY_ID as GIT_CAPABILITY_ID,
+)
+from memovi_automation.git import (
+    GitCapability,
+    GitCapabilityConfig,
+    register_git_capability,
+)
+from memovi_automation.terminal import (
+    CAPABILITY_ID as TERMINAL_CAPABILITY_ID,
+)
+from memovi_automation.terminal import (
+    TerminalCapability,
+    TerminalCapabilityConfig,
+    register_terminal_capability,
+)
 
 __all__ = [
     "BROWSER_READ",
@@ -77,9 +94,12 @@ __all__ = [
     "FILESYSTEM_MOVE",
     "FILESYSTEM_READ",
     "FILESYSTEM_WRITE",
+    "GIT_CAPABILITY_ID",
+    "GIT_NETWORK",
     "GIT_READ",
     "GIT_WRITE",
     "NOTIFICATIONS_SEND",
+    "TERMINAL_CAPABILITY_ID",
     "TERMINAL_EXECUTE",
     "AutomationDomainError",
     "CancellationToken",
@@ -107,13 +127,19 @@ __all__ = [
     "ExecutionAuditStore",
     "FilesystemCapability",
     "FilesystemCapabilityConfig",
+    "GitCapability",
+    "GitCapabilityConfig",
     "InMemoryExecutionAuditStore",
     "InMemoryPermissionPolicyStore",
     "InvalidCapabilityArgumentsError",
     "InvalidCapabilityError",
     "PermissionMode",
     "PermissionPolicyStore",
+    "TerminalCapability",
+    "TerminalCapabilityConfig",
     "UnknownCapabilityError",
     "redact_arguments",
     "register_filesystem_capability",
+    "register_git_capability",
+    "register_terminal_capability",
 ]

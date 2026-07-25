@@ -1,0 +1,11 @@
+"""Stable error codes for the Terminal Capability."""
+
+PERMISSION_DENIED = "permission_denied"
+EMPTY_COMMAND = "empty_command"
+INVALID_WORKING_DIRECTORY = "invalid_working_directory"
+INVALID_ENVIRONMENT = "invalid_environment"
+INVALID_TIMEOUT = "invalid_timeout"
+UNSUPPORTED_OPERATION = "unsupported_operation"
+TIMEOUT = "timeout"
+OUTPUT_TOO_LARGE = "output_too_large"
+PROCESS_FAILED = "process_failed"

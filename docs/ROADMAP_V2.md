@@ -412,14 +412,14 @@ Expose controlled desktop capabilities through a permissioned framework.
 **Primary Deliverables**
 
 * Capability Framework foundation (`packages/automation`)
-* Filesystem
-* Terminal
+* Filesystem (shipped)
+* Terminal (shipped through Execution Engine)
+* Git (structured capability shipped through Execution Engine)
 * Browser
-* Git
 * Clipboard
 * Notifications
 * Plugin system
-* Permission model (declarative now; enforcement with approval UX next)
+* Permission model (engine enforcement shipped; durable settings UI next) (declarative now; enforcement with approval UX next)
 
 **Success Criteria**
 

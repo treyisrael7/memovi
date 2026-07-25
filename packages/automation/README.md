@@ -17,11 +17,14 @@ Intelligence can discover and invoke:
   `CapabilityRequest`, `CapabilityResult`, `CapabilityContext`,
   `CapabilityExecutionPolicy`, `CapabilityExecutionRequest/Result/Context`,
   `ExecutionAuditEntry`, `PermissionMode`
-* `FilesystemCapability` — first production capability (root-scoped read + write)
+* `FilesystemCapability` — root-scoped read + write
+* `TerminalCapability` — root-scoped command execution (stdout/stderr/exit/duration)
+* `GitCapability` — structured repository ops (status/branch/commit/diff/remote)
 * HTTP API under `/capabilities` for discovery, execution, approval, and audit
 
-It does **not** implement git/terminal/browser capabilities, multi-step planning,
-background scheduling, or autonomous agents.
+It does **not** implement browser capabilities, multi-step planning,
+background scheduling, or autonomous agents. Terminal and Git are never exposed
+directly to the LLM; production runs go through the Capability Execution Engine.
 
 ## Layout
 
@@ -31,6 +34,8 @@ src/memovi_automation/
 ├── application/          # Ports, registry, invoker, execution engine
 ├── domain/               # Value objects and exceptions
 ├── filesystem/           # Root-scoped Filesystem Capability (read + write)
+├── terminal/             # Root-scoped Terminal Capability
+├── git/                  # Structured Git Capability
 └── infrastructure/       # In-memory policy + audit stores
 ```
 
@@ -47,3 +52,5 @@ See:
 * [`docs/architecture/CAPABILITY_EXECUTION.md`](../../docs/architecture/CAPABILITY_EXECUTION.md)
 * [`docs/architecture/FILESYSTEM_CAPABILITY.md`](../../docs/architecture/FILESYSTEM_CAPABILITY.md)
 * [`docs/architecture/FILESYSTEM_WRITE.md`](../../docs/architecture/FILESYSTEM_WRITE.md)
+* [`docs/architecture/TERMINAL_CAPABILITY.md`](../../docs/architecture/TERMINAL_CAPABILITY.md)
+* [`docs/architecture/GIT_CAPABILITY.md`](../../docs/architecture/GIT_CAPABILITY.md)

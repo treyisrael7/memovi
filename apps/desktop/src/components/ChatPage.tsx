@@ -116,8 +116,32 @@ function operationSummaryText(execution: CapabilityExecution): string | null {
     return null;
   }
   const record = summary as Record<string, unknown>;
+  const command =
+    typeof record.command === "string" ? record.command : null;
+  const workingDirectory =
+    typeof record.working_directory === "string"
+      ? record.working_directory
+      : null;
+  if (command) {
+    return workingDirectory
+      ? `$ ${command}  (${workingDirectory})`
+      : `$ ${command}`;
+  }
   const operation =
     typeof record.operation === "string" ? record.operation : null;
+  const repository =
+    typeof record.repository === "string" ? record.repository : null;
+  const branch = typeof record.branch === "string" ? record.branch : null;
+  if (execution.capability_id === "git" && operation) {
+    const repoLabel = repository ? repository.split(/[/\\]/).pop() : null;
+    if (branch && repoLabel) {
+      return `${operation}: ${repoLabel} @ ${branch}`;
+    }
+    if (repoLabel) {
+      return `${operation}: ${repoLabel}`;
+    }
+    return operation;
+  }
   const target = typeof record.target === "string" ? record.target : null;
   const destination =
     typeof record.destination === "string" ? record.destination : null;
@@ -131,6 +155,228 @@ function operationSummaryText(execution: CapabilityExecution): string | null {
     return `${operation}: ${target}`;
   }
   return operation ?? target;
+}
+
+function isTerminalExecution(execution: CapabilityExecution): boolean {
+  return execution.capability_id === "terminal";
+}
+
+function isGitExecution(execution: CapabilityExecution): boolean {
+  return execution.capability_id === "git";
+}
+
+function gitApprovalCopy(execution: CapabilityExecution): string {
+  const summary = execution.metadata?.operation_summary;
+  const operation =
+    summary && typeof summary === "object" && typeof (summary as { operation?: unknown }).operation === "string"
+      ? (summary as { operation: string }).operation
+      : null;
+  if (
+    operation === "commit" ||
+    operation === "checkout_branch" ||
+    operation === "create_branch" ||
+    operation === "stage_files" ||
+    operation === "unstage_files"
+  ) {
+    return "Apply this Git repository change? It will run only after you approve.";
+  }
+  if (operation === "push" || operation === "pull" || operation === "fetch") {
+    return "Allow this Git network operation? It will run only after you approve.";
+  }
+  return "Run this Git operation? It will execute only after you approve.";
+}
+
+type GitOutput = {
+  operation?: string;
+  repository?: string;
+  branch?: string | null;
+  current?: string | null;
+  clean?: boolean;
+  staged?: string[];
+  modified?: string[];
+  untracked?: string[];
+  ignored?: string[];
+  local?: Array<{ name?: string; current?: boolean }>;
+  remote?: Array<{ name?: string }>;
+  commits?: Array<{
+    short_sha?: string;
+    subject?: string;
+    author?: string;
+    date?: string;
+  }>;
+  short_sha?: string;
+  message?: string;
+  patch?: string;
+  summary?: string;
+  success?: boolean;
+};
+
+function asGitOutput(output: unknown): GitOutput | null {
+  if (!output || typeof output !== "object") {
+    return null;
+  }
+  return output as GitOutput;
+}
+
+function GitResultView({ output }: { output: GitOutput }) {
+  const operation = output.operation ?? "git";
+  return (
+    <div className="capability-git-result">
+      {operation === "status" ? (
+        <>
+          <p className="capability-git-meta">
+            {output.branch ? `Branch ${output.branch}` : "Detached HEAD"}
+            {output.clean === true
+              ? " · clean"
+              : output.clean === false
+                ? " · changes"
+                : ""}
+          </p>
+          <GitFileGroup label="Staged" paths={output.staged} />
+          <GitFileGroup label="Modified" paths={output.modified} />
+          <GitFileGroup label="Untracked" paths={output.untracked} />
+        </>
+      ) : null}
+      {operation === "list_branches" ? (
+        <>
+          <p className="capability-git-meta">
+            Current: {output.current ?? "none"}
+          </p>
+          <ul className="capability-git-branches">
+            {(output.local ?? []).map((branch) => (
+              <li key={branch.name ?? "local"} data-current={branch.current ? "true" : "false"}>
+                {branch.name}
+                {branch.current ? " (current)" : ""}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {operation === "commit_history" ? (
+        <ul className="capability-git-history">
+          {(output.commits ?? []).map((commit) => (
+            <li key={commit.short_sha ?? commit.subject}>
+              <code>{commit.short_sha}</code> {commit.subject}
+              {commit.author ? (
+                <span className="muted"> — {commit.author}</span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {operation === "commit" ? (
+        <p className="capability-git-meta">
+          Committed {output.short_sha}
+          {output.message ? `: ${output.message}` : ""}
+        </p>
+      ) : null}
+      {operation === "diff" && typeof output.patch === "string" ? (
+        <pre className="capability-output capability-git-diff">{output.patch}</pre>
+      ) : null}
+      {operation !== "status" &&
+      operation !== "list_branches" &&
+      operation !== "commit_history" &&
+      operation !== "commit" &&
+      operation !== "diff" ? (
+        <pre className="capability-output">
+          {JSON.stringify(output, null, 2)}
+        </pre>
+      ) : null}
+    </div>
+  );
+}
+
+function GitFileGroup({
+  label,
+  paths,
+}: {
+  label: string;
+  paths?: string[];
+}) {
+  if (!paths || paths.length === 0) {
+    return null;
+  }
+  return (
+    <div className="capability-git-files">
+      <strong>{label}</strong>
+      <ul>
+        {paths.map((path) => (
+          <li key={`${label}-${path}`}>{path}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function asTerminalOutput(
+  output: unknown,
+): {
+  exit_code?: number;
+  stdout?: string;
+  stderr?: string;
+  duration_seconds?: number;
+  success?: boolean;
+  streaming?: boolean;
+} | null {
+  if (!output || typeof output !== "object") {
+    return null;
+  }
+  return output as {
+    exit_code?: number;
+    stdout?: string;
+    stderr?: string;
+    duration_seconds?: number;
+    success?: boolean;
+    streaming?: boolean;
+  };
+}
+
+function TerminalOutputView({
+  output,
+  live,
+}: {
+  output: {
+    exit_code?: number;
+    stdout?: string;
+    stderr?: string;
+    duration_seconds?: number;
+    success?: boolean;
+    streaming?: boolean;
+  };
+  live?: boolean;
+}) {
+  const hasStdout = typeof output.stdout === "string" && output.stdout.length > 0;
+  const hasStderr = typeof output.stderr === "string" && output.stderr.length > 0;
+  return (
+    <div className="capability-terminal-result">
+      {!live && typeof output.exit_code === "number" ? (
+        <p className="capability-terminal-meta">
+          Exit {output.exit_code}
+          {typeof output.duration_seconds === "number"
+            ? ` · ${(output.duration_seconds * 1000).toFixed(0)} ms`
+            : ""}
+        </p>
+      ) : null}
+      {live ? (
+        <p className="capability-progress" role="status">
+          Streaming output…
+        </p>
+      ) : null}
+      {hasStdout ? (
+        <pre className="capability-output capability-terminal-stdout">
+          {output.stdout}
+        </pre>
+      ) : null}
+      {hasStderr ? (
+        <pre className="capability-output capability-terminal-stderr">
+          {output.stderr}
+        </pre>
+      ) : null}
+      {!live && !hasStdout && !hasStderr ? (
+        <p className="muted">No output captured.</p>
+      ) : null}
+    </div>
+  );
 }
 
 function undoMessage(execution: CapabilityExecution): string | null {
@@ -197,6 +443,18 @@ function CapabilityExecutionPanel({
           const summary = operationSummaryText(execution);
           const undo = undoMessage(execution);
           const confirmOverwrite = isOverwriteConfirmation(execution);
+          const terminalOutput = isTerminalExecution(execution)
+            ? asTerminalOutput(execution.output)
+            : null;
+          const gitOutput = isGitExecution(execution)
+            ? asGitOutput(execution.output)
+            : null;
+          const hasLiveTerminalOutput =
+            terminalOutput != null &&
+            ((typeof terminalOutput.stdout === "string" &&
+              terminalOutput.stdout.length > 0) ||
+              (typeof terminalOutput.stderr === "string" &&
+                terminalOutput.stderr.length > 0));
           return (
             <li
               key={execution.execution_id}
@@ -219,8 +477,11 @@ function CapabilityExecutionPanel({
               {execution.status === "pending_approval" ? (
                 <div className="capability-confirm">
                   <p className="capability-confirm-copy">
-                    Confirm this capability action? It will run only after you
-                    approve.
+                    {isTerminalExecution(execution)
+                      ? "Run this terminal command? It will execute only after you approve."
+                      : isGitExecution(execution)
+                        ? gitApprovalCopy(execution)
+                        : "Confirm this capability action? It will run only after you approve."}
                   </p>
                   <div className="capability-actions">
                     <button
@@ -243,9 +504,26 @@ function CapabilityExecutionPanel({
                 </div>
               ) : null}
               {execution.status === "executing" ? (
-                <p className="capability-progress" role="status">
-                  Running…
-                </p>
+                <>
+                  <p className="capability-progress" role="status">
+                    Running…
+                  </p>
+                  {hasLiveTerminalOutput && terminalOutput ? (
+                    <TerminalOutputView output={terminalOutput} live />
+                  ) : null}
+                  {isTerminalExecution(execution) ? (
+                    <div className="capability-actions">
+                      <button
+                        type="button"
+                        className="danger-button"
+                        disabled={busyId === execution.execution_id}
+                        onClick={() => onCancel(execution.execution_id)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : null}
+                </>
               ) : null}
               {confirmOverwrite ? (
                 <div className="capability-confirm">
@@ -276,20 +554,34 @@ function CapabilityExecutionPanel({
                 <div className="capability-result capability-result-success">
                   {undo ? <p className="capability-undo">{undo}</p> : null}
                   {execution.output != null ? (
-                    <pre className="capability-output">
-                      {typeof execution.output === "string"
-                        ? execution.output
-                        : JSON.stringify(execution.output, null, 2)}
-                    </pre>
+                    terminalOutput ? (
+                      <TerminalOutputView output={terminalOutput} />
+                    ) : gitOutput ? (
+                      <GitResultView output={gitOutput} />
+                    ) : (
+                      <pre className="capability-output">
+                        {typeof execution.output === "string"
+                          ? execution.output
+                          : JSON.stringify(execution.output, null, 2)}
+                      </pre>
+                    )
                   ) : null}
                 </div>
               ) : null}
               {execution.status === "failed" && !confirmOverwrite ? (
-                <p className="capability-result capability-result-failure">
-                  {execution.error?.message ??
-                    execution.error_message ??
-                    "Capability execution failed."}
-                </p>
+                <div className="capability-result capability-result-failure">
+                  <p>
+                    {execution.error?.message ??
+                      execution.error_message ??
+                      "Capability execution failed."}
+                  </p>
+                  {terminalOutput ? (
+                    <TerminalOutputView output={terminalOutput} />
+                  ) : null}
+                </div>
+              ) : null}
+              {execution.status === "cancelled" && terminalOutput ? (
+                <TerminalOutputView output={terminalOutput} />
               ) : null}
             </li>
           );

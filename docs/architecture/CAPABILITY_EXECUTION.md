@@ -13,8 +13,10 @@ action may be useful. The execution engine owns **whether** and **how** a single
 capability run proceeds under permission policy, validation, and audit.
 
 See also [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) for registry and
-capability contracts, and [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md)
-for the first concrete capability.
+capability contracts, [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md) for
+filesystem, [`TERMINAL_CAPABILITY.md`](TERMINAL_CAPABILITY.md) for terminal
+command execution, and [`GIT_CAPABILITY.md`](GIT_CAPABILITY.md) for structured
+Git operations.
 
 # Safety Philosophy
 

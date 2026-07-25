@@ -61,7 +61,8 @@ tasks:
     desc: Start the flagship Tauri desktop client (requires Rust toolchain).
     env:
       # Keep Cargo artifacts off OneDrive-synced trees when the env var is unset.
-      CARGO_TARGET_DIR: '{{.CARGO_TARGET_DIR | default (printf "%s/memovi-desktop-target" .HOME)}}'
+      # Prefer LOCALAPPDATA (Windows), then HOME (Unix), then USERPROFILE.
+      CARGO_TARGET_DIR: '{{.CARGO_TARGET_DIR | default (printf "%s/memovi-desktop-target" (.LOCALAPPDATA | default .HOME | default .USERPROFILE))}}'
     cmds:
       - pnpm --filter {{.DESKTOP_PACKAGE}} tauri:dev
 

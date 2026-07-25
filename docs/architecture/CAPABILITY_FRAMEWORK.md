@@ -121,6 +121,7 @@ Well-known examples:
 * `terminal.execute`
 * `git.read`
 * `git.write`
+* `git.network`
 * `browser.read`
 * `clipboard.read`
 * `clipboard.write`
@@ -243,9 +244,9 @@ should extend this framework rather than invent a parallel execution stack.
 
 | Stage | Outcome |
 | --- | --- |
-| Now | Capability Framework + Filesystem Capability (read + write) |
-| Next | Concrete capabilities: Git, Terminal, Browser, Clipboard, Notifications |
-| Then | Permission enforcement and user approval UX (desktop-first) |
+| Now | Capability Framework + Filesystem + Terminal + Git capabilities |
+| Next | Concrete capabilities: Browser, Clipboard, Notifications |
+| Then | Durable permission settings UI and plugin packaging |
 | Later | Automation composition, provenance, background jobs |
 | Eventually | Plugin packaging and third-party capability distribution |
 
@@ -256,7 +257,7 @@ should extend this framework rather than invent a parallel execution stack.
 * Permissions are metadata first; approval UI comes later.
 * Capabilities interact with the host only through `CapabilityContext`.
 * Intelligence Tools and Automation Capabilities remain distinct abstractions.
-* Concrete product capabilities are intentionally absent in this foundation.
+* Concrete product capabilities (Filesystem, Terminal) register explicitly at the composition root.
 
 # Related Documents
 

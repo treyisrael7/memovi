@@ -1,0 +1,55 @@
+"""Production Git Capability — structured repository operations."""
+
+from memovi_automation.git.capability import (
+    CAPABILITY_ID,
+    NETWORK_OPERATIONS,
+    READ_OPERATIONS,
+    WRITE_OPERATIONS,
+    GitCapability,
+    register_git_capability,
+)
+from memovi_automation.git.config import GitCapabilityConfig
+from memovi_automation.git.errors import (
+    AUTHENTICATION_FAILURE,
+    DETACHED_HEAD,
+    EMPTY_MESSAGE,
+    GIT_FAILED,
+    GIT_NOT_AVAILABLE,
+    INVALID_PATHS,
+    INVALID_REF,
+    INVALID_REPOSITORY,
+    INVALID_TIMEOUT,
+    MERGE_CONFLICT,
+    NOT_A_GIT_REPOSITORY,
+    PERMISSION_DENIED,
+    PUSH_REJECTED,
+    REPOSITORY_NOT_FOUND,
+    TIMEOUT,
+    UNSUPPORTED_OPERATION,
+)
+
+__all__ = [
+    "AUTHENTICATION_FAILURE",
+    "CAPABILITY_ID",
+    "DETACHED_HEAD",
+    "EMPTY_MESSAGE",
+    "GIT_FAILED",
+    "GIT_NOT_AVAILABLE",
+    "INVALID_PATHS",
+    "INVALID_REF",
+    "INVALID_REPOSITORY",
+    "INVALID_TIMEOUT",
+    "MERGE_CONFLICT",
+    "NETWORK_OPERATIONS",
+    "NOT_A_GIT_REPOSITORY",
+    "PERMISSION_DENIED",
+    "PUSH_REJECTED",
+    "READ_OPERATIONS",
+    "REPOSITORY_NOT_FOUND",
+    "TIMEOUT",
+    "UNSUPPORTED_OPERATION",
+    "WRITE_OPERATIONS",
+    "GitCapability",
+    "GitCapabilityConfig",
+    "register_git_capability",
+]

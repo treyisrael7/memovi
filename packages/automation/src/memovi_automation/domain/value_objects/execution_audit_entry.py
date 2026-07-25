@@ -21,7 +21,17 @@ _SENSITIVE_KEY_FRAGMENTS = (
 )
 
 # File contents and similar payloads are never stored in audit arguments.
-_CONTENT_KEYS = frozenset({"content", "body", "text", "data", "file_content"})
+_CONTENT_KEYS = frozenset(
+    {
+        "content",
+        "body",
+        "text",
+        "data",
+        "file_content",
+        "stdout",
+        "stderr",
+    }
+)
 
 
 def redact_arguments(arguments: Mapping[str, object]) -> dict[str, object]:
@@ -34,6 +44,7 @@ def redact_arguments(arguments: Mapping[str, object]) -> dict[str, object]:
         ):
             redacted[key] = "[REDACTED]"
         elif isinstance(value, Mapping):
+            # Environment maps are redacted key-by-key so non-sensitive values remain.
             redacted[key] = redact_arguments(value)
         else:
             redacted[key] = value
