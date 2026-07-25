@@ -33,6 +33,34 @@ class InvalidExecutionPlanError(AutomationDomainError):
         self.details: dict[str, object] = {} if details is None else dict(details)
 
 
+class InvalidWorkflowError(AutomationDomainError):
+    """Raised when a workflow definition, variables, or mappings are invalid."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "invalid_workflow",
+        details: dict[str, object] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.details: dict[str, object] = {} if details is None else dict(details)
+
+
+class UnknownWorkflowError(AutomationDomainError):
+    """Raised when a requested workflow id is not in the library."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        workflow_id: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.workflow_id = workflow_id
+
+
 class CapabilityExecutionError(AutomationDomainError):
     """Raised when a capability fails during execution."""
 

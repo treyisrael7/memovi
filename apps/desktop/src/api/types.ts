@@ -275,3 +275,94 @@ export interface CapabilityListResponse {
   items: CapabilityMetadata[];
   count: number;
 }
+
+export type WorkflowExecutionStatus =
+  | "completed"
+  | "failed"
+  | "awaiting_approval"
+  | "cancelled"
+  | "running"
+  | string;
+
+export interface WorkflowVariable {
+  name: string;
+  type: string;
+  description: string;
+  required: boolean;
+  default?: unknown;
+}
+
+export interface WorkflowStepDefinition {
+  step_id: string;
+  capability_id: string;
+  operation: string;
+  input_mapping: Record<string, unknown>;
+  output_mapping: Record<string, string>;
+  expected_result?: string | null;
+  description: string;
+}
+
+export interface WorkflowDefinition {
+  workflow_id: string;
+  name: string;
+  description: string;
+  steps: WorkflowStepDefinition[];
+  variables: WorkflowVariable[];
+  required_capabilities: string[];
+  expected_outputs: string[];
+  metadata: Record<string, unknown>;
+}
+
+export interface WorkflowListResponse {
+  items: WorkflowDefinition[];
+  count: number;
+}
+
+export interface WorkflowStepResult {
+  step_id: string;
+  capability_id: string;
+  operation: string;
+  execution_id: string | null;
+  status: string;
+  output?: unknown;
+  error_code?: string | null;
+  error_message?: string | null;
+  duration: number;
+  plan_id?: string | null;
+}
+
+export interface WorkflowExecutionResult {
+  instance_id: string;
+  workflow_id: string;
+  workflow_name: string;
+  workspace_id: string;
+  status: WorkflowExecutionStatus;
+  completed_steps: string[];
+  failed_steps: string[];
+  step_results: WorkflowStepResult[];
+  duration: number;
+  outputs: Record<string, unknown>;
+  errors: string[];
+  audit_references: string[];
+  started_at: string;
+  finished_at?: string | null;
+  metadata: Record<string, unknown>;
+}
+
+export interface WorkflowHistoryEntry {
+  instance_id: string;
+  workflow_id: string;
+  workflow_name: string;
+  workspace_id: string;
+  status: WorkflowExecutionStatus;
+  executed_at: string;
+  duration: number;
+  result_summary: Record<string, unknown>;
+  executed_capabilities: string[];
+  audit_references: string[];
+}
+
+export interface WorkflowHistoryListResponse {
+  items: WorkflowHistoryEntry[];
+  count: number;
+}

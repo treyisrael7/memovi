@@ -7,7 +7,9 @@ from memovi_automation.domain.exceptions import (
     InvalidCapabilityArgumentsError,
     InvalidCapabilityError,
     InvalidExecutionPlanError,
+    InvalidWorkflowError,
     UnknownCapabilityError,
+    UnknownWorkflowError,
 )
 from memovi_automation.domain.value_objects import (
     BROWSER_DOWNLOAD,
@@ -47,6 +49,14 @@ from memovi_automation.domain.value_objects import (
     ExecutionStep,
     ExecutionStepResult,
     PermissionMode,
+    WorkflowContext,
+    WorkflowDefinition,
+    WorkflowExecutionResult,
+    WorkflowHistoryEntry,
+    WorkflowInstance,
+    WorkflowStep,
+    WorkflowStepResult,
+    WorkflowVariable,
     redact_arguments,
 )
 
@@ -90,6 +100,7 @@ __all__ = [
     "InvalidCapabilityArgumentsError",
     "InvalidCapabilityError",
     "InvalidExecutionPlanError",
+    "InvalidWorkflowError",
     "ExecutionDependency",
     "ExecutionPlan",
     "ExecutionPlanResult",
@@ -97,5 +108,14 @@ __all__ = [
     "ExecutionStepResult",
     "PermissionMode",
     "UnknownCapabilityError",
+    "UnknownWorkflowError",
+    "WorkflowContext",
+    "WorkflowDefinition",
+    "WorkflowExecutionResult",
+    "WorkflowHistoryEntry",
+    "WorkflowInstance",
+    "WorkflowStep",
+    "WorkflowStepResult",
+    "WorkflowVariable",
     "redact_arguments",
 ]

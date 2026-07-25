@@ -52,6 +52,16 @@ from memovi_automation.domain.value_objects.execution_plan import (
     ExecutionStepResult,
 )
 from memovi_automation.domain.value_objects.permission_mode import PermissionMode
+from memovi_automation.domain.value_objects.workflow import (
+    WorkflowContext,
+    WorkflowDefinition,
+    WorkflowExecutionResult,
+    WorkflowHistoryEntry,
+    WorkflowInstance,
+    WorkflowStep,
+    WorkflowStepResult,
+    WorkflowVariable,
+)
 
 __all__ = [
     "BROWSER_DOWNLOAD",
@@ -91,5 +101,13 @@ __all__ = [
     "ExecutionStep",
     "ExecutionStepResult",
     "PermissionMode",
+    "WorkflowContext",
+    "WorkflowDefinition",
+    "WorkflowExecutionResult",
+    "WorkflowHistoryEntry",
+    "WorkflowInstance",
+    "WorkflowStep",
+    "WorkflowStepResult",
+    "WorkflowVariable",
     "redact_arguments",
 ]

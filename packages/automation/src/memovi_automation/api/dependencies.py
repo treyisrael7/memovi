@@ -6,6 +6,7 @@ from memovi_shared import DEFAULT_WORKSPACE_ID, InvalidWorkspaceIdError, Workspa
 from memovi_automation.application.services.capability_execution_engine import (
     CapabilityExecutionEngine,
 )
+from memovi_automation.application.services.workflow_engine import WorkflowEngine
 
 WORKSPACE_HEADER = "X-Memovi-Workspace-Id"
 
@@ -29,3 +30,10 @@ def get_capability_execution_engine(request: Request) -> CapabilityExecutionEngi
     if engine is None:
         raise RuntimeError("Capability execution engine was not configured.")
     return cast(CapabilityExecutionEngine, engine)
+
+
+def get_workflow_engine(request: Request) -> WorkflowEngine:
+    engine = getattr(request.app.state, "workflow_engine", None)
+    if engine is None:
+        raise RuntimeError("Workflow engine was not configured.")
+    return cast(WorkflowEngine, engine)

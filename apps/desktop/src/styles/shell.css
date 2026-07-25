@@ -1097,3 +1097,144 @@ button.linkish {
   max-height: 10rem;
   white-space: pre-wrap;
 }
+
+.workflows-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+}
+
+.workflows-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.workflows-tabs {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.workflows-tab {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  border-radius: 0.45rem;
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.workflows-tab[data-active="true"] {
+  background: color-mix(in srgb, var(--bg-panel) 70%, var(--bg-app));
+  font-weight: 600;
+}
+
+.workflows-split {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 1rem;
+  min-height: 0;
+}
+
+.workflows-list,
+.workflows-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+}
+
+.workflows-list-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--bg-panel) 92%, var(--bg-app));
+  color: inherit;
+  padding: 0.75rem 0.85rem;
+  cursor: pointer;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.workflows-list-item:hover {
+  background: color-mix(in srgb, var(--bg-panel) 80%, var(--bg-app));
+}
+
+.workflows-list-item[data-active="true"] {
+  border-color: color-mix(in srgb, var(--text) 35%, var(--border));
+  font-weight: 560;
+}
+
+.workflows-list-item span,
+.workflows-list-item em {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-style: normal;
+}
+
+.workflows-detail,
+.workflows-run,
+.workflows-history,
+.workflows-progress {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.workflows-steps,
+.workflows-vars {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.workflows-form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 36rem;
+}
+
+.workflows-field {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.workflows-field input {
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: var(--bg-panel);
+  color: inherit;
+  padding: 0.55rem 0.7rem;
+}
+
+.workflows-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.workflows-json {
+  margin: 0;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--bg-panel) 88%, var(--bg-app));
+  overflow: auto;
+  max-height: 16rem;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 860px) {
+  .workflows-split {
+    grid-template-columns: 1fr;
+  }
+}

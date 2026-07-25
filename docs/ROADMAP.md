@@ -375,9 +375,9 @@ Compose capabilities into safe, user-approved automation on top of knowledge.
 * Safe execution (Capability Execution Engine shipped)
 * Approval workflow (engine Ask Every Time shipped; durable settings UI next)
 * Capability Planner (deterministic plan/validate shipped; execute via engine)
-* Task orchestration
+* Task orchestration (Workflow Automation Framework shipped — sequential reusable workflows)
 * Background jobs
-* Capability composition (planner + engine path shipped; richer workflows next)
+* Capability composition (planner + engine + workflow path shipped; conditionals/loops next)
 
 **Success Criteria**
 

@@ -10,6 +10,7 @@ export type PageId =
   | "search"
   | "workspaces"
   | "models"
+  | "workflows"
   | "activity"
   | "capabilities"
   | "settings";
@@ -65,6 +66,13 @@ export const PAGES: readonly PageDefinition[] = [
     label: "Models",
     available: false,
     description: "Model provider configuration and health.",
+  },
+  {
+    id: "workflows",
+    label: "Workflows",
+    available: true,
+    description:
+      "Reusable capability workflows: library, run, progress, and history.",
   },
   {
     id: "activity",

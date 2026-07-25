@@ -10,6 +10,9 @@ from memovi_automation.application.services.execution_plan_validator import (
 from memovi_automation.application.services.plan_execution_service import (
     PlanExecutionService,
 )
+from memovi_automation.application.services.workflow_engine import WorkflowEngine
+from memovi_automation.application.services.workflow_history import WorkflowHistory
+from memovi_automation.application.services.workflow_validator import WorkflowValidator
 
 __all__ = [
     "CapabilityExecutionEngine",
@@ -18,4 +21,7 @@ __all__ = [
     "CapabilityRegistry",
     "ExecutionPlanValidator",
     "PlanExecutionService",
+    "WorkflowEngine",
+    "WorkflowHistory",
+    "WorkflowValidator",
 ]

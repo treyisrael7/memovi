@@ -787,12 +787,14 @@ version = "0.1.0"
 source = { editable = "packages/automation" }
 dependencies = [
     { name = "fastapi" },
+    { name = "memovi-observability" },
     { name = "memovi-shared" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "fastapi" },
+    { name = "memovi-observability", editable = "packages/observability" },
     { name = "memovi-shared", editable = "packages/shared" },
 ]
 

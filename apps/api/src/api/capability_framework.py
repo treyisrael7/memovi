@@ -15,9 +15,13 @@ from memovi_automation import (
     GitCapabilityConfig,
     InMemoryExecutionAuditStore,
     InMemoryPermissionPolicyStore,
+    InMemoryWorkflowHistoryStore,
+    InMemoryWorkflowLibrary,
     PermissionMode,
     PlanExecutionService,
     TerminalCapabilityConfig,
+    WorkflowEngine,
+    WorkflowValidator,
     register_browser_capability,
     register_filesystem_capability,
     register_git_capability,
@@ -100,6 +104,14 @@ def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
     )
     planner = CapabilityPlanner(registry=registry)
     plan_execution = PlanExecutionService(engine=engine, planner=planner)
+    workflow_history_store = InMemoryWorkflowHistoryStore()
+    workflow_engine = WorkflowEngine(
+        library=InMemoryWorkflowLibrary(),
+        planner=planner,
+        plan_execution=plan_execution,
+        history=workflow_history_store,
+        validator=WorkflowValidator(registry=registry),
+    )
 
     app.state.capability_registry = registry
     app.state.capability_invoker = invoker
@@ -111,6 +123,8 @@ def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
         planner=planner,
         plan_execution=plan_execution,
     )
+    app.state.workflow_engine = workflow_engine
+    app.state.workflow_history_store = workflow_history_store
     app.state.filesystem_allowed_roots = roots
     app.state.terminal_allowed_roots = terminal_roots
     app.state.git_allowed_roots = git_roots

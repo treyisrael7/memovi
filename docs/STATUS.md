@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-07-24 (Milestone 26).
+system on a reusable backend platform. Last reviewed: 2026-07-24 (Milestone 27).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -545,13 +545,53 @@ are submitted only through the Capability Execution Engine.
 
 ---
 
+# Milestone 27 — Workflow Automation
+
+**Overall Status:** Complete
+
+The Workflow Automation Framework lets users run reusable, declarative sequences
+of capabilities. Workflows validate variables, materialize each step through the
+Capability Planner, execute only via the Capability Execution Engine, and record
+structured history.
+
+**Completed**
+
+* `WorkflowEngine`, `WorkflowValidator`, `WorkflowHistory` (+ in-memory store/library)
+* Contracts: `WorkflowDefinition`, `WorkflowStep`, `WorkflowVariable`, `WorkflowContext`,
+  `WorkflowInstance`, `WorkflowExecutionResult`, `WorkflowHistoryEntry`
+* Sequential execution with input/output mapping and `${var}` / `${steps…}` substitution
+* Built-in library workflows; HTTP `/workflows` list/get/execute/history
+* Desktop Workflows page: library, run, progress, history (presentation only)
+* `docs/architecture/WORKFLOW_AUTOMATION.md`
+
+**Verified**
+
+* Browser + Filesystem `download-and-verify` workflow: ordered steps, output mapping
+* Terminal `run-command` and Git workflows execute through planner + engine
+* Approval pauses until engine approve; intentional failures stop with structured errors
+* Variables validated before planner/engine side effects
+* History + per-step audit entries recorded; plans generated before each step runs
+* Structured logs include `workflow_id`; ambient `request_id` propagates to every step
+* Regression checklist covers planner independence, engine solo path, permissions, FS/Terminal/Git/Browser
+* Full automated suite green (`559 passed, 23 skipped`)
+
+**Remaining**
+
+* Loops, parallel execution, conditionals
+* Background / scheduled workflow runners
+* Resume remaining steps after Ask Every Time approval within one instance
+* Durable cross-process workflow history
+
+---
+
 # Forward Roadmap Status
 
 Future work tracks [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) Phases 1–6.
 Milestones 0–6 above remain the platform foundation tracker; Milestone 17 adds the shared model provider boundary.
 Milestone 20 adds the Knowledge Explorer inspection surface. Milestone 21 adds the
 Capability Execution Engine. Milestone 23 adds Terminal; Milestone 24 adds Git;
-Milestone 25 adds Browser. Milestone 26 adds the Capability Planner.
+Milestone 25 adds Browser. Milestone 26 adds the Capability Planner. Milestone 27
+adds Workflow Automation.
 
 ---
 
@@ -600,19 +640,20 @@ API stability remain.
 **Overall Status:** In progress
 
 The flagship Tauri desktop shell lives in `apps/desktop`. It launches, probes
-backend health/readiness, and exposes Chat plus the Knowledge Explorer over the
-platform APIs. Remaining product pages are still placeholders.
+backend health/readiness, and exposes Chat, Knowledge Explorer, and Workflows over
+the platform APIs. Remaining product pages are still placeholders.
 
 **Completed**
 
 * `apps/desktop` Tauri + React shell foundation
 * Sidebar / top bar / main content / status bar layout
 * Backend connection detection, reconnect polling, and friendly errors
-* Navigation registry reserved for Chat, Knowledge, Documents, Search, Workspaces, Models,
-  Activity, Capabilities, and Settings
+* Navigation registry for Chat, Knowledge, Workflows, Documents, Search, Workspaces,
+  Models, Activity, Capabilities, and Settings
 * Chat conversation experience (list/create/rename/delete, history, SSE streaming,
   markdown/code copy, stop/retry, workspace + model selectors)
 * Knowledge Explorer (overview, search, concepts, entities, relationships, sources)
+* Workflows page (library, run, progress, history) over `/workflows`
 * `docs/architecture/DESKTOP_CLIENT.md`
 * `docs/architecture/KNOWLEDGE_EXPLORER.md`
 
@@ -694,6 +735,8 @@ platform APIs. Remaining product pages are still placeholders.
 * Capability Execution Engine safe execution + Ask Every Time approval path
 * Capability Planner (deterministic plan/validate; execute via engine only)
 * Plan contracts and Intelligence/conversation bridge for create + execute plan
+* Workflow Automation Framework (reusable sequential workflows over planner + engine)
+* Desktop Workflows library / run / progress / history surface
 
 **In Progress**
 
@@ -702,9 +745,9 @@ platform APIs. Remaining product pages are still placeholders.
 **Remaining**
 
 * Durable approval/settings UX
-* Task orchestration beyond ordered plans
 * Background jobs / scheduled workflows
-* Conditional/loop workflow features on plan contracts
+* Conditional/loop/parallel workflow features
+* Resume-after-approval for multi-step workflow instances
 
 **Known Risks**
 
@@ -712,7 +755,7 @@ platform APIs. Remaining product pages are still placeholders.
 
 **Next Recommended Work**
 
-* Extend planner-backed composition with durable plan storage and background runners — still not a parallel agent stack
+* Add durable workflow/plan history and background runners — still not a parallel agent stack
 
 ---
 

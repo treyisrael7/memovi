@@ -3,6 +3,7 @@ import { getPage } from "../navigation/pages";
 import { useAppState } from "../state/AppStateContext";
 import { ChatPage } from "./ChatPage";
 import { KnowledgeExplorerPage } from "./KnowledgeExplorerPage";
+import { WorkflowsPage } from "./WorkflowsPage";
 
 function ConnectionBanner() {
   const { connection } = useAppState();
@@ -103,6 +104,8 @@ export function MainContent() {
     body = <ChatPage />;
   } else if (page.available && page.id === "knowledge") {
     body = <KnowledgeExplorerPage />;
+  } else if (page.available && page.id === "workflows") {
+    body = <WorkflowsPage />;
   } else if (page.available && page.id === "home") {
     body = <HomePage />;
   } else {

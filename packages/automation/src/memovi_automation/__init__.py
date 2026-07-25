@@ -1,8 +1,9 @@
 """Memovi Capability Framework.
 
 Provider-agnostic capability abstractions for discovery, permission metadata,
-safe single-invocation execution, the Capability Execution Engine, and the
-Capability Planner (plan/validate only — never executes capabilities).
+safe single-invocation execution, the Capability Execution Engine, the
+Capability Planner (plan/validate only — never executes capabilities), and the
+Workflow Automation Framework (reusable sequential workflows over planner + engine).
 """
 
 from memovi_automation.application import (
@@ -15,6 +16,11 @@ from memovi_automation.application import (
     ExecutionPlanValidator,
     PermissionPolicyStore,
     PlanExecutionService,
+    WorkflowEngine,
+    WorkflowHistory,
+    WorkflowHistoryStore,
+    WorkflowLibrary,
+    WorkflowValidator,
 )
 from memovi_automation.browser import (
     CAPABILITY_ID as BROWSER_CAPABILITY_ID,
@@ -69,8 +75,18 @@ from memovi_automation.domain import (
     InvalidCapabilityArgumentsError,
     InvalidCapabilityError,
     InvalidExecutionPlanError,
+    InvalidWorkflowError,
     PermissionMode,
     UnknownCapabilityError,
+    UnknownWorkflowError,
+    WorkflowContext,
+    WorkflowDefinition,
+    WorkflowExecutionResult,
+    WorkflowHistoryEntry,
+    WorkflowInstance,
+    WorkflowStep,
+    WorkflowStepResult,
+    WorkflowVariable,
     redact_arguments,
 )
 from memovi_automation.filesystem import (
@@ -84,6 +100,9 @@ from memovi_automation.filesystem import (
 from memovi_automation.infrastructure import (
     InMemoryExecutionAuditStore,
     InMemoryPermissionPolicyStore,
+    InMemoryWorkflowHistoryStore,
+    InMemoryWorkflowLibrary,
+    built_in_workflows,
 )
 from memovi_automation.git import (
     CAPABILITY_ID as GIT_CAPABILITY_ID,
@@ -163,15 +182,33 @@ __all__ = [
     "GitCapabilityConfig",
     "InMemoryExecutionAuditStore",
     "InMemoryPermissionPolicyStore",
+    "InMemoryWorkflowHistoryStore",
+    "InMemoryWorkflowLibrary",
     "InvalidCapabilityArgumentsError",
     "InvalidCapabilityError",
     "InvalidExecutionPlanError",
+    "InvalidWorkflowError",
     "PermissionMode",
     "PermissionPolicyStore",
     "PlanExecutionService",
     "TerminalCapability",
     "TerminalCapabilityConfig",
     "UnknownCapabilityError",
+    "UnknownWorkflowError",
+    "WorkflowContext",
+    "WorkflowDefinition",
+    "WorkflowEngine",
+    "WorkflowExecutionResult",
+    "WorkflowHistory",
+    "WorkflowHistoryEntry",
+    "WorkflowHistoryStore",
+    "WorkflowInstance",
+    "WorkflowLibrary",
+    "WorkflowStep",
+    "WorkflowStepResult",
+    "WorkflowValidator",
+    "WorkflowVariable",
+    "built_in_workflows",
     "redact_arguments",
     "register_browser_capability",
     "register_filesystem_capability",

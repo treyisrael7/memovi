@@ -8,6 +8,7 @@ from memovi_automation.api.dependencies import (
     get_active_workspace_id as get_automation_workspace_id,
 )
 from memovi_automation.api.router import router as capabilities_router
+from memovi_automation.api.workflow_router import router as workflows_router
 from memovi_intelligence.api.dependencies import (
     get_active_workspace_id as get_intelligence_workspace_id,
 )
@@ -61,6 +62,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(documents_router)
     app.include_router(memory_router)
     app.include_router(capabilities_router)
+    app.include_router(workflows_router)
     app.include_router(conversations_router)
     app.include_router(search_router)
     app.include_router(health_router)

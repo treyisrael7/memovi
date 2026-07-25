@@ -160,6 +160,7 @@ Pages are registered in `src/navigation/pages.ts`:
 * Home (available)
 * Chat (available)
 * Knowledge (available) — Knowledge Explorer
+* Workflows (available) — library, run, progress, history
 * Documents
 * Search
 * Workspaces
@@ -179,6 +180,8 @@ Future desktop features should continue to consume platform APIs:
 * Search → Search API
 * Workspaces → Workspaces API + `X-Memovi-Workspace-Id`
 * Models → future Models HTTP surface over `packages/models`
+* Workflows → `/workflows` API (library, execute, history); approvals still via
+  Capability Execution Engine
 * Capabilities → Capability Framework (`packages/automation`) with desktop
   approval UX later
 

@@ -161,6 +161,10 @@ them now:
 * Background workflows (async workers submitting plans)
 * Scheduled workflows (scheduler producing plans)
 
+Reusable sequential workflows are implemented separately in
+[`WORKFLOW_AUTOMATION.md`](WORKFLOW_AUTOMATION.md) and always call back into this
+planner before engine submission.
+
 Do not grow the planner into an agent runtime. Multi-step autonomy belongs to a
 later Automation phase built on these contracts.
 
@@ -168,6 +172,7 @@ later Automation phase built on these contracts.
 
 * [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md)
 * [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md)
+* [`WORKFLOW_AUTOMATION.md`](WORKFLOW_AUTOMATION.md)
 * [`BROWSER_CAPABILITY.md`](BROWSER_CAPABILITY.md)
 * [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 * [`../STATUS.md`](../STATUS.md)
