@@ -142,11 +142,13 @@ request (`provider` + `model`) and does not change backend defaults permanently.
 
 Chat also polls capability executions for the active workspace/conversation and
 renders confirmation dialogs, progress, success/failure, overwrite Replace
-prompts, and undo messaging for trash deletes. Approve, deny, and overwrite
-retries call the Capability Execution Engine over HTTP; desktop never invokes
-capabilities or touches the filesystem locally. See
-[`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md) and
-[`FILESYSTEM_WRITE.md`](FILESYSTEM_WRITE.md).
+prompts, undo messaging for trash deletes, and browser navigation/download/
+search presentation. Approve, deny, and overwrite retries call the Capability
+Execution Engine over HTTP; desktop never invokes capabilities or touches the
+filesystem/browser APIs locally. See
+[`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md),
+[`FILESYSTEM_WRITE.md`](FILESYSTEM_WRITE.md), and
+[`BROWSER_CAPABILITY.md`](BROWSER_CAPABILITY.md).
 
 Markdown rendering, code-block copy, message copy, retry on failed responses,
 and auto-scroll are presentation concerns only.

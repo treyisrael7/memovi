@@ -123,6 +123,8 @@ Well-known examples:
 * `git.write`
 * `git.network`
 * `browser.read`
+* `browser.search`
+* `browser.download`
 * `clipboard.read`
 * `clipboard.write`
 * `notifications.send`
@@ -244,8 +246,8 @@ should extend this framework rather than invent a parallel execution stack.
 
 | Stage | Outcome |
 | --- | --- |
-| Now | Capability Framework + Filesystem + Terminal + Git capabilities |
-| Next | Concrete capabilities: Browser, Clipboard, Notifications |
+| Now | Capability Framework + Filesystem + Terminal + Git + Browser capabilities |
+| Next | Concrete capabilities: Clipboard, Notifications |
 | Then | Durable permission settings UI and plugin packaging |
 | Later | Automation composition, provenance, background jobs |
 | Eventually | Plugin packaging and third-party capability distribution |

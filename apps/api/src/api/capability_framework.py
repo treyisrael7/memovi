@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from memovi_automation import (
+    BrowserCapabilityConfig,
     CapabilityExecutionEngine,
     CapabilityInvoker,
     CapabilityRegistry,
@@ -15,6 +16,7 @@ from memovi_automation import (
     InMemoryPermissionPolicyStore,
     PermissionMode,
     TerminalCapabilityConfig,
+    register_browser_capability,
     register_filesystem_capability,
     register_git_capability,
     register_terminal_capability,
@@ -69,11 +71,16 @@ def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
         registry,
         GitCapabilityConfig.from_roots(git_roots),
     )
+    browser_roots = _capability_roots("MEMOVI_BROWSER_DOWNLOAD_ROOTS", fallback=roots)
+    register_browser_capability(
+        registry,
+        BrowserCapabilityConfig.from_roots(browser_roots),
+    )
 
     permission_store = InMemoryPermissionPolicyStore(
         default_mode=PermissionMode.ASK_EVERY_TIME,
     )
-    for capability_id in ("filesystem", "terminal", "git"):
+    for capability_id in ("filesystem", "terminal", "git", "browser"):
         permission_store.set(
             capability_id,
             PermissionMode.ASK_EVERY_TIME,
@@ -96,4 +103,5 @@ def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
     app.state.filesystem_allowed_roots = roots
     app.state.terminal_allowed_roots = terminal_roots
     app.state.git_allowed_roots = git_roots
+    app.state.browser_download_roots = browser_roots
     return engine

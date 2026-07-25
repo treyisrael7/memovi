@@ -349,7 +349,7 @@ Give the desktop OS safe, permissioned access to the user’s environment.
 * Filesystem (read + write capability shipped)
 * Terminal (capability shipped through Execution Engine)
 * Git (structured capability shipped through Execution Engine)
-* Browser
+* Browser (structured capability shipped through Execution Engine)
 * Clipboard
 * Notifications
 * Plugin system

@@ -20,7 +20,9 @@ from memovi_automation.domain.value_objects.capability_execution_status import (
 from memovi_automation.domain.value_objects.capability_metadata import CapabilityMetadata
 from memovi_automation.domain.value_objects.capability_parameter import CapabilityParameter
 from memovi_automation.domain.value_objects.capability_permission import (
+    BROWSER_DOWNLOAD,
     BROWSER_READ,
+    BROWSER_SEARCH,
     CLIPBOARD_READ,
     CLIPBOARD_WRITE,
     FILESYSTEM_CREATE,
@@ -45,7 +47,9 @@ from memovi_automation.domain.value_objects.execution_audit_entry import (
 from memovi_automation.domain.value_objects.permission_mode import PermissionMode
 
 __all__ = [
+    "BROWSER_DOWNLOAD",
     "BROWSER_READ",
+    "BROWSER_SEARCH",
     "CLIPBOARD_READ",
     "CLIPBOARD_WRITE",
     "DEFAULT_EXECUTION_POLICY",

@@ -142,6 +142,22 @@ function operationSummaryText(execution: CapabilityExecution): string | null {
     }
     return operation;
   }
+  if (execution.capability_id === "browser" && operation) {
+    const url = typeof record.url === "string" ? record.url : null;
+    const query = typeof record.query === "string" ? record.query : null;
+    const destination =
+      typeof record.destination === "string" ? record.destination : null;
+    if (operation === "search_web" && query) {
+      return `${operation}: “${query}”`;
+    }
+    if (operation === "download_file" && url && destination) {
+      return `${operation}: ${url} → ${destination}`;
+    }
+    if (url) {
+      return `${operation}: ${url}`;
+    }
+    return operation;
+  }
   const target = typeof record.target === "string" ? record.target : null;
   const destination =
     typeof record.destination === "string" ? record.destination : null;
@@ -165,6 +181,10 @@ function isGitExecution(execution: CapabilityExecution): boolean {
   return execution.capability_id === "git";
 }
 
+function isBrowserExecution(execution: CapabilityExecution): boolean {
+  return execution.capability_id === "browser";
+}
+
 function gitApprovalCopy(execution: CapabilityExecution): string {
   const summary = execution.metadata?.operation_summary;
   const operation =
@@ -184,6 +204,144 @@ function gitApprovalCopy(execution: CapabilityExecution): string {
     return "Allow this Git network operation? It will run only after you approve.";
   }
   return "Run this Git operation? It will execute only after you approve.";
+}
+
+function browserApprovalCopy(execution: CapabilityExecution): string {
+  const summary = execution.metadata?.operation_summary;
+  const operation =
+    summary && typeof summary === "object" && typeof (summary as { operation?: unknown }).operation === "string"
+      ? (summary as { operation: string }).operation
+      : null;
+  if (operation === "download_file") {
+    return "Download this file to your workspace? It will run only after you approve.";
+  }
+  if (operation === "search_web") {
+    return "Allow this web search? It will run only after you approve.";
+  }
+  return "Allow this browser action? It will run only after you approve.";
+}
+
+type BrowserOutput = {
+  operation?: string;
+  url?: string;
+  final_url?: string;
+  title?: string;
+  content?: string;
+  query?: string;
+  results?: Array<{ title?: string; url?: string; snippet?: string }>;
+  result_count?: number;
+  destination?: string;
+  bytes_written?: number;
+  sha256?: string;
+  progress?: number;
+  bytes_received?: number;
+  bytes_total?: number | null;
+  streaming?: boolean;
+  phase?: string;
+  success?: boolean;
+  redirected?: boolean;
+};
+
+function asBrowserOutput(output: unknown): BrowserOutput | null {
+  if (!output || typeof output !== "object") {
+    return null;
+  }
+  return output as BrowserOutput;
+}
+
+function BrowserResultView({
+  output,
+  live,
+}: {
+  output: BrowserOutput;
+  live?: boolean;
+}) {
+  const operation = output.operation ?? "browser";
+  const progress =
+    typeof output.progress === "number" ? Math.max(0, Math.min(1, output.progress)) : null;
+
+  if (live) {
+    return (
+      <div className="capability-browser-result">
+        <p className="capability-progress" role="status">
+          {operation === "download_file" || output.phase === "download"
+            ? "Downloading…"
+            : "Navigating…"}
+          {progress != null && progress > 0
+            ? ` ${(progress * 100).toFixed(0)}%`
+            : ""}
+        </p>
+        {typeof output.bytes_received === "number" ? (
+          <p className="capability-browser-meta">
+            {output.bytes_received.toLocaleString()} bytes
+            {typeof output.bytes_total === "number"
+              ? ` / ${output.bytes_total.toLocaleString()}`
+              : ""}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (operation === "search_web") {
+    return (
+      <div className="capability-browser-result">
+        <p className="capability-browser-meta">
+          {output.result_count ?? output.results?.length ?? 0} result
+          {(output.result_count ?? output.results?.length ?? 0) === 1 ? "" : "s"}
+          {output.query ? ` for “${output.query}”` : ""}
+        </p>
+        <ul className="capability-browser-results">
+          {(output.results ?? []).map((hit) => (
+            <li key={`${hit.url ?? ""}-${hit.title ?? ""}`}>
+              <strong>{hit.title ?? "Result"}</strong>
+              {hit.url ? <div className="muted">{hit.url}</div> : null}
+              {hit.snippet ? <div>{hit.snippet}</div> : null}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  if (operation === "download_file") {
+    return (
+      <div className="capability-browser-result">
+        <p className="capability-browser-meta">
+          Saved {typeof output.bytes_written === "number"
+            ? `${output.bytes_written.toLocaleString()} bytes`
+            : "file"}
+          {output.destination ? ` → ${output.destination}` : ""}
+        </p>
+        {output.sha256 ? (
+          <p className="capability-browser-meta">
+            SHA-256 <code>{output.sha256.slice(0, 16)}…</code>
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="capability-browser-result">
+      <p className="capability-browser-meta">
+        {output.title ? output.title : operation}
+        {output.redirected ? " · redirected" : ""}
+      </p>
+      {output.final_url || output.url ? (
+        <p className="capability-browser-meta muted">
+          {output.final_url ?? output.url}
+        </p>
+      ) : null}
+      {typeof output.content === "string" && output.content.length > 0 ? (
+        <pre className="capability-output capability-browser-content">
+          {output.content.length > 1200
+            ? `${output.content.slice(0, 1200)}…`
+            : output.content}
+        </pre>
+      ) : null}
+    </div>
+  );
 }
 
 type GitOutput = {
@@ -449,12 +607,20 @@ function CapabilityExecutionPanel({
           const gitOutput = isGitExecution(execution)
             ? asGitOutput(execution.output)
             : null;
+          const browserOutput = isBrowserExecution(execution)
+            ? asBrowserOutput(execution.output)
+            : null;
           const hasLiveTerminalOutput =
             terminalOutput != null &&
             ((typeof terminalOutput.stdout === "string" &&
               terminalOutput.stdout.length > 0) ||
               (typeof terminalOutput.stderr === "string" &&
                 terminalOutput.stderr.length > 0));
+          const hasLiveBrowserProgress =
+            browserOutput != null &&
+            (browserOutput.streaming === true ||
+              typeof browserOutput.progress === "number" ||
+              typeof browserOutput.bytes_received === "number");
           return (
             <li
               key={execution.execution_id}
@@ -481,7 +647,9 @@ function CapabilityExecutionPanel({
                       ? "Run this terminal command? It will execute only after you approve."
                       : isGitExecution(execution)
                         ? gitApprovalCopy(execution)
-                        : "Confirm this capability action? It will run only after you approve."}
+                        : isBrowserExecution(execution)
+                          ? browserApprovalCopy(execution)
+                          : "Confirm this capability action? It will run only after you approve."}
                   </p>
                   <div className="capability-actions">
                     <button
@@ -505,13 +673,18 @@ function CapabilityExecutionPanel({
               ) : null}
               {execution.status === "executing" ? (
                 <>
-                  <p className="capability-progress" role="status">
-                    Running…
-                  </p>
+                  {!hasLiveBrowserProgress ? (
+                    <p className="capability-progress" role="status">
+                      Running…
+                    </p>
+                  ) : null}
                   {hasLiveTerminalOutput && terminalOutput ? (
                     <TerminalOutputView output={terminalOutput} live />
                   ) : null}
-                  {isTerminalExecution(execution) ? (
+                  {hasLiveBrowserProgress && browserOutput ? (
+                    <BrowserResultView output={browserOutput} live />
+                  ) : null}
+                  {isTerminalExecution(execution) || isBrowserExecution(execution) ? (
                     <div className="capability-actions">
                       <button
                         type="button"
@@ -558,6 +731,8 @@ function CapabilityExecutionPanel({
                       <TerminalOutputView output={terminalOutput} />
                     ) : gitOutput ? (
                       <GitResultView output={gitOutput} />
+                    ) : browserOutput ? (
+                      <BrowserResultView output={browserOutput} />
                     ) : (
                       <pre className="capability-output">
                         {typeof execution.output === "string"

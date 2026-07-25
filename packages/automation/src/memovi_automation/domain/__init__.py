@@ -9,7 +9,9 @@ from memovi_automation.domain.exceptions import (
     UnknownCapabilityError,
 )
 from memovi_automation.domain.value_objects import (
+    BROWSER_DOWNLOAD,
     BROWSER_READ,
+    BROWSER_SEARCH,
     CLIPBOARD_READ,
     CLIPBOARD_WRITE,
     DEFAULT_EXECUTION_POLICY,
@@ -43,7 +45,9 @@ from memovi_automation.domain.value_objects import (
 )
 
 __all__ = [
+    "BROWSER_DOWNLOAD",
     "BROWSER_READ",
+    "BROWSER_SEARCH",
     "CLIPBOARD_READ",
     "CLIPBOARD_WRITE",
     "DEFAULT_EXECUTION_POLICY",

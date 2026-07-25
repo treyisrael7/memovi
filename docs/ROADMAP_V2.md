@@ -415,7 +415,7 @@ Expose controlled desktop capabilities through a permissioned framework.
 * Filesystem (shipped)
 * Terminal (shipped through Execution Engine)
 * Git (structured capability shipped through Execution Engine)
-* Browser
+* Browser (structured capability shipped through Execution Engine)
 * Clipboard
 * Notifications
 * Plugin system

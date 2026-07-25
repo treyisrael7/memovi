@@ -12,8 +12,18 @@ from memovi_automation.application import (
     ExecutionAuditStore,
     PermissionPolicyStore,
 )
+from memovi_automation.browser import (
+    CAPABILITY_ID as BROWSER_CAPABILITY_ID,
+)
+from memovi_automation.browser import (
+    BrowserCapability,
+    BrowserCapabilityConfig,
+    register_browser_capability,
+)
 from memovi_automation.domain import (
+    BROWSER_DOWNLOAD,
     BROWSER_READ,
+    BROWSER_SEARCH,
     CLIPBOARD_READ,
     CLIPBOARD_WRITE,
     DEFAULT_EXECUTION_POLICY,
@@ -83,7 +93,10 @@ from memovi_automation.terminal import (
 )
 
 __all__ = [
+    "BROWSER_CAPABILITY_ID",
+    "BROWSER_DOWNLOAD",
     "BROWSER_READ",
+    "BROWSER_SEARCH",
     "CLIPBOARD_READ",
     "CLIPBOARD_WRITE",
     "DEFAULT_EXECUTION_POLICY",
@@ -102,6 +115,8 @@ __all__ = [
     "TERMINAL_CAPABILITY_ID",
     "TERMINAL_EXECUTE",
     "AutomationDomainError",
+    "BrowserCapability",
+    "BrowserCapabilityConfig",
     "CancellationToken",
     "Capability",
     "CapabilityCancelledError",
@@ -139,6 +154,7 @@ __all__ = [
     "TerminalCapabilityConfig",
     "UnknownCapabilityError",
     "redact_arguments",
+    "register_browser_capability",
     "register_filesystem_capability",
     "register_git_capability",
     "register_terminal_capability",

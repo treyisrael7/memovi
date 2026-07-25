@@ -15,8 +15,9 @@ capability run proceeds under permission policy, validation, and audit.
 See also [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) for registry and
 capability contracts, [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md) for
 filesystem, [`TERMINAL_CAPABILITY.md`](TERMINAL_CAPABILITY.md) for terminal
-command execution, and [`GIT_CAPABILITY.md`](GIT_CAPABILITY.md) for structured
-Git operations.
+command execution, [`GIT_CAPABILITY.md`](GIT_CAPABILITY.md) for structured
+Git operations, and [`BROWSER_CAPABILITY.md`](BROWSER_CAPABILITY.md) for
+structured web access.
 
 # Safety Philosophy
 

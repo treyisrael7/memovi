@@ -20,11 +20,12 @@ Intelligence can discover and invoke:
 * `FilesystemCapability` — root-scoped read + write
 * `TerminalCapability` — root-scoped command execution (stdout/stderr/exit/duration)
 * `GitCapability` — structured repository ops (status/branch/commit/diff/remote)
+* `BrowserCapability` — structured web open/read/search/download
 * HTTP API under `/capabilities` for discovery, execution, approval, and audit
 
-It does **not** implement browser capabilities, multi-step planning,
-background scheduling, or autonomous agents. Terminal and Git are never exposed
-directly to the LLM; production runs go through the Capability Execution Engine.
+It does **not** implement multi-step planning, background scheduling, or
+autonomous agents. Concrete capabilities are never exposed directly to the LLM;
+production runs go through the Capability Execution Engine.
 
 ## Layout
 
@@ -36,6 +37,7 @@ src/memovi_automation/
 ├── filesystem/           # Root-scoped Filesystem Capability (read + write)
 ├── terminal/             # Root-scoped Terminal Capability
 ├── git/                  # Structured Git Capability
+├── browser/              # Structured Browser Capability
 └── infrastructure/       # In-memory policy + audit stores
 ```
 
@@ -54,3 +56,4 @@ See:
 * [`docs/architecture/FILESYSTEM_WRITE.md`](../../docs/architecture/FILESYSTEM_WRITE.md)
 * [`docs/architecture/TERMINAL_CAPABILITY.md`](../../docs/architecture/TERMINAL_CAPABILITY.md)
 * [`docs/architecture/GIT_CAPABILITY.md`](../../docs/architecture/GIT_CAPABILITY.md)
+* [`docs/architecture/BROWSER_CAPABILITY.md`](../../docs/architecture/BROWSER_CAPABILITY.md)

@@ -541,6 +541,18 @@ class CapabilityExecutionEngine:
                     summary["branch"] = result.output["branch"]
                 if result.output.get("operation") == "commit" and "short_sha" in result.output:
                     summary["short_sha"] = result.output["short_sha"]
+                if "url" in result.output and isinstance(result.output["url"], str):
+                    summary["url"] = result.output["url"]
+                if "query" in result.output and isinstance(result.output["query"], str):
+                    summary["query"] = result.output["query"]
+                if "destination" in result.output and isinstance(
+                    result.output["destination"], str
+                ):
+                    summary["destination"] = result.output["destination"]
+                if "sha256" in result.output:
+                    summary["sha256"] = result.output["sha256"]
+                if "result_count" in result.output:
+                    summary["result_count"] = result.output["result_count"]
                 output_meta = result.output.get("metadata")
                 if isinstance(output_meta, dict):
                     if "undo_available" in output_meta:
@@ -549,6 +561,10 @@ class CapabilityExecutionEngine:
                         summary["delete_mode"] = output_meta["delete_mode"]
                     if "clean" in output_meta:
                         summary["clean"] = output_meta["clean"]
+                    if "filesystem_integrated" in output_meta:
+                        summary["filesystem_integrated"] = output_meta[
+                            "filesystem_integrated"
+                        ]
 
 
         entry = ExecutionAuditEntry(
@@ -608,6 +624,21 @@ def _operation_summary(arguments: object) -> dict[str, object]:
     message = arguments.get("message")
     if isinstance(message, str) and message.strip():
         summary["has_message"] = True
+    url = arguments.get("url")
+    if isinstance(url, str) and url.strip():
+        from memovi_automation.domain.value_objects.execution_audit_entry import (
+            redact_url_for_audit,
+        )
+
+        redacted_url = redact_url_for_audit(url.strip())
+        summary["url"] = redacted_url
+        if "target" not in summary:
+            summary["target"] = redacted_url
+    query = arguments.get("query")
+    if isinstance(query, str) and query.strip():
+        summary["query"] = query.strip()
+        if "target" not in summary:
+            summary["target"] = query.strip()
     if "content" in arguments:
         summary["has_content"] = True
     if "env" in arguments:

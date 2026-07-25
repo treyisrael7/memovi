@@ -1064,3 +1064,36 @@ button.linkish {
   font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas,
     monospace;
 }
+
+.capability-browser-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.capability-browser-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.capability-browser-results {
+  margin: 0.15rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.capability-browser-results li {
+  margin-bottom: 0.4rem;
+}
+
+.capability-browser-results strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.capability-browser-content {
+  max-height: 10rem;
+  white-space: pre-wrap;
+}

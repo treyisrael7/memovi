@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from types import MappingProxyType
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from memovi_automation.domain.exceptions import InvalidCapabilityError
 from memovi_automation.domain.value_objects.capability_execution_status import (
@@ -30,6 +31,36 @@ _CONTENT_KEYS = frozenset(
         "file_content",
         "stdout",
         "stderr",
+        "readable_text",
+        "html",
+    }
+)
+
+_URL_KEYS = frozenset({"url", "final_url"})
+
+_SENSITIVE_QUERY_KEYS = frozenset(
+    {
+        "password",
+        "passwd",
+        "pwd",
+        "secret",
+        "token",
+        "access_token",
+        "refresh_token",
+        "id_token",
+        "api_key",
+        "apikey",
+        "key",
+        "auth",
+        "authorization",
+        "credential",
+        "credentials",
+        "session",
+        "sessionid",
+        "sid",
+        "signature",
+        "sig",
+        "private_key",
     }
 )
 
@@ -43,12 +74,37 @@ def redact_arguments(arguments: Mapping[str, object]) -> dict[str, object]:
             fragment in lowered for fragment in _SENSITIVE_KEY_FRAGMENTS
         ):
             redacted[key] = "[REDACTED]"
+        elif lowered in _URL_KEYS and isinstance(value, str):
+            redacted[key] = redact_url_for_audit(value)
         elif isinstance(value, Mapping):
             # Environment maps are redacted key-by-key so non-sensitive values remain.
             redacted[key] = redact_arguments(value)
         else:
             redacted[key] = value
     return redacted
+
+
+def redact_url_for_audit(url: str) -> str:
+    """Redact sensitive query parameters from URL-like audit values."""
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return "[REDACTED_URL]"
+    if not parts.query:
+        return url
+    redacted_pairs: list[tuple[str, str]] = []
+    for key, value in parse_qsl(parts.query, keep_blank_values=True):
+        lowered = key.lower()
+        if lowered in _SENSITIVE_QUERY_KEYS or any(
+            fragment in lowered
+            for fragment in ("token", "secret", "password", "apikey", "api_key")
+        ):
+            redacted_pairs.append((key, "REDACTED"))
+        else:
+            redacted_pairs.append((key, value))
+    return urlunsplit(
+        (parts.scheme, parts.netloc, parts.path, urlencode(redacted_pairs), parts.fragment)
+    )
 
 
 @dataclass(frozen=True, slots=True)

@@ -261,7 +261,7 @@ This domain is not an agent runtime. It defines what Memovi can do in the enviro
 * Capability abstractions and registry
 * Capability metadata and permission declarations
 * Invocation contracts and execution context
-* Filesystem Capability (`filesystem`, read + write) and future adapters (git, terminal, browser, and similar)
+* Filesystem Capability (`filesystem`, read + write), Terminal (`terminal`), Git (`git`), Browser (`browser`), and future adapters (clipboard, notifications, and similar)
 * Future automation composition built on capabilities
 
 ### Does Not Own

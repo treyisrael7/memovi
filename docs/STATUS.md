@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-07-24 (Milestone 21).
+system on a reusable backend platform. Last reviewed: 2026-07-24 (Milestone 25).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -472,12 +472,52 @@ remotes without constructing shell commands. CLI details stay private to
 
 ---
 
+# Milestone 25 — Browser Capability
+
+**Overall Status:** Complete
+
+The Browser Capability exposes structured web operations through the Capability
+Execution Engine. Intelligence requests open/read/search/download without issuing
+browser-specific commands. Downloads persist under Filesystem Capability roots.
+
+**Completed**
+
+* `BrowserCapability` (`browser`) with `browser.read` / `browser.search` / `browser.download`
+* Navigation (`open_url`), reading (`read_page`, extract content/links/metadata), `search_web`, `download_file`
+* Structured results (`NavigationResult`, `BrowserPage`, `SearchResults`, `DownloadResult`, …)
+* Private `BrowserProvider` abstraction + default HTTP provider; normalized browser errors
+* URL safety (http/https only), sensitive query redaction in audit/results
+* Download lifecycle: confirmation, progress, cancellation, SHA-256, filesystem root integration
+* Desktop navigation/download progress, approval prompts, search/download presentation
+* Composition-root registration (`MEMOVI_BROWSER_DOWNLOAD_ROOTS`) and Ask Every Time seeding
+* `docs/architecture/BROWSER_CAPABILITY.md`
+
+**Verified**
+
+* Capability Engine — browser operations execute exclusively through the Capability Execution Engine
+* Filesystem — downloads are saved through Filesystem Capability roots; existing read/write operations remain unaffected
+* Terminal — Terminal Capability remains unaffected
+* Git — Git operations continue functioning normally
+* Desktop — approval dialogs display correctly; navigation and download progress update correctly; browser errors are presented cleanly
+* Permissions — Read, Search, and Download permissions are enforced independently
+* Observability — structured logs/audit include browser metadata; request/correlation IDs propagate correctly
+* Regression — full automated suite green (`514 passed, 23 skipped`) including browser acceptance checklist
+
+**Remaining**
+
+* Durable audit persistence (shared with Milestones 21–24)
+* Desktop settings UI for capability permission policies
+* Richer dedicated Browser product surface beyond Chat capability panel
+
+---
+
 # Forward Roadmap Status
 
 Future work tracks [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) Phases 1–6.
 Milestones 0–6 above remain the platform foundation tracker; Milestone 17 adds the shared model provider boundary.
 Milestone 20 adds the Knowledge Explorer inspection surface. Milestone 21 adds the
-Capability Execution Engine. Milestone 23 adds Terminal; Milestone 24 adds Git.
+Capability Execution Engine. Milestone 23 adds Terminal; Milestone 24 adds Git;
+Milestone 25 adds Browser.
 
 ---
 
@@ -585,7 +625,9 @@ platform APIs. Remaining product pages are still placeholders.
 * Terminal unit/engine/smoke tests: execute, cwd, env, timeout, cancel, audit redaction, engine-only production path
 * `GitCapability` (`git`) with structured status/branch/commit/diff/remote ops and `git.read` / `git.write` / `git.network`
 * Git unit/engine/acceptance tests: structured results, permission tiers, approval, audit, engine-only path
-* Architecture references: `docs/architecture/CAPABILITY_FRAMEWORK.md`, `docs/architecture/CAPABILITY_EXECUTION.md`, `docs/architecture/FILESYSTEM_CAPABILITY.md`, `docs/architecture/FILESYSTEM_WRITE.md`, `docs/architecture/TERMINAL_CAPABILITY.md`, `docs/architecture/GIT_CAPABILITY.md`
+* `BrowserCapability` (`browser`) with open/read/search/download and `browser.read` / `browser.search` / `browser.download`
+* Browser unit/engine/acceptance/smoke tests: structured results, URL safety, download filesystem integration, audit redaction
+* Architecture references: `docs/architecture/CAPABILITY_FRAMEWORK.md`, `docs/architecture/CAPABILITY_EXECUTION.md`, `docs/architecture/FILESYSTEM_CAPABILITY.md`, `docs/architecture/FILESYSTEM_WRITE.md`, `docs/architecture/TERMINAL_CAPABILITY.md`, `docs/architecture/GIT_CAPABILITY.md`, `docs/architecture/BROWSER_CAPABILITY.md`
 
 **In Progress**
 
@@ -593,19 +635,19 @@ platform APIs. Remaining product pages are still placeholders.
 
 **Remaining**
 
-* Concrete capabilities: Browser, Clipboard, Notifications
+* Concrete capabilities: Clipboard, Notifications
 * Desktop settings UI for capability permission policies
 * Plugin system / loading
 * Durable audit persistence
 
 **Known Risks**
 
-* Hosts that grant filesystem, terminal, or git roots over overly broad directories expand the trusted surface
-* Shell/Git write and network ops remain powerful; Ask Every Time should stay the default
+* Hosts that grant filesystem, terminal, git, or browser download roots over overly broad directories expand the trusted surface
+* Shell/Git write, network, and browser download ops remain powerful; Ask Every Time should stay the default
 
 **Next Recommended Work**
 
-* Add the next concrete capability (Browser or Clipboard) and durable audit storage
+* Add the next concrete capability (Clipboard or Notifications) and durable audit storage
 
 ---
 
