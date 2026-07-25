@@ -5,12 +5,15 @@ from memovi_shared import DEFAULT_WORKSPACE_ID, InvalidWorkspaceIdError, Workspa
 from sqlalchemy.orm import Session as OrmSession
 
 from memovi_intelligence.application.commands import (
+    CreateCapabilityExecutionPlan,
+    ExecuteCapabilityExecutionPlan,
     Reason,
     RequestCapabilityExecution,
     SendConversationMessage,
 )
 from memovi_intelligence.application.ports import ConversationRepository, KnowledgeRetriever
 from memovi_intelligence.application.ports_capability_execution import CapabilityExecutionPort
+from memovi_intelligence.application.ports_capability_planner import CapabilityPlannerPort
 from memovi_intelligence.application.services import (
     ContextAssembler,
     ConversationService,
@@ -122,6 +125,11 @@ def get_capability_execution_port(request: Request) -> CapabilityExecutionPort |
     return getattr(request.app.state, "capability_execution_port", None)
 
 
+def get_capability_planner_port(request: Request) -> CapabilityPlannerPort | None:
+    """Composition root overrides with the Capability Planner adapter."""
+    return getattr(request.app.state, "capability_planner_port", None)
+
+
 def get_request_capability_execution(
     conversations: Annotated[ConversationService, Depends(get_conversation_service)],
     capability_execution: Annotated[
@@ -132,4 +140,30 @@ def get_request_capability_execution(
     return RequestCapabilityExecution(
         conversations=conversations,
         capability_execution=capability_execution,
+    )
+
+
+def get_create_capability_execution_plan(
+    conversations: Annotated[ConversationService, Depends(get_conversation_service)],
+    capability_planner: Annotated[
+        CapabilityPlannerPort | None,
+        Depends(get_capability_planner_port),
+    ],
+) -> CreateCapabilityExecutionPlan:
+    return CreateCapabilityExecutionPlan(
+        conversations=conversations,
+        capability_planner=capability_planner,
+    )
+
+
+def get_execute_capability_execution_plan(
+    conversations: Annotated[ConversationService, Depends(get_conversation_service)],
+    capability_planner: Annotated[
+        CapabilityPlannerPort | None,
+        Depends(get_capability_planner_port),
+    ],
+) -> ExecuteCapabilityExecutionPlan:
+    return ExecuteCapabilityExecutionPlan(
+        conversations=conversations,
+        capability_planner=capability_planner,
     )

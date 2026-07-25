@@ -372,11 +372,12 @@ Compose capabilities into safe, user-approved automation on top of knowledge.
 
 **Primary Deliverables**
 
-* Safe execution
-* Approval workflow
+* Safe execution (Capability Execution Engine shipped)
+* Approval workflow (engine Ask Every Time shipped; durable settings UI next)
+* Capability Planner (deterministic plan/validate shipped; execute via engine)
 * Task orchestration
 * Background jobs
-* Capability composition
+* Capability composition (planner + engine path shipped; richer workflows next)
 
 **Success Criteria**
 

@@ -1,16 +1,20 @@
 """Memovi Capability Framework.
 
 Provider-agnostic capability abstractions for discovery, permission metadata,
-safe single-invocation execution, and the Capability Execution Engine.
+safe single-invocation execution, the Capability Execution Engine, and the
+Capability Planner (plan/validate only — never executes capabilities).
 """
 
 from memovi_automation.application import (
     Capability,
     CapabilityExecutionEngine,
     CapabilityInvoker,
+    CapabilityPlanner,
     CapabilityRegistry,
     ExecutionAuditStore,
+    ExecutionPlanValidator,
     PermissionPolicyStore,
+    PlanExecutionService,
 )
 from memovi_automation.browser import (
     CAPABILITY_ID as BROWSER_CAPABILITY_ID,
@@ -57,8 +61,14 @@ from memovi_automation.domain import (
     CapabilityResult,
     CapabilityTimeoutError,
     ExecutionAuditEntry,
+    ExecutionDependency,
+    ExecutionPlan,
+    ExecutionPlanResult,
+    ExecutionStep,
+    ExecutionStepResult,
     InvalidCapabilityArgumentsError,
     InvalidCapabilityError,
+    InvalidExecutionPlanError,
     PermissionMode,
     UnknownCapabilityError,
     redact_arguments,
@@ -134,12 +144,19 @@ __all__ = [
     "CapabilityMetadata",
     "CapabilityParameter",
     "CapabilityPermission",
+    "CapabilityPlanner",
     "CapabilityRegistry",
     "CapabilityRequest",
     "CapabilityResult",
     "CapabilityTimeoutError",
     "ExecutionAuditEntry",
     "ExecutionAuditStore",
+    "ExecutionDependency",
+    "ExecutionPlan",
+    "ExecutionPlanResult",
+    "ExecutionPlanValidator",
+    "ExecutionStep",
+    "ExecutionStepResult",
     "FilesystemCapability",
     "FilesystemCapabilityConfig",
     "GitCapability",
@@ -148,8 +165,10 @@ __all__ = [
     "InMemoryPermissionPolicyStore",
     "InvalidCapabilityArgumentsError",
     "InvalidCapabilityError",
+    "InvalidExecutionPlanError",
     "PermissionMode",
     "PermissionPolicyStore",
+    "PlanExecutionService",
     "TerminalCapability",
     "TerminalCapabilityConfig",
     "UnknownCapabilityError",

@@ -81,6 +81,9 @@ class GitCapability:
     def config(self) -> GitCapabilityConfig:
         return self._config
 
+    def supported_operations(self) -> frozenset[str]:
+        return _ALL_OPERATIONS
+
     def metadata(self) -> CapabilityMetadata:
         return CapabilityMetadata(
             id=CAPABILITY_ID,

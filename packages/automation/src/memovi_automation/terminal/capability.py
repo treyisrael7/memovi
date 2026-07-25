@@ -45,6 +45,9 @@ class TerminalCapability:
     def config(self) -> TerminalCapabilityConfig:
         return self._config
 
+    def supported_operations(self) -> frozenset[str]:
+        return frozenset({EXECUTE_OPERATION})
+
     def metadata(self) -> CapabilityMetadata:
         return CapabilityMetadata(
             id=CAPABILITY_ID,

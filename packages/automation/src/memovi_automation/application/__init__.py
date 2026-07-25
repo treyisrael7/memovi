@@ -6,14 +6,20 @@ from memovi_automation.application.ports_execution import (
 from memovi_automation.application.services import (
     CapabilityExecutionEngine,
     CapabilityInvoker,
+    CapabilityPlanner,
     CapabilityRegistry,
+    ExecutionPlanValidator,
+    PlanExecutionService,
 )
 
 __all__ = [
     "Capability",
     "CapabilityExecutionEngine",
     "CapabilityInvoker",
+    "CapabilityPlanner",
     "CapabilityRegistry",
     "ExecutionAuditStore",
+    "ExecutionPlanValidator",
     "PermissionPolicyStore",
+    "PlanExecutionService",
 ]

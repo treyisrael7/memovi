@@ -246,10 +246,10 @@ should extend this framework rather than invent a parallel execution stack.
 
 | Stage | Outcome |
 | --- | --- |
-| Now | Capability Framework + Filesystem + Terminal + Git + Browser capabilities |
+| Now | Capability Framework + Filesystem + Terminal + Git + Browser + Capability Planner |
 | Next | Concrete capabilities: Clipboard, Notifications |
 | Then | Durable permission settings UI and plugin packaging |
-| Later | Automation composition, provenance, background jobs |
+| Later | Richer Automation workflows (conditionals, schedules), provenance, background jobs |
 | Eventually | Plugin packaging and third-party capability distribution |
 
 # Key Decisions

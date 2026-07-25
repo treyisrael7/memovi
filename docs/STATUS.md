@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-07-24 (Milestone 25).
+system on a reusable backend platform. Last reviewed: 2026-07-24 (Milestone 26).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -511,13 +511,47 @@ browser-specific commands. Downloads persist under Filesystem Capability roots.
 
 ---
 
+# Milestone 26 — Capability Planner
+
+**Overall Status:** Complete
+
+The Capability Planner lets Intelligence create validated, deterministic execution
+plans before any capability runs. Planning never executes capabilities; plan steps
+are submitted only through the Capability Execution Engine.
+
+**Completed**
+
+* `CapabilityPlanner`, `ExecutionPlanValidator`, `PlanExecutionService`
+* Plan contracts: `ExecutionPlan`, `ExecutionStep`, `ExecutionDependency`, `ExecutionPlanResult`
+* Validation: capability exists, operation supported, argument schema, dependency graph
+* Intelligence port + conversation use cases + HTTP create/execute plan endpoints
+* Composition-root wiring; planner has no direct capability/invoker execute path
+* `docs/architecture/CAPABILITY_PLANNER.md`
+
+**Verified**
+
+* Intelligence generates validated execution plans
+* Multi-step Browser + Filesystem plans produce correct ordered steps and dependencies
+* Invalid plans are rejected before execution begins (no engine/provider side effects)
+* Plans execute exclusively through the Capability Execution Engine
+* Planner output is deterministic for identical requests (stable content-derived plan ids)
+* Planner itself never invokes capabilities
+* Regression — full automated suite green (`530 passed, 23 skipped`) including planner acceptance
+
+**Remaining**
+
+* Conditional execution, loops, scheduled/background workflow runners (future Automation)
+* Durable plan persistence and richer task orchestration UX
+
+---
+
 # Forward Roadmap Status
 
 Future work tracks [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) Phases 1–6.
 Milestones 0–6 above remain the platform foundation tracker; Milestone 17 adds the shared model provider boundary.
 Milestone 20 adds the Knowledge Explorer inspection surface. Milestone 21 adds the
 Capability Execution Engine. Milestone 23 adds Terminal; Milestone 24 adds Git;
-Milestone 25 adds Browser.
+Milestone 25 adds Browser. Milestone 26 adds the Capability Planner.
 
 ---
 
@@ -653,11 +687,13 @@ platform APIs. Remaining product pages are still placeholders.
 
 # Phase 4 — Automation
 
-**Overall Status:** Not started
+**Overall Status:** In progress
 
 **Completed**
 
-* None
+* Capability Execution Engine safe execution + Ask Every Time approval path
+* Capability Planner (deterministic plan/validate; execute via engine only)
+* Plan contracts and Intelligence/conversation bridge for create + execute plan
 
 **In Progress**
 
@@ -665,11 +701,10 @@ platform APIs. Remaining product pages are still placeholders.
 
 **Remaining**
 
-* Safe execution
-* Approval workflow
-* Task orchestration
-* Background jobs
-* Capability composition
+* Durable approval/settings UX
+* Task orchestration beyond ordered plans
+* Background jobs / scheduled workflows
+* Conditional/loop workflow features on plan contracts
 
 **Known Risks**
 
@@ -677,7 +712,7 @@ platform APIs. Remaining product pages are still placeholders.
 
 **Next Recommended Work**
 
-* Build on the Capability Framework, not as a parallel agent stack
+* Extend planner-backed composition with durable plan storage and background runners — still not a parallel agent stack
 
 ---
 

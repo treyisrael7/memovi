@@ -6,6 +6,7 @@ from memovi_automation.domain.exceptions import (
     CapabilityTimeoutError,
     InvalidCapabilityArgumentsError,
     InvalidCapabilityError,
+    InvalidExecutionPlanError,
     UnknownCapabilityError,
 )
 from memovi_automation.domain.value_objects import (
@@ -40,6 +41,11 @@ from memovi_automation.domain.value_objects import (
     CapabilityRequest,
     CapabilityResult,
     ExecutionAuditEntry,
+    ExecutionDependency,
+    ExecutionPlan,
+    ExecutionPlanResult,
+    ExecutionStep,
+    ExecutionStepResult,
     PermissionMode,
     redact_arguments,
 )
@@ -83,6 +89,12 @@ __all__ = [
     "ExecutionAuditEntry",
     "InvalidCapabilityArgumentsError",
     "InvalidCapabilityError",
+    "InvalidExecutionPlanError",
+    "ExecutionDependency",
+    "ExecutionPlan",
+    "ExecutionPlanResult",
+    "ExecutionStep",
+    "ExecutionStepResult",
     "PermissionMode",
     "UnknownCapabilityError",
     "redact_arguments",

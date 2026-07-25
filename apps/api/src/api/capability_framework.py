@@ -9,12 +9,14 @@ from memovi_automation import (
     BrowserCapabilityConfig,
     CapabilityExecutionEngine,
     CapabilityInvoker,
+    CapabilityPlanner,
     CapabilityRegistry,
     FilesystemCapabilityConfig,
     GitCapabilityConfig,
     InMemoryExecutionAuditStore,
     InMemoryPermissionPolicyStore,
     PermissionMode,
+    PlanExecutionService,
     TerminalCapabilityConfig,
     register_browser_capability,
     register_filesystem_capability,
@@ -24,6 +26,7 @@ from memovi_automation import (
 from memovi_shared import DEFAULT_WORKSPACE_ID
 
 from api.capability_execution_integration import CapabilityExecutionEngineAdapter
+from api.capability_planner_integration import CapabilityPlannerAdapter
 
 
 def _roots_from_env(env_name: str) -> tuple[Path, ...] | None:
@@ -95,11 +98,19 @@ def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
         audit_store=InMemoryExecutionAuditStore(),
         default_permission_mode=PermissionMode.ASK_EVERY_TIME,
     )
+    planner = CapabilityPlanner(registry=registry)
+    plan_execution = PlanExecutionService(engine=engine, planner=planner)
 
     app.state.capability_registry = registry
     app.state.capability_invoker = invoker
     app.state.capability_execution_engine = engine
     app.state.capability_execution_port = CapabilityExecutionEngineAdapter(engine)
+    app.state.capability_planner = planner
+    app.state.capability_plan_execution = plan_execution
+    app.state.capability_planner_port = CapabilityPlannerAdapter(
+        planner=planner,
+        plan_execution=plan_execution,
+    )
     app.state.filesystem_allowed_roots = roots
     app.state.terminal_allowed_roots = terminal_roots
     app.state.git_allowed_roots = git_roots

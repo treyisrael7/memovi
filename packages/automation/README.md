@@ -13,9 +13,12 @@ Intelligence can discover and invoke:
 * `CapabilityRegistry` — explicit registration and metadata discovery
 * `CapabilityInvoker` — single-invocation execution with timeout and cancellation
 * `CapabilityExecutionEngine` — permission modes, approval, audit, normalized results
+* `CapabilityPlanner` / `ExecutionPlanValidator` — deterministic plan build + validate (never executes)
+* `PlanExecutionService` — submits validated plan steps only through the engine
 * Immutable contracts: `CapabilityMetadata`, `CapabilityPermission`,
   `CapabilityRequest`, `CapabilityResult`, `CapabilityContext`,
   `CapabilityExecutionPolicy`, `CapabilityExecutionRequest/Result/Context`,
+  `ExecutionPlan` / `ExecutionStep` / `ExecutionPlanResult`,
   `ExecutionAuditEntry`, `PermissionMode`
 * `FilesystemCapability` — root-scoped read + write
 * `TerminalCapability` — root-scoped command execution (stdout/stderr/exit/duration)
@@ -57,3 +60,4 @@ See:
 * [`docs/architecture/TERMINAL_CAPABILITY.md`](../../docs/architecture/TERMINAL_CAPABILITY.md)
 * [`docs/architecture/GIT_CAPABILITY.md`](../../docs/architecture/GIT_CAPABILITY.md)
 * [`docs/architecture/BROWSER_CAPABILITY.md`](../../docs/architecture/BROWSER_CAPABILITY.md)
+* [`docs/architecture/CAPABILITY_PLANNER.md`](../../docs/architecture/CAPABILITY_PLANNER.md)

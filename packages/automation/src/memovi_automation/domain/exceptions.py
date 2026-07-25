@@ -18,6 +18,21 @@ class InvalidCapabilityArgumentsError(AutomationDomainError):
     """Raised when capability arguments fail schema validation."""
 
 
+class InvalidExecutionPlanError(AutomationDomainError):
+    """Raised when an execution plan fails structural or schema validation."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "invalid_execution_plan",
+        details: dict[str, object] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.details: dict[str, object] = {} if details is None else dict(details)
+
+
 class CapabilityExecutionError(AutomationDomainError):
     """Raised when a capability fails during execution."""
 

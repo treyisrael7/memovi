@@ -13,8 +13,9 @@ action may be useful. The execution engine owns **whether** and **how** a single
 capability run proceeds under permission policy, validation, and audit.
 
 See also [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) for registry and
-capability contracts, [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md) for
-filesystem, [`TERMINAL_CAPABILITY.md`](TERMINAL_CAPABILITY.md) for terminal
+capability contracts, [`CAPABILITY_PLANNER.md`](CAPABILITY_PLANNER.md) for
+plan-then-execute composition, [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md)
+for filesystem, [`TERMINAL_CAPABILITY.md`](TERMINAL_CAPABILITY.md) for terminal
 command execution, [`GIT_CAPABILITY.md`](GIT_CAPABILITY.md) for structured
 Git operations, and [`BROWSER_CAPABILITY.md`](BROWSER_CAPABILITY.md) for
 structured web access.
@@ -158,15 +159,17 @@ Desktop remains presentation-only.
 
 # Out of Scope
 
-* Autonomous multi-step workflows
+* Autonomous goal-seeking agent loops
 * Background task scheduling
-* Graph/agent planners
+* Conditional/loop workflow runners (plan contracts reserve room; see
+  [`CAPABILITY_PLANNER.md`](CAPABILITY_PLANNER.md) for deterministic plan/validate)
 * Write operations beyond existing capability support
 * Durable audit database (port exists; in-memory default)
 
 # Related Documents
 
 * [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md)
+* [`CAPABILITY_PLANNER.md`](CAPABILITY_PLANNER.md)
 * [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md)
 * [`intelligence-architecture.md`](intelligence-architecture.md)
 * [`DESKTOP_CLIENT.md`](DESKTOP_CLIENT.md)

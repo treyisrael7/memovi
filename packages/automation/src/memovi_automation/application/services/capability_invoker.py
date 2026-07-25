@@ -4,6 +4,9 @@ from concurrent.futures import TimeoutError as FuturesTimeoutError
 from time import perf_counter
 
 from memovi_automation.application.ports import Capability
+from memovi_automation.application.services.argument_validation import (
+    validate_capability_arguments,
+)
 from memovi_automation.application.services.capability_registry import CapabilityRegistry
 from memovi_automation.domain.exceptions import (
     AutomationDomainError,
@@ -18,20 +21,9 @@ from memovi_automation.domain.value_objects import (
     CapabilityContext,
     CapabilityError,
     CapabilityExecutionPolicy,
-    CapabilityMetadata,
-    CapabilityParameter,
     CapabilityRequest,
     CapabilityResult,
 )
-
-_TYPE_CHECKS: dict[str, type | tuple[type, ...]] = {
-    "string": str,
-    "integer": int,
-    "number": (int, float),
-    "boolean": bool,
-    "object": Mapping,
-    "array": (list, tuple),
-}
 
 
 class CapabilityInvoker:
@@ -84,7 +76,7 @@ class CapabilityInvoker:
                 f"request capability_id '{request.capability_id}'.",
             )
 
-        validated = _validate_arguments(request.arguments, metadata)
+        validated = validate_capability_arguments(request.arguments, metadata)
         policy = request.policy if request.policy is not None else self._default_policy
 
         if policy.cancellable and context.is_cancelled():
@@ -182,53 +174,6 @@ def _invoke_capability(
                 f"Capability '{request.capability_id}' timed out after "
                 f"{timeout_seconds} seconds.",
             ) from exc
-
-
-def _validate_arguments(
-    arguments: Mapping[str, object],
-    metadata: CapabilityMetadata,
-) -> dict[str, object]:
-    parameters = metadata.parameter_map()
-    unknown = sorted(set(arguments) - set(parameters))
-    if unknown:
-        raise InvalidCapabilityArgumentsError(
-            f"Unknown arguments for capability '{metadata.id}': {', '.join(unknown)}.",
-        )
-
-    missing = sorted(
-        parameter.name
-        for parameter in metadata.parameters
-        if parameter.required and parameter.name not in arguments
-    )
-    if missing:
-        raise InvalidCapabilityArgumentsError(
-            f"Missing required arguments for capability '{metadata.id}': {', '.join(missing)}.",
-        )
-
-    validated: dict[str, object] = {}
-    for name, value in arguments.items():
-        parameter = parameters[name]
-        _validate_parameter_value(parameter, value)
-        validated[name] = value
-    return validated
-
-
-def _validate_parameter_value(parameter: CapabilityParameter, value: object) -> None:
-    expected = _TYPE_CHECKS[parameter.type]
-    if parameter.type == "boolean" and isinstance(value, bool):
-        return
-    if parameter.type == "integer" and isinstance(value, bool):
-        raise InvalidCapabilityArgumentsError(
-            f"Argument '{parameter.name}' must be of type integer.",
-        )
-    if parameter.type == "number" and isinstance(value, bool):
-        raise InvalidCapabilityArgumentsError(
-            f"Argument '{parameter.name}' must be of type number.",
-        )
-    if not isinstance(value, expected):
-        raise InvalidCapabilityArgumentsError(
-            f"Argument '{parameter.name}' must be of type {parameter.type}.",
-        )
 
 
 def _execution_metadata(

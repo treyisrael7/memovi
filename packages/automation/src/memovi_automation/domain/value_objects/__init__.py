@@ -44,6 +44,13 @@ from memovi_automation.domain.value_objects.execution_audit_entry import (
     ExecutionAuditEntry,
     redact_arguments,
 )
+from memovi_automation.domain.value_objects.execution_plan import (
+    ExecutionDependency,
+    ExecutionPlan,
+    ExecutionPlanResult,
+    ExecutionStep,
+    ExecutionStepResult,
+)
 from memovi_automation.domain.value_objects.permission_mode import PermissionMode
 
 __all__ = [
@@ -78,6 +85,11 @@ __all__ = [
     "CapabilityRequest",
     "CapabilityResult",
     "ExecutionAuditEntry",
+    "ExecutionDependency",
+    "ExecutionPlan",
+    "ExecutionPlanResult",
+    "ExecutionStep",
+    "ExecutionStepResult",
     "PermissionMode",
     "redact_arguments",
 ]

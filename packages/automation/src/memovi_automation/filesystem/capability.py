@@ -80,6 +80,9 @@ class FilesystemCapability:
     def config(self) -> FilesystemCapabilityConfig:
         return self._config
 
+    def supported_operations(self) -> frozenset[str]:
+        return _ALL_KNOWN_OPERATIONS
+
     def metadata(self) -> CapabilityMetadata:
         return CapabilityMetadata(
             id=CAPABILITY_ID,

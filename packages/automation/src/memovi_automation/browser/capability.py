@@ -74,6 +74,9 @@ class BrowserCapability:
     def config(self) -> BrowserCapabilityConfig:
         return self._config
 
+    def supported_operations(self) -> frozenset[str]:
+        return _ALL_OPERATIONS
+
     def metadata(self) -> CapabilityMetadata:
         return CapabilityMetadata(
             id=CAPABILITY_ID,

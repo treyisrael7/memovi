@@ -130,6 +130,66 @@ class RequestCapabilityExecutionBody(BaseModel):
     correlation_id: str | None = Field(default=None, max_length=128)
 
 
+class CapabilityPlanStepBody(BaseModel):
+    step_id: str | None = Field(default=None, max_length=128)
+    capability_id: str = Field(min_length=1, max_length=128)
+    operation: str = Field(min_length=1, max_length=128)
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    dependencies: list[str] = Field(default_factory=list)
+    expected_result: str | None = Field(default=None, max_length=512)
+
+
+class CreateCapabilityExecutionPlanBody(BaseModel):
+    goal: str = Field(min_length=1, max_length=2000)
+    steps: list[CapabilityPlanStepBody] = Field(min_length=1)
+    correlation_id: str | None = Field(default=None, max_length=128)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class CapabilityPlanStepResponse(BaseModel):
+    step_id: str
+    capability_id: str
+    operation: str
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    dependencies: list[str] = Field(default_factory=list)
+    expected_result: str | None = None
+
+
+class CapabilityExecutionPlanResponse(BaseModel):
+    plan_id: str
+    workspace_id: str
+    goal: str
+    steps: list[CapabilityPlanStepResponse]
+    required_capabilities: list[str]
+    dependencies: list[list[str]]
+    estimated_execution_count: int
+    conversation_id: str | None = None
+    correlation_id: str | None = None
+    created_at: datetime
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class CapabilityPlanStepResultResponse(BaseModel):
+    step_id: str
+    capability_id: str
+    operation: str
+    execution_id: str | None = None
+    status: str
+    output: Any | None = None
+    error_code: str | None = None
+    error_message: str | None = None
+    duration: float = 0.0
+
+
+class CapabilityExecutionPlanResultResponse(BaseModel):
+    plan_id: str
+    workspace_id: str
+    status: str
+    step_results: list[CapabilityPlanStepResultResponse]
+    duration: float
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class ConversationCapabilityExecutionResponse(BaseModel):
     execution_id: str
     capability_id: str

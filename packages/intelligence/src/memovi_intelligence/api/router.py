@@ -12,7 +12,9 @@ from memovi_shared import WorkspaceId
 from memovi_intelligence.api.dependencies import (
     get_active_workspace_id,
     get_capability_execution_port,
+    get_create_capability_execution_plan,
     get_conversation_service,
+    get_execute_capability_execution_plan,
     get_model_gateway,
     get_request_capability_execution,
     get_send_conversation_message,
@@ -20,6 +22,10 @@ from memovi_intelligence.api.dependencies import (
 from memovi_intelligence.api.schemas import (
     AvailableModelResponse,
     AvailableModelsResponse,
+    CapabilityExecutionPlanResponse,
+    CapabilityExecutionPlanResultResponse,
+    CapabilityPlanStepResponse,
+    CapabilityPlanStepResultResponse,
     CitationResponse,
     ConversationCapabilityExecutionListResponse,
     ConversationCapabilityExecutionResponse,
@@ -28,6 +34,7 @@ from memovi_intelligence.api.schemas import (
     ConversationMessagesResponse,
     ConversationMetadataResponse,
     ConversationSummaryResponse,
+    CreateCapabilityExecutionPlanBody,
     CreateConversationResponse,
     ExecutionMetadataResponse,
     ExecutionMetricsResponse,
@@ -39,10 +46,19 @@ from memovi_intelligence.api.schemas import (
 )
 from memovi_intelligence.application.commands import (
     CapabilityExecutionUnavailableError,
+    CapabilityPlannerUnavailableError,
+    CreateCapabilityExecutionPlan,
+    CreateCapabilityExecutionPlanCommand,
+    ExecuteCapabilityExecutionPlan,
+    ExecuteCapabilityExecutionPlanCommand,
     RequestCapabilityExecution,
     RequestCapabilityExecutionCommand,
     SendConversationMessage,
     SendConversationMessageCommand,
+)
+from memovi_intelligence.application.ports_capability_planner import (
+    ExecutionPlanResultView,
+    ExecutionPlanView,
 )
 from memovi_intelligence.application.commands.send_conversation_message import (
     SendMessageStreamCompleted,
@@ -165,6 +181,58 @@ def _capability_execution_response(
         conversation_id=view.conversation_id,
         created_at=view.created_at,
         updated_at=view.updated_at,
+        metadata=dict(view.metadata),
+    )
+
+
+def _capability_plan_response(view: ExecutionPlanView) -> CapabilityExecutionPlanResponse:
+    return CapabilityExecutionPlanResponse(
+        plan_id=view.plan_id,
+        workspace_id=view.workspace_id,
+        goal=view.goal,
+        steps=[
+            CapabilityPlanStepResponse(
+                step_id=step.step_id,
+                capability_id=step.capability_id,
+                operation=step.operation,
+                arguments=dict(step.arguments),
+                dependencies=list(step.dependencies),
+                expected_result=step.expected_result,
+            )
+            for step in view.steps
+        ],
+        required_capabilities=list(view.required_capabilities),
+        dependencies=[list(edge) for edge in view.dependencies],
+        estimated_execution_count=view.estimated_execution_count,
+        conversation_id=view.conversation_id,
+        correlation_id=view.correlation_id,
+        created_at=view.created_at,
+        metadata=dict(view.metadata),
+    )
+
+
+def _capability_plan_result_response(
+    view: ExecutionPlanResultView,
+) -> CapabilityExecutionPlanResultResponse:
+    return CapabilityExecutionPlanResultResponse(
+        plan_id=view.plan_id,
+        workspace_id=view.workspace_id,
+        status=view.status,
+        step_results=[
+            CapabilityPlanStepResultResponse(
+                step_id=step.step_id,
+                capability_id=step.capability_id,
+                operation=step.operation,
+                execution_id=step.execution_id,
+                status=step.status,
+                output=step.output,
+                error_code=step.error_code,
+                error_message=step.error_message,
+                duration=step.duration,
+            )
+            for step in view.step_results
+        ],
+        duration=view.duration,
         metadata=dict(view.metadata),
     )
 
@@ -521,6 +589,99 @@ def request_capability_execution(
             detail=str(exc),
         ) from exc
     return _capability_execution_response(result)
+
+
+@router.post(
+    "/{conversation_id}/capability-plans",
+    response_model=CapabilityExecutionPlanResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a validated capability execution plan",
+    description=(
+        "Intelligence creates a deterministic execution plan. The planner never "
+        "executes capabilities — use the execute endpoint to submit steps through "
+        "the Capability Execution Engine."
+    ),
+)
+def create_capability_execution_plan(
+    conversation_id: str,
+    body: CreateCapabilityExecutionPlanBody,
+    use_case: Annotated[
+        CreateCapabilityExecutionPlan,
+        Depends(get_create_capability_execution_plan),
+    ],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+) -> CapabilityExecutionPlanResponse:
+    _parse_conversation_id(conversation_id)
+    try:
+        plan = use_case.execute(
+            CreateCapabilityExecutionPlanCommand(
+                workspace_id=workspace_id,
+                conversation_id=conversation_id,
+                goal=body.goal,
+                steps=[step.model_dump(exclude_none=True) for step in body.steps],
+                correlation_id=body.correlation_id,
+                metadata=body.metadata,
+            )
+        )
+    except CapabilityPlannerUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    except ConversationNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except IntelligenceDomainError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+    return _capability_plan_response(plan)
+
+
+@router.post(
+    "/{conversation_id}/capability-plans/execute",
+    response_model=CapabilityExecutionPlanResultResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Execute a capability plan through the Capability Execution Engine",
+    description=(
+        "Validates the plan, then submits each step through the Capability "
+        "Execution Engine. The planner itself never invokes capabilities."
+    ),
+)
+def execute_capability_execution_plan(
+    conversation_id: str,
+    body: CreateCapabilityExecutionPlanBody,
+    use_case: Annotated[
+        ExecuteCapabilityExecutionPlan,
+        Depends(get_execute_capability_execution_plan),
+    ],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+) -> CapabilityExecutionPlanResultResponse:
+    _parse_conversation_id(conversation_id)
+    try:
+        result = use_case.execute(
+            ExecuteCapabilityExecutionPlanCommand(
+                workspace_id=workspace_id,
+                conversation_id=conversation_id,
+                goal=body.goal,
+                steps=[step.model_dump(exclude_none=True) for step in body.steps],
+                correlation_id=body.correlation_id,
+                metadata=body.metadata,
+            )
+        )
+    except CapabilityPlannerUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    except ConversationNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except IntelligenceDomainError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+    return _capability_plan_result_response(result)
 
 
 @router.get(
