@@ -6,6 +6,7 @@ from memovi_shared import WorkspaceId
 from memovi_intelligence.application.ports_capability_execution import (
     CapabilityExecutionPort,
     CapabilityExecutionView,
+    ExecutionCallerIdentity,
 )
 from memovi_intelligence.application.services.conversation_service import ConversationService
 from memovi_intelligence.domain.exceptions import IntelligenceDomainError
@@ -22,7 +23,7 @@ class RequestCapabilityExecutionCommand:
     conversation_id: str
     capability_id: str
     arguments: Mapping[str, object]
-    permission_mode: str | None = None
+    caller: ExecutionCallerIdentity
     correlation_id: str | None = None
 
 
@@ -54,7 +55,7 @@ class RequestCapabilityExecution:
             workspace_id=command.workspace_id,
             capability_id=command.capability_id,
             arguments=dict(command.arguments),
+            caller=command.caller,
             conversation_id=command.conversation_id,
             correlation_id=command.correlation_id,
-            permission_mode=command.permission_mode,
         )

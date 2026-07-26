@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     TERMINAL_EXECUTE,
     CapabilityContext,
@@ -138,8 +139,7 @@ def test_smoke_engine_path_is_required_production_path(smoke_root: Path) -> None
             workspace_id=WorkspaceId.default(),
             arguments={"command": "echo via-engine"},
             source="smoke",
-        )
-    )
+        ), make_auth_context())
 
     assert result.status is CapabilityExecutionStatus.COMPLETED
     assert result.output is not None

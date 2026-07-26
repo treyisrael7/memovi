@@ -1,3 +1,6 @@
+from memovi_automation.application.services.capability_authorization_service import (
+    CapabilityAuthorizationService,
+)
 from memovi_automation.application.services.capability_execution_engine import (
     CapabilityExecutionEngine,
 )
@@ -15,6 +18,7 @@ from memovi_automation.application.services.workflow_history import WorkflowHist
 from memovi_automation.application.services.workflow_validator import WorkflowValidator
 
 __all__ = [
+    "CapabilityAuthorizationService",
     "CapabilityExecutionEngine",
     "CapabilityInvoker",
     "CapabilityPlanner",

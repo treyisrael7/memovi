@@ -1,4 +1,5 @@
 from memovi_automation.domain.exceptions import (
+    AuthorizationDeniedError,
     AutomationDomainError,
     CapabilityCancelledError,
     CapabilityExecutionError,
@@ -29,6 +30,7 @@ from memovi_automation.domain.value_objects import (
     GIT_WRITE,
     NOTIFICATIONS_SEND,
     TERMINAL_EXECUTE,
+    AuthenticatedExecutionContext,
     CancellationToken,
     CapabilityContext,
     CapabilityError,
@@ -78,6 +80,8 @@ __all__ = [
     "GIT_WRITE",
     "NOTIFICATIONS_SEND",
     "TERMINAL_EXECUTE",
+    "AuthenticatedExecutionContext",
+    "AuthorizationDeniedError",
     "AutomationDomainError",
     "CancellationToken",
     "CapabilityCancelledError",

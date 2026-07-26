@@ -8,13 +8,18 @@ from uuid import uuid4
 
 from memovi_shared import WorkspaceId
 
+from memovi_automation.application.ports_authorization import AuthorizationService
 from memovi_automation.application.ports_execution import (
     ExecutionAuditStore,
     PermissionPolicyStore,
 )
+from memovi_automation.application.services.capability_authorization_service import (
+    CapabilityAuthorizationService,
+)
 from memovi_automation.application.services.capability_invoker import CapabilityInvoker
 from memovi_automation.application.services.capability_registry import CapabilityRegistry
 from memovi_automation.domain.exceptions import (
+    AuthorizationDeniedError,
     CapabilityExecutionNotFoundError,
     InvalidCapabilityArgumentsError,
     UnknownCapabilityError,
@@ -26,8 +31,8 @@ from memovi_automation.domain.value_objects import (
     CapabilityExecutionPolicy,
     CapabilityRequest,
 )
-from memovi_automation.domain.value_objects.capability_execution_context import (
-    CapabilityExecutionContext,
+from memovi_automation.domain.value_objects.authenticated_execution_context import (
+    AuthenticatedExecutionContext,
 )
 from memovi_automation.domain.value_objects.capability_execution_request import (
     CapabilityExecutionRequest,
@@ -45,11 +50,17 @@ from memovi_automation.domain.value_objects.execution_audit_entry import (
 from memovi_automation.domain.value_objects.permission_mode import PermissionMode
 
 
+class _AllowAllMembership:
+    def is_member(self, *, user_id: str, workspace_id: WorkspaceId) -> bool:
+        return True
+
+
 class CapabilityExecutionEngine:
     """Secure pipeline for resolving, authorizing, invoking, and auditing capabilities.
 
     Intelligence and HTTP callers submit execution requests here. They must never
-    call Capability.execute or CapabilityInvoker.invoke directly.
+    call Capability.execute or CapabilityInvoker.invoke directly. Authorization is
+    evaluated exclusively by Authorization Service using AuthenticatedExecutionContext.
     """
 
     def __init__(
@@ -59,6 +70,7 @@ class CapabilityExecutionEngine:
         invoker: CapabilityInvoker,
         permission_policies: PermissionPolicyStore,
         audit_store: ExecutionAuditStore,
+        authorization: AuthorizationService | None = None,
         default_permission_mode: PermissionMode = PermissionMode.ASK_EVERY_TIME,
     ) -> None:
         self._registry = registry
@@ -66,8 +78,15 @@ class CapabilityExecutionEngine:
         self._permission_policies = permission_policies
         self._audit_store = audit_store
         self._default_permission_mode = default_permission_mode
+        self._authorization = authorization or CapabilityAuthorizationService(
+            membership=_AllowAllMembership(),
+            permission_policies=permission_policies,
+            registry=registry,
+            default_permission_mode=default_permission_mode,
+        )
         self._executions: dict[str, CapabilityExecutionResult] = {}
         self._pending_requests: dict[str, CapabilityExecutionRequest] = {}
+        self._pending_auth: dict[str, AuthenticatedExecutionContext] = {}
         self._cancellations: dict[str, CancellationToken] = {}
         self._lock = Lock()
 
@@ -75,69 +94,85 @@ class CapabilityExecutionEngine:
     def registry(self) -> CapabilityRegistry:
         return self._registry
 
+    @property
+    def authorization(self) -> AuthorizationService:
+        return self._authorization
+
     def submit(
         self,
         request: CapabilityExecutionRequest,
-        context: CapabilityExecutionContext | None = None,
+        context: AuthenticatedExecutionContext,
     ) -> CapabilityExecutionResult:
-        """Submit a capability for execution under the active permission policy."""
-        execution_context = context or CapabilityExecutionContext.create(
+        """Submit a capability for execution under server-owned authorization."""
+        if context.workspace_id != request.workspace_id:
+            raise InvalidCapabilityArgumentsError(
+                "Authenticated execution context workspace_id must match the request.",
+            )
+
+        auth_context, decision = self._authorization.authorize_capability(
+            user_id=context.user_id,
+            session_id=context.session_id,
             workspace_id=request.workspace_id,
-            conversation_id=request.conversation_id,
-            correlation_id=request.correlation_id,
+            request_id=context.request_id,
+            capability_id=request.capability_id,
             source=request.source,
+            conversation_id=request.conversation_id or context.conversation_id,
+            correlation_id=request.correlation_id or context.correlation_id,
             metadata=dict(request.metadata),
         )
-        if execution_context.workspace_id != request.workspace_id:
-            raise InvalidCapabilityArgumentsError(
-                "Execution context workspace_id must match the request workspace_id.",
+        # Preserve caller cancellation token across authorization rebuild.
+        if context.cancellation is not auth_context.cancellation:
+            auth_context = AuthenticatedExecutionContext(
+                user_id=auth_context.user_id,
+                workspace_id=auth_context.workspace_id,
+                session_id=auth_context.session_id,
+                request_id=auth_context.request_id,
+                effective_permissions=auth_context.effective_permissions,
+                cancellation=context.cancellation,
+                conversation_id=auth_context.conversation_id,
+                correlation_id=auth_context.correlation_id,
+                source=auth_context.source,
+                metadata=dict(auth_context.metadata),
             )
 
-        try:
-            capability = self._registry.get(request.capability_id)
-        except UnknownCapabilityError:
-            result = self._failed_result(
-                request,
-                permission_mode=self._resolve_permission_mode(request),
-                error=CapabilityError(
+        if not decision.allowed:
+            if decision.denial_reason and "Unknown capability" in decision.denial_reason:
+                error = CapabilityError(
                     code="unknown_capability",
-                    message=f"Unknown capability '{request.capability_id}'.",
+                    message=decision.denial_reason,
                     details={"capability_id": request.capability_id},
-                ),
-            )
-            self._store_result(result)
-            self._audit(request, result)
-            return result
-
-        _ = capability  # resolved for existence; invoker re-resolves at execute time
-        permission_mode = self._resolve_permission_mode(request)
-
-        if permission_mode is PermissionMode.DENY:
-            result = self._failed_result(
-                request,
-                permission_mode=permission_mode,
-                error=CapabilityError(
+                )
+            else:
+                error = CapabilityError(
                     code="permission_denied",
-                    message=(
+                    message=decision.denial_reason
+                    or (
                         f"Capability '{request.capability_id}' is denied by "
                         "the active permission policy."
                     ),
                     details={
                         "capability_id": request.capability_id,
-                        "permission_mode": permission_mode.value,
+                        "permission_mode": decision.permission_mode.value,
                     },
-                ),
+                )
+            result = self._failed_result(
+                request,
+                permission_mode=decision.permission_mode,
+                error=error,
+                auth_context=auth_context,
             )
             self._store_result(result)
-            self._audit(request, result)
+            self._audit(request, result, auth_context=auth_context)
             return result
+
+        permission_mode = decision.permission_mode
 
         if permission_mode is PermissionMode.ASK_EVERY_TIME:
             now = datetime.now(UTC)
             result = CapabilityExecutionResult(
                 execution_id=request.id,
-                capability_id=request.capability_id,
                 workspace_id=request.workspace_id.value,
+                capability_id=request.capability_id,
                 status=CapabilityExecutionStatus.PENDING_APPROVAL,
                 permission_mode=permission_mode,
                 conversation_id=request.conversation_id,
@@ -149,28 +184,38 @@ class CapabilityExecutionEngine:
                     "source": request.source,
                     "awaiting_approval": True,
                     "operation_summary": _operation_summary(request.arguments),
+                    "user_id": auth_context.user_id,
+                    "session_id": auth_context.session_id,
+                    "request_id": auth_context.request_id,
                 },
             )
             with self._lock:
                 self._pending_requests[request.id] = request
-                self._cancellations[request.id] = execution_context.cancellation
+                self._pending_auth[request.id] = auth_context
+                self._cancellations[request.id] = auth_context.cancellation
                 self._executions[request.id] = result
-            self._audit(request, result)
+            self._audit(request, result, auth_context=auth_context)
             return result
 
-        return self._execute(request, execution_context.cancellation, permission_mode)
+        return self._execute(request, auth_context, permission_mode)
 
     def approve(
         self,
         execution_id: str,
         *,
         workspace_id: WorkspaceId,
+        context: AuthenticatedExecutionContext,
     ) -> CapabilityExecutionResult:
-        """Approve a pending execution and run it."""
+        """Approve a pending execution and run it under authenticated context."""
+        self._authorization.require_workspace_member(
+            user_id=context.user_id,
+            workspace_id=workspace_id,
+        )
         with self._lock:
             pending = self._pending_requests.get(execution_id)
             current = self._executions.get(execution_id)
             cancellation = self._cancellations.get(execution_id)
+            pending_auth = self._pending_auth.get(execution_id)
 
         if pending is None or current is None:
             raise CapabilityExecutionNotFoundError(
@@ -186,16 +231,57 @@ class CapabilityExecutionEngine:
                 f"(status={current.status.value}).",
             )
 
-        token = cancellation or CancellationToken()
-        return self._execute(pending, token, current.permission_mode)
+        token = cancellation or context.cancellation
+        auth_context = AuthenticatedExecutionContext(
+            user_id=context.user_id,
+            workspace_id=workspace_id,
+            session_id=context.session_id,
+            request_id=context.request_id,
+            effective_permissions=(
+                pending_auth.effective_permissions
+                if pending_auth is not None
+                else context.effective_permissions
+            ),
+            cancellation=token,
+            conversation_id=pending.conversation_id,
+            correlation_id=pending.correlation_id,
+            source=pending.source,
+            metadata=dict(pending.metadata),
+        )
+        # Re-evaluate policy at approval time (server-owned; may have changed).
+        _, decision = self._authorization.authorize_capability(
+            user_id=auth_context.user_id,
+            session_id=auth_context.session_id,
+            workspace_id=workspace_id,
+            request_id=auth_context.request_id,
+            capability_id=pending.capability_id,
+            source=pending.source,
+            conversation_id=pending.conversation_id,
+            correlation_id=pending.correlation_id,
+            metadata=dict(pending.metadata),
+        )
+        if not decision.allowed or decision.permission_mode is PermissionMode.DENY:
+            raise AuthorizationDeniedError(
+                decision.denial_reason
+                or f"Capability '{pending.capability_id}' is denied by policy.",
+                code="permission_denied",
+                details={"capability_id": pending.capability_id},
+            )
+        auth_context = auth_context.with_effective_permissions(decision.effective_permissions)
+        return self._execute(pending, auth_context, decision.permission_mode)
 
     def cancel(
         self,
         execution_id: str,
         *,
         workspace_id: WorkspaceId,
+        context: AuthenticatedExecutionContext,
     ) -> CapabilityExecutionResult:
         """Cancel a pending or in-flight execution."""
+        self._authorization.require_workspace_member(
+            user_id=context.user_id,
+            workspace_id=workspace_id,
+        )
         with self._lock:
             current = self._executions.get(execution_id)
             pending = self._pending_requests.get(execution_id)
@@ -236,11 +322,12 @@ class CapabilityExecutionEngine:
             correlation_id=current.correlation_id,
             created_at=current.created_at,
             updated_at=now,
-            metadata=dict(current.metadata),
+            metadata={**dict(current.metadata), "user_id": context.user_id},
         )
         with self._lock:
             self._executions[execution_id] = result
             self._pending_requests.pop(execution_id, None)
+            self._pending_auth.pop(execution_id, None)
 
         request = pending or CapabilityExecutionRequest.create(
             capability_id=current.capability_id,
@@ -249,7 +336,7 @@ class CapabilityExecutionEngine:
             conversation_id=current.conversation_id,
             correlation_id=current.correlation_id,
         )
-        self._audit(request, result)
+        self._audit(request, result, auth_context=context)
         return result
 
     def get(
@@ -291,7 +378,12 @@ class CapabilityExecutionEngine:
         mode: PermissionMode,
         *,
         workspace_id: WorkspaceId,
+        context: AuthenticatedExecutionContext,
     ) -> None:
+        self._authorization.require_workspace_member(
+            user_id=context.user_id,
+            workspace_id=workspace_id,
+        )
         if not self._registry.contains(capability_id):
             raise UnknownCapabilityError(f"Unknown capability '{capability_id}'.")
         self._permission_policies.set(capability_id, mode, workspace_id=workspace_id)
@@ -314,21 +406,10 @@ class CapabilityExecutionEngine:
     ) -> tuple[ExecutionAuditEntry, ...]:
         return self._audit_store.list_for_workspace(workspace_id=workspace_id, limit=limit)
 
-    def _resolve_permission_mode(self, request: CapabilityExecutionRequest) -> PermissionMode:
-        if request.policy is not None and request.policy.permission_mode is not None:
-            return request.policy.permission_mode
-        try:
-            return self._permission_policies.get(
-                request.capability_id,
-                workspace_id=request.workspace_id,
-            )
-        except Exception:
-            return self._default_permission_mode
-
     def _execute(
         self,
         request: CapabilityExecutionRequest,
-        cancellation: CancellationToken,
+        auth_context: AuthenticatedExecutionContext,
         permission_mode: PermissionMode,
     ) -> CapabilityExecutionResult:
         now = datetime.now(UTC)
@@ -346,14 +427,18 @@ class CapabilityExecutionEngine:
                 **dict(request.metadata),
                 "source": request.source,
                 "operation_summary": _operation_summary(request.arguments),
+                "user_id": auth_context.user_id,
+                "session_id": auth_context.session_id,
+                "request_id": auth_context.request_id,
             },
         )
         with self._lock:
             self._executions[request.id] = executing
             self._pending_requests.pop(request.id, None)
-            self._cancellations[request.id] = cancellation
+            self._pending_auth.pop(request.id, None)
+            self._cancellations[request.id] = auth_context.cancellation
 
-        self._audit(request, executing)
+        self._audit(request, executing, auth_context=auth_context)
 
         started = perf_counter()
         try:
@@ -368,21 +453,33 @@ class CapabilityExecutionEngine:
                     details={"capability_id": request.capability_id},
                 ),
                 created_at=executing.created_at,
+                auth_context=auth_context,
             )
             self._store_result(result)
-            self._audit(request, result)
+            self._audit(request, result, auth_context=auth_context)
             return result
 
+        if auth_context.effective_permissions:
+            granted = frozenset(
+                permission
+                for permission in metadata.permissions
+                if permission.name in auth_context.effective_permissions
+            )
+        else:
+            granted = frozenset(metadata.permissions)
         capability_context = CapabilityContext.create(
             workspace_id=request.workspace_id,
-            cancellation=cancellation,
+            cancellation=auth_context.cancellation,
             correlation_id=request.correlation_id,
-            granted_permissions=frozenset(metadata.permissions),
+            granted_permissions=granted,
             metadata={
                 **dict(request.metadata),
                 "execution_id": request.id,
                 "conversation_id": request.conversation_id,
                 "source": request.source,
+                "user_id": auth_context.user_id,
+                "session_id": auth_context.session_id,
+                "request_id": auth_context.request_id,
                 # Host progress port — must win over caller-supplied metadata.
                 "report_progress": lambda output: self._publish_progress(
                     request.id,
@@ -414,9 +511,10 @@ class CapabilityExecutionEngine:
                 ),
                 duration=perf_counter() - started,
                 created_at=executing.created_at,
+                auth_context=auth_context,
             )
             self._store_result(result)
-            self._audit(request, result)
+            self._audit(request, result, auth_context=auth_context)
             return result
 
         duration = invoke_result.duration if invoke_result.duration else perf_counter() - started
@@ -432,9 +530,10 @@ class CapabilityExecutionEngine:
             "source": request.source,
             "operation_summary": _operation_summary(request.arguments),
             "invoker": dict(invoke_result.metadata),
+            "user_id": auth_context.user_id,
+            "session_id": auth_context.session_id,
+            "request_id": auth_context.request_id,
         }
-        # Preserve arguments for desktop/Intelligence overwrite confirmation retries.
-        # Audit storage still redacts sensitive values separately.
         if (
             invoke_result.error is not None
             and invoke_result.error.code == "overwrite_confirmation_required"
@@ -457,7 +556,7 @@ class CapabilityExecutionEngine:
             metadata=result_metadata,
         )
         self._store_result(result)
-        self._audit(request, result)
+        self._audit(request, result, auth_context=auth_context)
         return result
 
     def _failed_result(
@@ -468,8 +567,14 @@ class CapabilityExecutionEngine:
         error: CapabilityError,
         duration: float = 0.0,
         created_at: datetime | None = None,
+        auth_context: AuthenticatedExecutionContext | None = None,
     ) -> CapabilityExecutionResult:
         now = datetime.now(UTC)
+        metadata: dict[str, object] = {"source": request.source, **dict(request.metadata)}
+        if auth_context is not None:
+            metadata["user_id"] = auth_context.user_id
+            metadata["session_id"] = auth_context.session_id
+            metadata["request_id"] = auth_context.request_id
         return CapabilityExecutionResult(
             execution_id=request.id,
             capability_id=request.capability_id,
@@ -482,7 +587,7 @@ class CapabilityExecutionEngine:
             correlation_id=request.correlation_id,
             created_at=created_at or now,
             updated_at=now,
-            metadata={"source": request.source, **dict(request.metadata)},
+            metadata=metadata,
         )
 
     def _store_result(self, result: CapabilityExecutionResult) -> None:
@@ -517,6 +622,8 @@ class CapabilityExecutionEngine:
         self,
         request: CapabilityExecutionRequest,
         result: CapabilityExecutionResult,
+        *,
+        auth_context: AuthenticatedExecutionContext | None = None,
     ) -> None:
         summary: dict[str, object] = {
             "status": result.status.value,
@@ -566,7 +673,7 @@ class CapabilityExecutionEngine:
                             "filesystem_integrated"
                         ]
 
-
+        operation = summary.get("operation")
         entry = ExecutionAuditEntry(
             id=str(uuid4()),
             execution_id=result.execution_id,
@@ -581,6 +688,8 @@ class CapabilityExecutionEngine:
             conversation_id=result.conversation_id,
             correlation_id=result.correlation_id,
             source=request.source,
+            user_id=None if auth_context is None else auth_context.user_id,
+            operation=operation if isinstance(operation, str) else None,
         )
         self._audit_store.append(entry)
 

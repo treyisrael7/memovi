@@ -5,6 +5,7 @@ from memovi_observability import DiagnosticEventEmitter, DiagnosticEventName, ti
 from memovi_shared import InvalidWorkspaceIdError
 
 from memovi_workspace.api.dependencies import (
+    AuthenticatedUserId,
     get_create_workspace,
     get_list_workspaces_query,
     get_workspace_query,
@@ -15,8 +16,17 @@ from memovi_workspace.api.schemas import (
     WorkspaceResponse,
 )
 from memovi_workspace.application.commands import CreateWorkspace, CreateWorkspaceCommand
-from memovi_workspace.application.queries import GetWorkspace, GetWorkspaceQuery, ListWorkspaces
-from memovi_workspace.domain.exceptions import WorkspaceDomainError, WorkspaceNotFoundError
+from memovi_workspace.application.queries import (
+    GetWorkspace,
+    GetWorkspaceQuery,
+    ListWorkspaces,
+    ListWorkspacesQuery,
+)
+from memovi_workspace.domain.exceptions import (
+    WorkspaceDomainError,
+    WorkspaceMembershipRequiredError,
+    WorkspaceNotFoundError,
+)
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 _DIAGNOSTICS = DiagnosticEventEmitter()
@@ -31,10 +41,13 @@ _DIAGNOSTICS = DiagnosticEventEmitter()
 def create_workspace(
     body: CreateWorkspaceRequest,
     use_case: Annotated[CreateWorkspace, Depends(get_create_workspace)],
+    user_id: AuthenticatedUserId,
 ) -> WorkspaceResponse:
     try:
         with timed_operation("workspace.create", attributes={"operation": "workspace.create"}):
-            result = use_case.execute(CreateWorkspaceCommand(name=body.name))
+            result = use_case.execute(
+                CreateWorkspaceCommand(name=body.name, owner_user_id=user_id),
+            )
     except WorkspaceDomainError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -61,8 +74,9 @@ def create_workspace(
 )
 def list_workspaces(
     use_case: Annotated[ListWorkspaces, Depends(get_list_workspaces_query)],
+    user_id: AuthenticatedUserId,
 ) -> WorkspaceListResponse:
-    workspaces = use_case.execute()
+    workspaces = use_case.execute(ListWorkspacesQuery(user_id=user_id))
     return WorkspaceListResponse(
         workspaces=[
             WorkspaceResponse(
@@ -85,12 +99,20 @@ def list_workspaces(
 def get_workspace(
     workspace_id: str,
     use_case: Annotated[GetWorkspace, Depends(get_workspace_query)],
+    user_id: AuthenticatedUserId,
 ) -> WorkspaceResponse:
     try:
-        workspace = use_case.execute(GetWorkspaceQuery(workspace_id=workspace_id))
+        workspace = use_case.execute(
+            GetWorkspaceQuery(workspace_id=workspace_id, user_id=user_id),
+        )
     except InvalidWorkspaceIdError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+    except WorkspaceMembershipRequiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
             detail=str(exc),
         ) from exc
     except WorkspaceNotFoundError as exc:

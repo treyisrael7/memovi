@@ -3,12 +3,17 @@ from collections.abc import Mapping
 from memovi_automation import (
     CapabilityExecutionEngine,
     CapabilityExecutionNotFoundError,
-    CapabilityExecutionPolicy,
     CapabilityExecutionRequest,
     CapabilityExecutionResult,
-    PermissionMode,
 )
-from memovi_intelligence.application.ports_capability_execution import CapabilityExecutionView
+from memovi_automation.domain.exceptions import AuthorizationDeniedError
+from memovi_automation.domain.value_objects.authenticated_execution_context import (
+    AuthenticatedExecutionContext,
+)
+from memovi_intelligence.application.ports_capability_execution import (
+    CapabilityExecutionView,
+    ExecutionCallerIdentity,
+)
 from memovi_intelligence.domain.exceptions import IntelligenceDomainError
 from memovi_shared import WorkspaceId
 
@@ -18,10 +23,7 @@ class CapabilityExecutionBridgeError(IntelligenceDomainError):
 
 
 class CapabilityExecutionEngineAdapter:
-    """Composition-root adapter: Intelligence port → CapabilityExecutionEngine.
-
-    Keeps Intelligence free of concrete capability imports and direct invoker calls.
-    """
+    """Composition-root adapter: Intelligence port → CapabilityExecutionEngine."""
 
     def __init__(self, engine: CapabilityExecutionEngine) -> None:
         self._engine = engine
@@ -32,31 +34,22 @@ class CapabilityExecutionEngineAdapter:
         workspace_id: WorkspaceId,
         capability_id: str,
         arguments: Mapping[str, object],
+        caller: ExecutionCallerIdentity,
         conversation_id: str | None = None,
         correlation_id: str | None = None,
-        permission_mode: str | None = None,
     ) -> CapabilityExecutionView:
-        policy = None
-        if permission_mode is not None:
-            try:
-                policy = CapabilityExecutionPolicy(
-                    permission_mode=PermissionMode(permission_mode),
-                )
-            except ValueError as exc:
-                raise CapabilityExecutionBridgeError(
-                    f"Invalid permission_mode '{permission_mode}'.",
-                ) from exc
-
         request = CapabilityExecutionRequest.create(
             capability_id=capability_id,
             workspace_id=workspace_id,
             arguments=dict(arguments),
             conversation_id=conversation_id,
             correlation_id=correlation_id,
-            policy=policy,
             source="intelligence",
         )
-        result = self._engine.submit(request)
+        try:
+            result = self._engine.submit(request, _to_auth_context(caller, workspace_id))
+        except AuthorizationDeniedError as exc:
+            raise CapabilityExecutionBridgeError(str(exc)) from exc
         return _to_view(result)
 
     def approve(
@@ -64,10 +57,17 @@ class CapabilityExecutionEngineAdapter:
         execution_id: str,
         *,
         workspace_id: WorkspaceId,
+        caller: ExecutionCallerIdentity,
     ) -> CapabilityExecutionView:
         try:
-            result = self._engine.approve(execution_id, workspace_id=workspace_id)
+            result = self._engine.approve(
+                execution_id,
+                workspace_id=workspace_id,
+                context=_to_auth_context(caller, workspace_id),
+            )
         except CapabilityExecutionNotFoundError as exc:
+            raise CapabilityExecutionBridgeError(str(exc)) from exc
+        except AuthorizationDeniedError as exc:
             raise CapabilityExecutionBridgeError(str(exc)) from exc
         return _to_view(result)
 
@@ -76,10 +76,17 @@ class CapabilityExecutionEngineAdapter:
         execution_id: str,
         *,
         workspace_id: WorkspaceId,
+        caller: ExecutionCallerIdentity,
     ) -> CapabilityExecutionView:
         try:
-            result = self._engine.cancel(execution_id, workspace_id=workspace_id)
+            result = self._engine.cancel(
+                execution_id,
+                workspace_id=workspace_id,
+                context=_to_auth_context(caller, workspace_id),
+            )
         except CapabilityExecutionNotFoundError as exc:
+            raise CapabilityExecutionBridgeError(str(exc)) from exc
+        except AuthorizationDeniedError as exc:
             raise CapabilityExecutionBridgeError(str(exc)) from exc
         return _to_view(result)
 
@@ -106,6 +113,19 @@ class CapabilityExecutionEngineAdapter:
             conversation_id=conversation_id,
         )
         return tuple(_to_view(item) for item in results)
+
+
+def _to_auth_context(
+    caller: ExecutionCallerIdentity,
+    workspace_id: WorkspaceId,
+) -> AuthenticatedExecutionContext:
+    return AuthenticatedExecutionContext.create(
+        user_id=caller.user_id,
+        workspace_id=workspace_id,
+        session_id=caller.session_id,
+        request_id=caller.request_id,
+        source="intelligence",
+    )
 
 
 def _to_view(result: CapabilityExecutionResult) -> CapabilityExecutionView:

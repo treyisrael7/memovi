@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     BrowserCapabilityConfig,
     CapabilityExecutionEngine,
@@ -204,6 +205,7 @@ def test_2_steps_run_in_correct_order(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="download-and-verify",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={
             "url": "https://example.com/invoice.txt",
             "destination": "inbox/invoice.txt",
@@ -233,6 +235,7 @@ def test_3_step_outputs_passed_to_next(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="download-and-verify",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={
             "url": "https://example.com/report.bin",
             "destination": "downloads/report.bin",
@@ -268,6 +271,7 @@ def test_4_pauses_for_approval(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="download-and-verify",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={
             "url": "https://example.com/pending.txt",
             "destination": "inbox/pending.txt",
@@ -284,6 +288,7 @@ def test_4_pauses_for_approval(tmp_path: Path) -> None:
     approved = engine.approve(
         result.step_results[0].execution_id,
         workspace_id=WORKSPACE,
+        context=make_auth_context(workspace_id=WORKSPACE),
     )
     assert approved.status.value == "completed"
     assert provider.download_calls == 1
@@ -329,6 +334,7 @@ def test_5_intentional_failure_stops_with_structured_error(tmp_path: Path) -> No
     result = workflow_engine.execute(
         workflow_id="fail-after-list",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={"source_folder": str(root)},
     )
 
@@ -357,6 +363,7 @@ def test_6_variables_validated_before_execution(tmp_path: Path) -> None:
         workflow_engine.execute(
             workflow_id="download-and-verify",
             workspace_id=WORKSPACE,
+            auth_context=make_auth_context(),
             variables={"url": "https://example.com/x"},
         )
     assert missing.value.code == "missing_variable"
@@ -365,6 +372,7 @@ def test_6_variables_validated_before_execution(tmp_path: Path) -> None:
         workflow_engine.execute(
             workflow_id="download-and-verify",
             workspace_id=WORKSPACE,
+            auth_context=make_auth_context(),
             variables={
                 "url": "https://example.com/x",
                 "destination": "inbox/x.txt",
@@ -377,6 +385,7 @@ def test_6_variables_validated_before_execution(tmp_path: Path) -> None:
         workflow_engine.execute(
             workflow_id="download-and-verify",
             workspace_id=WORKSPACE,
+            auth_context=make_auth_context(),
             variables={"url": "   ", "destination": "inbox/x.txt"},
         )
     assert blank.value.code == "invalid_variable_value"
@@ -396,6 +405,7 @@ def test_7_execution_history_recorded(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="download-and-verify",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={
             "url": "https://example.com/hist.txt",
             "destination": "inbox/hist.txt",
@@ -429,6 +439,7 @@ def test_8_every_step_creates_audit_entry(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="download-and-verify",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={
             "url": "https://example.com/audit.txt",
             "destination": "inbox/audit.txt",
@@ -473,6 +484,7 @@ def test_9_execution_plan_generated_before_running(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="list-directory",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={"source_folder": str(root / "folder")},
     )
     assert result.status == "completed"
@@ -485,6 +497,7 @@ def test_9_execution_plan_generated_before_running(tmp_path: Path) -> None:
     multi = workflow_engine_b.execute(
         workflow_id="download-and-verify",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={
             "url": "https://example.com/plan.txt",
             "destination": "inbox/plan.txt",
@@ -510,6 +523,7 @@ def test_acceptance_reusable_workflow_execution(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="list-directory",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={"source_folder": str(tmp_path / "downloads")},
     )
 
@@ -524,6 +538,7 @@ def test_acceptance_sequential_multi_capability_git(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="summarize-git-status",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={"repository": str(repo)},
     )
 

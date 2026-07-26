@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-07-24 (Milestone 27).
+system on a reusable backend platform. Last reviewed: 2026-07-25 (Milestone 28).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -74,9 +74,10 @@ Backend composition root is operational. Observability foundation (request conte
 
 # Milestone 2 — Identity & Ownership
 
-**Overall Status:** In progress
+**Overall Status:** Complete (superseded hardening in Milestone 28)
 
-Local authentication works. Workspace ownership is enforced on knowledge-sensitive paths. Auth session ↔ active workspace coupling and audit logging remain open.
+Local authentication works. Workspace membership is validated on workspace-scoped
+APIs. Capability authorization and durable audit are covered by Milestone 28.
 
 **Completed**
 
@@ -88,6 +89,7 @@ Local authentication works. Workspace ownership is enforced on knowledge-sensiti
 * Workspace domain (`packages/workspace`) with Default Workspace seed
 * `WorkspaceId` shared primitive and repository-level workspace isolation
 * Optional `X-Memovi-Workspace-Id` API resolution with Default fallback
+* Authenticated workspace membership checks (Milestone 28)
 
 **In Progress**
 
@@ -95,17 +97,16 @@ Local authentication works. Workspace ownership is enforced on knowledge-sensiti
 
 **Remaining**
 
-* Bind active workspace to authenticated session (replace default header fallback)
-* Audit logging for ownership-sensitive actions
-* Workspace membership / roles
+* Richer membership roles beyond owner/member
+* Broader ownership audit beyond capability execution audits
 
 **Known Risks**
 
-* Knowledge APIs remain unauthenticated; workspace header is an ownership boundary, not yet an authz model
+* Desktop login UI is not yet a product surface; clients must authenticate via session cookies
 
 **Next Recommended Work**
 
-* Attach authenticated user context and membership checks to workspace-scoped APIs
+* Continue platform hardening (API stability, typed config)
 
 ---
 
@@ -584,6 +585,41 @@ structured history.
 
 ---
 
+# Milestone 28 — Platform Hardening I: Authorization & Capability Security
+
+**Overall Status:** Complete
+
+Server-owned authorization for capability execution. Clients request actions;
+they do not decide authorization. Authenticated execution context, membership
+validation, durable capability policies, and durable audit storage are in place.
+
+**Completed**
+
+* Authentication middleware for non-public endpoints (`/health` and `/ready` remain public)
+* `AuthenticatedPrincipal` + authenticated workspace membership validation
+* `CapabilityAuthorizationService` (Authorization Service)
+* `AuthenticatedExecutionContext` required by Capability Execution Engine
+* Durable capability policies (`automation_capability_policies`)
+* Durable capability audits (`automation_execution_audits`) with user/operation
+* Removed client-controlled `permission_mode` from public execution request contracts
+* Workspace membership persistence (`workspace_memberships`) + Default Workspace enrollment on register
+* `docs/architecture/AUTHORIZATION.md`
+
+**Verified**
+
+* Capability policy resolution ignores client-supplied permission overrides
+* Ask Every Time / Deny / Always Allow remain server-owned
+* Filesystem, Terminal, Git, Browser, and Workflow execute only through authorized engine context
+* Audit entries include user and survive process/DB-backed store reloads
+
+**Remaining**
+
+* Desktop authentication product surface
+* Broader non-capability ownership audit logging
+* Richer role-based authorization beyond membership + capability policy modes
+
+---
+
 # Forward Roadmap Status
 
 Future work tracks [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) Phases 1–6.
@@ -591,7 +627,7 @@ Milestones 0–6 above remain the platform foundation tracker; Milestone 17 adds
 Milestone 20 adds the Knowledge Explorer inspection surface. Milestone 21 adds the
 Capability Execution Engine. Milestone 23 adds Terminal; Milestone 24 adds Git;
 Milestone 25 adds Browser. Milestone 26 adds the Capability Planner. Milestone 27
-adds Workflow Automation.
+adds Workflow Automation. Milestone 28 hardens authorization and capability security.
 
 ---
 
@@ -617,8 +653,7 @@ API stability remain.
 **Remaining**
 
 * Documents / Memory / Search / Intelligence production readiness
-* Auth-bound workspace membership and audit logging
-* Production hardening
+* Production hardening beyond capability authorization
 * API stability for clients
 
 **Completed (Phase 1 platform)**

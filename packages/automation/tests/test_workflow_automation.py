@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     CapabilityExecutionEngine,
     CapabilityInvoker,
@@ -77,6 +78,7 @@ def test_validate_required_variables(tmp_path: Path) -> None:
         workflow_engine.execute(
             workflow_id="list-directory",
             workspace_id=WorkspaceId("00000000-0000-4000-8000-000000000001"),
+            auth_context=make_auth_context(),
             variables={},
         )
 
@@ -89,6 +91,7 @@ def test_execute_list_directory_workflow(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="list-directory",
         workspace_id=WorkspaceId("00000000-0000-4000-8000-000000000001"),
+        auth_context=make_auth_context(),
         variables={"source_folder": str(tmp_path)},
     )
 
@@ -124,6 +127,7 @@ def test_sequential_step_output_mapping(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="inspect-then-list",
         workspace_id=WorkspaceId("00000000-0000-4000-8000-000000000001"),
+        auth_context=make_auth_context(),
         variables={"source_folder": str(tmp_path / "nested")},
     )
 
@@ -143,6 +147,7 @@ def test_stop_on_pending_approval(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="list-directory",
         workspace_id=WorkspaceId("00000000-0000-4000-8000-000000000001"),
+        auth_context=make_auth_context(),
         variables={"source_folder": str(tmp_path)},
     )
 
@@ -216,6 +221,7 @@ def test_custom_workflow_registration(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="custom-meta",
         workspace_id=WorkspaceId("00000000-0000-4000-8000-000000000001"),
+        auth_context=make_auth_context(),
         variables={"target": str(tmp_path / "f.txt")},
     )
     assert result.status == "completed"

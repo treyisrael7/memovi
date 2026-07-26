@@ -12,7 +12,10 @@ from memovi_intelligence.application.commands import (
     SendConversationMessage,
 )
 from memovi_intelligence.application.ports import ConversationRepository, KnowledgeRetriever
-from memovi_intelligence.application.ports_capability_execution import CapabilityExecutionPort
+from memovi_intelligence.application.ports_capability_execution import (
+    CapabilityExecutionPort,
+    ExecutionCallerIdentity,
+)
 from memovi_intelligence.application.ports_capability_planner import CapabilityPlannerPort
 from memovi_intelligence.application.services import (
     ContextAssembler,
@@ -118,6 +121,11 @@ def get_send_conversation_message(
         conversations=conversations,
         reason=reason,
     )
+
+
+def get_execution_caller_identity() -> ExecutionCallerIdentity:
+    """Composition root overrides with the authenticated principal + request id."""
+    raise RuntimeError("Execution caller identity dependency was not configured.")
 
 
 def get_capability_execution_port(request: Request) -> CapabilityExecutionPort | None:

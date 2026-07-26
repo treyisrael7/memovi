@@ -82,3 +82,18 @@ class CapabilityTimeoutError(AutomationDomainError):
 
 class CapabilityCancelledError(AutomationDomainError):
     """Raised when a capability invocation is cancelled."""
+
+
+class AuthorizationDeniedError(AutomationDomainError):
+    """Raised when Authorization Service denies an action."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "authorization_denied",
+        details: dict[str, object] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.details: dict[str, object] = {} if details is None else dict(details)

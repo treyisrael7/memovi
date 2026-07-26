@@ -21,3 +21,10 @@ class SessionTokenService(Protocol):
 
     def token_hash(self, token: str) -> str:
         raise NotImplementedError
+
+
+class UserRegisteredHandler(Protocol):
+    """Composition-root hook invoked after a user is registered."""
+
+    def handle(self, *, user_id: str) -> None:
+        raise NotImplementedError

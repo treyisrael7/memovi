@@ -1,6 +1,9 @@
 from memovi_automation.domain.value_objects.cancellation_token import CancellationToken
 from memovi_automation.domain.value_objects.capability_context import CapabilityContext
 from memovi_automation.domain.value_objects.capability_error import CapabilityError
+from memovi_automation.domain.value_objects.authenticated_execution_context import (
+    AuthenticatedExecutionContext,
+)
 from memovi_automation.domain.value_objects.capability_execution_context import (
     CapabilityExecutionContext,
 )
@@ -81,6 +84,7 @@ __all__ = [
     "GIT_WRITE",
     "NOTIFICATIONS_SEND",
     "TERMINAL_EXECUTE",
+    "AuthenticatedExecutionContext",
     "CancellationToken",
     "CapabilityContext",
     "CapabilityError",

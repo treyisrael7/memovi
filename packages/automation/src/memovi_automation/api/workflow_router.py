@@ -8,7 +8,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from memovi_observability import get_request_context
 from memovi_shared import WorkspaceId
 
-from memovi_automation.api.dependencies import get_active_workspace_id, get_workflow_engine
+from memovi_automation.api.dependencies import (
+    get_active_workspace_id,
+    get_authenticated_execution_context,
+    get_workflow_engine,
+)
+from memovi_automation.domain.value_objects.authenticated_execution_context import (
+    AuthenticatedExecutionContext,
+)
 from memovi_automation.api.workflow_schemas import (
     ExecuteWorkflowRequest,
     WorkflowDefinitionResponse,
@@ -196,6 +203,10 @@ def execute_workflow(
     body: ExecuteWorkflowRequest,
     engine: Annotated[WorkflowEngine, Depends(get_workflow_engine)],
     workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+    auth_context: Annotated[
+        AuthenticatedExecutionContext,
+        Depends(get_authenticated_execution_context),
+    ],
 ) -> WorkflowExecutionResultResponse:
     request_context = get_request_context()
     correlation_id = body.correlation_id
@@ -205,6 +216,7 @@ def execute_workflow(
         result = engine.execute(
             workflow_id=workflow_id,
             workspace_id=workspace_id,
+            auth_context=auth_context,
             variables=body.variables,
             conversation_id=body.conversation_id,
             correlation_id=correlation_id,

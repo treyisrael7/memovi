@@ -7,6 +7,9 @@ from memovi_automation.application.services.capability_execution_engine import (
     CapabilityExecutionEngine,
 )
 from memovi_automation.application.services.workflow_engine import WorkflowEngine
+from memovi_automation.domain.value_objects.authenticated_execution_context import (
+    AuthenticatedExecutionContext,
+)
 
 WORKSPACE_HEADER = "X-Memovi-Workspace-Id"
 
@@ -23,6 +26,10 @@ def get_active_workspace_id(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
+
+
+def get_authenticated_execution_context() -> AuthenticatedExecutionContext:
+    raise RuntimeError("Authenticated execution context dependency was not configured.")
 
 
 def get_capability_execution_engine(request: Request) -> CapabilityExecutionEngine:

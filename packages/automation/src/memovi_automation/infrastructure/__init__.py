@@ -13,11 +13,19 @@ from memovi_automation.infrastructure.in_memory_workflow_library import (
     InMemoryWorkflowLibrary,
     built_in_workflows,
 )
+from memovi_automation.infrastructure.sqlalchemy_execution_audit_store import (
+    SqlAlchemyExecutionAuditStore,
+)
+from memovi_automation.infrastructure.sqlalchemy_permission_policy_store import (
+    SqlAlchemyPermissionPolicyStore,
+)
 
 __all__ = [
     "InMemoryExecutionAuditStore",
     "InMemoryPermissionPolicyStore",
     "InMemoryWorkflowHistoryStore",
     "InMemoryWorkflowLibrary",
+    "SqlAlchemyExecutionAuditStore",
+    "SqlAlchemyPermissionPolicyStore",
     "built_in_workflows",
 ]

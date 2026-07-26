@@ -33,6 +33,9 @@ class ExecuteCapabilityExecutionPlanCommand:
     conversation_id: str
     goal: str
     steps: Sequence[Mapping[str, object]]
+    caller_user_id: str
+    caller_session_id: str
+    caller_request_id: str
     correlation_id: str | None = None
     plan_id: str | None = None
     metadata: Mapping[str, object] | None = None
@@ -97,6 +100,9 @@ class ExecuteCapabilityExecutionPlan:
             workspace_id=command.workspace_id,
             goal=command.goal,
             steps=command.steps,
+            caller_user_id=command.caller_user_id,
+            caller_session_id=command.caller_session_id,
+            caller_request_id=command.caller_request_id,
             conversation_id=command.conversation_id,
             correlation_id=command.correlation_id,
             plan_id=command.plan_id,

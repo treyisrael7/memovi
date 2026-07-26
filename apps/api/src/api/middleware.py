@@ -122,6 +122,10 @@ class RequestContextMiddleware:
 
 
 def register_middleware(app: FastAPI) -> None:
+    from api.auth_middleware import AuthenticationMiddleware
+
+    # Innermost first: auth runs after request context is established.
+    app.add_middleware(AuthenticationMiddleware)
     app.add_middleware(RequestContextMiddleware)
     # Added last so CORS is the outermost layer and can answer preflight.
     app.add_middleware(

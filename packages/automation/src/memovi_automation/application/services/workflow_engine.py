@@ -27,6 +27,9 @@ from memovi_automation.domain.exceptions import (
     InvalidWorkflowError,
     UnknownWorkflowError,
 )
+from memovi_automation.domain.value_objects.authenticated_execution_context import (
+    AuthenticatedExecutionContext,
+)
 from memovi_automation.domain.value_objects.execution_plan import ExecutionPlan
 from memovi_automation.domain.value_objects.workflow import (
     WorkflowContext,
@@ -167,6 +170,7 @@ class WorkflowEngine:
         *,
         workflow_id: str,
         workspace_id: WorkspaceId | str,
+        auth_context: AuthenticatedExecutionContext,
         variables: Mapping[str, object] | None = None,
         conversation_id: str | None = None,
         correlation_id: str | None = None,
@@ -180,6 +184,11 @@ class WorkflowEngine:
             if isinstance(workspace_id, WorkspaceId)
             else str(workspace_id).strip()
         )
+        if auth_context.workspace_id.value != workspace:
+            raise InvalidWorkflowError(
+                "Authenticated execution context workspace_id must match the workflow.",
+                code="workspace_mismatch",
+            )
         request_context = get_request_context()
         request_id = None if request_context is None else request_context.request_id
         resolved_correlation = (
@@ -286,7 +295,7 @@ class WorkflowEngine:
                 )
                 break
 
-            plan_result = self._plan_execution.execute_plan(plan)
+            plan_result = self._plan_execution.execute_plan(plan, context=auth_context)
             # Single-step plan → one step result
             plan_step = plan_result.step_results[0] if plan_result.step_results else None
             if plan_step is None:

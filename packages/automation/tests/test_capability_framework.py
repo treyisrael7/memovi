@@ -2,6 +2,7 @@ from dataclasses import FrozenInstanceError
 from time import sleep
 
 import pytest
+from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     FILESYSTEM_READ,
     FILESYSTEM_WRITE,

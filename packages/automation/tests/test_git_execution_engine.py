@@ -2,6 +2,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     CapabilityExecutionEngine,
     CapabilityExecutionRequest,
@@ -80,8 +81,7 @@ def test_always_allow_executes_git_through_engine(repo: Path) -> None:
             workspace_id=WorkspaceId.default(),
             arguments={"operation": "status", "repository": str(repo)},
             source="test",
-        )
-    )
+        ), make_auth_context())
     assert result.status is CapabilityExecutionStatus.COMPLETED
     assert result.output is not None
     assert result.output["operation"] == "status"
@@ -106,12 +106,11 @@ def test_ask_every_time_requires_approval_for_commit(repo: Path) -> None:
                 "message": "empty ok",
                 "allow_empty": True,
             },
-        )
-    )
+        ), make_auth_context())
     assert pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
     assert pending.metadata["operation_summary"]["operation"] == "commit"
 
-    completed = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default())
+    completed = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
     assert completed.status is CapabilityExecutionStatus.COMPLETED
     assert completed.output["short_sha"]
 
@@ -123,8 +122,7 @@ def test_deny_blocks_git(repo: Path) -> None:
             capability_id="git",
             workspace_id=WorkspaceId.default(),
             arguments={"operation": "status", "repository": str(repo)},
-        )
-    )
+        ), make_auth_context())
     assert result.status is CapabilityExecutionStatus.FAILED
     assert result.error is not None
     assert result.error.code == "permission_denied"

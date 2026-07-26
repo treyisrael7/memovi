@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 from auth.application.dto import UserDto
 from auth.application.exceptions import EmailAlreadyRegisteredError
-from auth.application.ports import PasswordHasher, SessionTokenService
+from auth.application.ports import PasswordHasher, SessionTokenService, UserRegisteredHandler
 from auth.domain.entities import Session, User
 from auth.domain.repositories import SessionRepository, UserRepository
 from auth.domain.value_objects import Email
@@ -32,12 +32,14 @@ class RegisterUser:
         password_hasher: PasswordHasher,
         session_tokens: SessionTokenService,
         session_ttl: timedelta,
+        on_registered: UserRegisteredHandler | None = None,
     ) -> None:
         self._users = users
         self._sessions = sessions
         self._password_hasher = password_hasher
         self._session_tokens = session_tokens
         self._session_ttl = session_ttl
+        self._on_registered = on_registered
 
     def execute(self, command: RegisterUserCommand) -> AuthenticatedUserResult:
         email = Email(command.email)
@@ -62,6 +64,8 @@ class RegisterUser:
 
         self._users.add(user)
         self._sessions.add(session)
+        if self._on_registered is not None:
+            self._on_registered.handle(user_id=user.id.value)
 
         return AuthenticatedUserResult(
             user=UserDto.from_user(user),

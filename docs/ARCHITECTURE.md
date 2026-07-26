@@ -566,7 +566,9 @@ The following documents expand this blueprint without redefining it.
 | [`architecture/search-architecture.md`](architecture/search-architecture.md) | Search responsibility, retrieval strategies, indexes, ranking, and boundaries |
 | [`architecture/intelligence-architecture.md`](architecture/intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |
 | [`architecture/connector-framework.md`](architecture/connector-framework.md) | Connector responsibilities, acquisition, synchronization, and normalization |
+| [`architecture/AUTHORIZATION.md`](architecture/AUTHORIZATION.md) | Authentication, membership, capability security, and trust boundaries |
 | [`architecture/CAPABILITY_FRAMEWORK.md`](architecture/CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
+| [`architecture/CAPABILITY_EXECUTION.md`](architecture/CAPABILITY_EXECUTION.md) | Execution engine pipeline, approval, and audit |
 | [`architecture/FILESYSTEM_CAPABILITY.md`](architecture/FILESYSTEM_CAPABILITY.md) | Filesystem capability safety model and operations |
 | [`architecture/TERMINAL_CAPABILITY.md`](architecture/TERMINAL_CAPABILITY.md) | Terminal capability execution, safety, timeout, cancel, and audit |
 | [`architecture/GIT_CAPABILITY.md`](architecture/GIT_CAPABILITY.md) | Git capability structured ops, permissions, and result model |

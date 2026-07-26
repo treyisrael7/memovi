@@ -25,11 +25,21 @@ class CapabilityExecutionView:
     metadata: Mapping[str, object]
 
 
+@dataclass(frozen=True, slots=True)
+class ExecutionCallerIdentity:
+    """Authenticated caller identity supplied by the API composition root."""
+
+    user_id: str
+    session_id: str
+    request_id: str
+
+
 class CapabilityExecutionPort(Protocol):
     """Bridge from Intelligence to the Capability Execution Engine.
 
     Intelligence must never import or call concrete capabilities. All host
-    actions flow through this port into the execution engine.
+    actions flow through this port into the execution engine. Authorization is
+    always evaluated by the server using the caller identity.
     """
 
     def submit(
@@ -38,9 +48,9 @@ class CapabilityExecutionPort(Protocol):
         workspace_id: WorkspaceId,
         capability_id: str,
         arguments: Mapping[str, object],
+        caller: ExecutionCallerIdentity,
         conversation_id: str | None = None,
         correlation_id: str | None = None,
-        permission_mode: str | None = None,
     ) -> CapabilityExecutionView:
         raise NotImplementedError
 
@@ -49,6 +59,7 @@ class CapabilityExecutionPort(Protocol):
         execution_id: str,
         *,
         workspace_id: WorkspaceId,
+        caller: ExecutionCallerIdentity,
     ) -> CapabilityExecutionView:
         raise NotImplementedError
 
@@ -57,6 +68,7 @@ class CapabilityExecutionPort(Protocol):
         execution_id: str,
         *,
         workspace_id: WorkspaceId,
+        caller: ExecutionCallerIdentity,
     ) -> CapabilityExecutionView:
         raise NotImplementedError
 

@@ -124,6 +124,8 @@ class ExecutionAuditEntry:
     conversation_id: str | None = None
     correlation_id: str | None = None
     source: str = "api"
+    user_id: str | None = None
+    operation: str | None = None
 
     def __post_init__(self) -> None:
         if not self.id.strip():
@@ -148,3 +150,7 @@ class ExecutionAuditEntry:
         object.__setattr__(self, "arguments", MappingProxyType(dict(self.arguments)))
         object.__setattr__(self, "result_summary", MappingProxyType(dict(self.result_summary)))
         object.__setattr__(self, "source", self.source.strip() or "api")
+        if self.user_id is not None:
+            object.__setattr__(self, "user_id", self.user_id.strip() or None)
+        if self.operation is not None:
+            object.__setattr__(self, "operation", self.operation.strip() or None)

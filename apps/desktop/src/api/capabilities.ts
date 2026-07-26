@@ -4,7 +4,6 @@ import type {
   CapabilityExecutionListResponse,
   CapabilityListResponse,
   ConversationCapabilityExecutionListResponse,
-  PermissionMode,
 } from "./types";
 
 export async function listCapabilities(
@@ -38,7 +37,6 @@ export async function requestConversationCapabilityExecution(
   body: {
     capability_id: string;
     arguments?: Record<string, unknown>;
-    permission_mode?: PermissionMode;
   },
 ): Promise<CapabilityExecution> {
   return apiFetch<CapabilityExecution>(
@@ -58,7 +56,6 @@ export async function submitCapabilityExecution(
     capability_id: string;
     arguments?: Record<string, unknown>;
     conversation_id?: string | null;
-    permission_mode?: PermissionMode;
   },
 ): Promise<CapabilityExecution> {
   return apiFetch<CapabilityExecution>("/capabilities/executions", {

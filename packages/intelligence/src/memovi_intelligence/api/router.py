@@ -15,6 +15,7 @@ from memovi_intelligence.api.dependencies import (
     get_create_capability_execution_plan,
     get_conversation_service,
     get_execute_capability_execution_plan,
+    get_execution_caller_identity,
     get_model_gateway,
     get_request_capability_execution,
     get_send_conversation_message,
@@ -67,6 +68,7 @@ from memovi_intelligence.application.commands.send_conversation_message import (
 from memovi_intelligence.application.ports_capability_execution import (
     CapabilityExecutionPort,
     CapabilityExecutionView,
+    ExecutionCallerIdentity,
 )
 from memovi_intelligence.application.services import ConversationService, ModelGateway
 from memovi_intelligence.domain.exceptions import (
@@ -563,6 +565,7 @@ def request_capability_execution(
     body: RequestCapabilityExecutionBody,
     use_case: Annotated[RequestCapabilityExecution, Depends(get_request_capability_execution)],
     workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+    caller: Annotated[ExecutionCallerIdentity, Depends(get_execution_caller_identity)],
 ) -> ConversationCapabilityExecutionResponse:
     _parse_conversation_id(conversation_id)
     try:
@@ -572,7 +575,7 @@ def request_capability_execution(
                 conversation_id=conversation_id,
                 capability_id=body.capability_id,
                 arguments=body.arguments,
-                permission_mode=body.permission_mode,
+                caller=caller,
                 correlation_id=body.correlation_id,
             )
         )
@@ -656,6 +659,7 @@ def execute_capability_execution_plan(
         Depends(get_execute_capability_execution_plan),
     ],
     workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+    caller: Annotated[ExecutionCallerIdentity, Depends(get_execution_caller_identity)],
 ) -> CapabilityExecutionPlanResultResponse:
     _parse_conversation_id(conversation_id)
     try:
@@ -665,6 +669,9 @@ def execute_capability_execution_plan(
                 conversation_id=conversation_id,
                 goal=body.goal,
                 steps=[step.model_dump(exclude_none=True) for step in body.steps],
+                caller_user_id=caller.user_id,
+                caller_session_id=caller.session_id,
+                caller_request_id=caller.request_id,
                 correlation_id=body.correlation_id,
                 metadata=body.metadata,
             )

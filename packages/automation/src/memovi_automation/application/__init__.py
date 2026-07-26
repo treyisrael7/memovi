@@ -8,6 +8,7 @@ from memovi_automation.application.ports_workflow import (
     WorkflowLibrary,
 )
 from memovi_automation.application.services import (
+    CapabilityAuthorizationService,
     CapabilityExecutionEngine,
     CapabilityInvoker,
     CapabilityPlanner,
@@ -21,6 +22,7 @@ from memovi_automation.application.services import (
 
 __all__ = [
     "Capability",
+    "CapabilityAuthorizationService",
     "CapabilityExecutionEngine",
     "CapabilityInvoker",
     "CapabilityPlanner",

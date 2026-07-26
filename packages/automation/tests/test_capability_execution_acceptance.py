@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from api.capability_execution_integration import CapabilityExecutionEngineAdapter
+from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     FILESYSTEM_READ,
     CapabilityContext,
@@ -30,6 +31,7 @@ from memovi_intelligence.application.commands.request_capability_execution impor
     RequestCapabilityExecution,
     RequestCapabilityExecutionCommand,
 )
+from memovi_intelligence.application.ports_capability_execution import ExecutionCallerIdentity
 from memovi_intelligence.application.services import ConversationService
 from memovi_intelligence.infrastructure import InMemoryConversationRepository
 from memovi_shared import WorkspaceId
@@ -115,8 +117,7 @@ def test_2_readonly_mock_capability_returns_structured_success() -> None:
             workspace_id=WorkspaceId.default(),
             arguments={"query": "memovi"},
             source="test",
-        )
-    )
+        ), make_auth_context())
 
     assert result.status is CapabilityExecutionStatus.COMPLETED
     assert result.error is None
@@ -152,7 +153,11 @@ def test_3_filesystem_result_is_returned_to_conversation(tmp_path: Path) -> None
                 "operation": "read_file",
                 "path": str(note),
             },
-            permission_mode="always_allow",
+            caller=ExecutionCallerIdentity(
+                user_id="test-user",
+                session_id="test-session",
+                request_id="test-request",
+            ),
         )
     )
 
@@ -179,15 +184,14 @@ def test_4_ask_every_time_pauses_until_approval() -> None:
             capability_id="mock.readonly",
             workspace_id=WorkspaceId.default(),
             arguments={"query": "awaiting"},
-        )
-    )
+        ), make_auth_context())
     assert pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
     assert pending.output is None
 
     still_pending = engine.get(pending.execution_id, workspace_id=WorkspaceId.default())
     assert still_pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
 
-    approved = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default())
+    approved = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
     assert approved.status is CapabilityExecutionStatus.COMPLETED
     assert isinstance(approved.output, dict)
     assert approved.output["result"] == "structured-mock-payload"
@@ -201,8 +205,7 @@ def test_5_deny_blocks_with_structured_error() -> None:
             capability_id="mock.readonly",
             workspace_id=WorkspaceId.default(),
             arguments={"query": "blocked"},
-        )
-    )
+        ), make_auth_context())
 
     assert result.status is CapabilityExecutionStatus.FAILED
     assert result.output is None
@@ -221,8 +224,7 @@ def test_6_successful_execution_creates_audit_entry() -> None:
             workspace_id=WorkspaceId.default(),
             arguments={"query": "audit-me"},
             source="verification",
-        )
-    )
+        ), make_auth_context())
     assert result.status is CapabilityExecutionStatus.COMPLETED
 
     audit = engine.list_audit(workspace_id=WorkspaceId.default())

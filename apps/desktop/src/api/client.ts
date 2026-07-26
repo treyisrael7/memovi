@@ -52,6 +52,7 @@ export async function apiFetch<T>(
   let response: Response;
   try {
     response = await fetch(url, {
+      credentials: "include",
       ...requestInit,
       headers: buildHeaders(init, { Accept: "application/json" }),
     });

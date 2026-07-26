@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     FILESYSTEM_CREATE,
     FILESYSTEM_DELETE,
@@ -64,10 +65,12 @@ def engine_stack(sandbox: Path):
     )
     invoker = CapabilityInvoker(registry=registry)
     audit = InMemoryExecutionAuditStore()
+    policies = InMemoryPermissionPolicyStore(default_mode=PermissionMode.ALWAYS_ALLOW)
+    policies.set(CAPABILITY_ID, PermissionMode.ALWAYS_ALLOW, workspace_id=WorkspaceId.default())
     engine = CapabilityExecutionEngine(
         registry=registry,
         invoker=invoker,
-        permission_policies=InMemoryPermissionPolicyStore(),
+        permission_policies=policies,
         audit_store=audit,
         default_permission_mode=PermissionMode.ALWAYS_ALLOW,
     )
@@ -103,9 +106,9 @@ def _submit(engine: CapabilityExecutionEngine, arguments: dict[str, object]):
             capability_id=CAPABILITY_ID,
             workspace_id=WorkspaceId.default(),
             arguments=arguments,
-            policy=CapabilityExecutionPolicy(permission_mode=PermissionMode.ALWAYS_ALLOW),
             source="acceptance",
-        )
+        ),
+        make_auth_context(),
     )
 
 

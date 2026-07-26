@@ -126,7 +126,6 @@ class AvailableModelsResponse(BaseModel):
 class RequestCapabilityExecutionBody(BaseModel):
     capability_id: str = Field(min_length=1, max_length=128)
     arguments: dict[str, Any] = Field(default_factory=dict)
-    permission_mode: str | None = Field(default=None, max_length=32)
     correlation_id: str | None = Field(default=None, max_length=128)
 
 

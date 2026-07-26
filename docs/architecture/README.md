@@ -35,8 +35,9 @@ document that matches the concern being changed or reviewed.
 | [`search-architecture.md`](search-architecture.md) | Search responsibility, retrieval strategies, indexes, ranking, and boundaries |
 | [`intelligence-architecture.md`](intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |
 | [`connector-framework.md`](connector-framework.md) | Connector responsibilities, external sync, acquisition, and normalization |
+| [`AUTHORIZATION.md`](AUTHORIZATION.md) | Authentication, membership, capability security, and trust boundaries |
 | [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
-| [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md) | Execution engine lifecycle, permission modes, audit, Intelligence bridge |
+| [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md) | Execution engine lifecycle, server-owned policies, audit, Intelligence bridge |
 | [`CAPABILITY_PLANNER.md`](CAPABILITY_PLANNER.md) | Plan-then-execute composition; planner never invokes capabilities |
 | [`WORKFLOW_AUTOMATION.md`](WORKFLOW_AUTOMATION.md) | Reusable sequential workflows over planner + execution engine |
 | [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md) | Filesystem capability baseline: safety, read ops, permissions |

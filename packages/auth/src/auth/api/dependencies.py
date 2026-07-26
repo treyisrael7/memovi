@@ -1,11 +1,13 @@
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Cookie, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session as OrmSession
 
 from auth.application.commands import LoginUser, LogoutUser, RegisterUser
-from auth.application.queries import GetCurrentUser
+from auth.application.dto import AuthenticatedPrincipal
+from auth.application.exceptions import UnauthenticatedError
+from auth.application.queries import GetCurrentUser, ResolveAuthenticatedPrincipal
 from auth.infrastructure.repositories import SqlAlchemySessionRepository, SqlAlchemyUserRepository
 from auth.infrastructure.security import Argon2idPasswordHasher, SecureSessionTokenService
 
@@ -53,3 +55,36 @@ def get_current_user_query(session: DatabaseSession) -> GetCurrentUser:
         sessions=SqlAlchemySessionRepository(session),
         session_tokens=SecureSessionTokenService(),
     )
+
+
+def get_resolve_authenticated_principal(
+    session: DatabaseSession,
+) -> ResolveAuthenticatedPrincipal:
+    return ResolveAuthenticatedPrincipal(
+        users=SqlAlchemyUserRepository(session),
+        sessions=SqlAlchemySessionRepository(session),
+        session_tokens=SecureSessionTokenService(),
+    )
+
+
+def require_authenticated_principal(
+    request: Request,
+    resolver: Annotated[
+        ResolveAuthenticatedPrincipal,
+        Depends(get_resolve_authenticated_principal),
+    ],
+    session_token: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
+) -> AuthenticatedPrincipal:
+    """Require an authenticated principal for non-public API handlers."""
+    cached = getattr(request.state, "authenticated_principal", None)
+    if isinstance(cached, AuthenticatedPrincipal):
+        return cached
+    try:
+        principal = resolver.execute(session_token)
+    except UnauthenticatedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication is required.",
+        ) from exc
+    request.state.authenticated_principal = principal
+    return principal

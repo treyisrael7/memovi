@@ -18,6 +18,7 @@ import threading
 import time
 from pathlib import Path
 
+from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     BrowserCapabilityConfig,
     CapabilityExecutionEngine,
@@ -176,8 +177,7 @@ def _submit(
             arguments=arguments,
             policy=policy,
             source="acceptance",
-        )
-    )
+        ), make_auth_context())
 
 
 def test_1_open_webpage_returns_title_and_metadata(tmp_path: Path) -> None:
@@ -256,7 +256,7 @@ def test_4_download_with_approval_saves_to_selected_directory(tmp_path: Path) ->
     )
     assert pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
 
-    completed = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default())
+    completed = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
     assert completed.status is CapabilityExecutionStatus.COMPLETED
     dest = Path(completed.output["destination"])
     assert dest == (selected / "report.bin").resolve()
@@ -296,7 +296,7 @@ def test_5_cancel_in_progress_download_cleans_up(tmp_path: Path) -> None:
     holder: dict[str, object] = {}
 
     def _run() -> None:
-        holder["result"] = engine.submit(request)
+        holder["result"] = engine.submit(request, make_auth_context())
 
     worker = threading.Thread(target=_run, daemon=True)
     worker.start()
@@ -308,7 +308,7 @@ def test_5_cancel_in_progress_download_cleans_up(tmp_path: Path) -> None:
         time.sleep(0.05)
     assert staging.exists()
 
-    cancelled = engine.cancel(request.id, workspace_id=WorkspaceId.default())
+    cancelled = engine.cancel(request.id, workspace_id=WorkspaceId.default(), context=make_auth_context())
     assert cancelled.status is CapabilityExecutionStatus.CANCELLED
     worker.join(timeout=15)
 
@@ -389,8 +389,7 @@ def test_8_download_integrates_with_filesystem_capability(tmp_path: Path) -> Non
             workspace_id=WorkspaceId.default(),
             arguments={"operation": "read_file", "path": "shared/notes.txt"},
             source="acceptance",
-        )
-    )
+        ), make_auth_context())
     assert fs_read.status is CapabilityExecutionStatus.COMPLETED
     assert fs_read.output is not None
     assert fs_read.output["content"] == "filesystem integration payload"
@@ -401,8 +400,7 @@ def test_8_download_integrates_with_filesystem_capability(tmp_path: Path) -> Non
             workspace_id=WorkspaceId.default(),
             arguments={"operation": "exists", "path": "shared/notes.txt"},
             source="acceptance",
-        )
-    )
+        ), make_auth_context())
     assert fs_exists.status is CapabilityExecutionStatus.COMPLETED
     assert fs_exists.output["exists"] is True
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     CapabilityExecutionEngine,
     CapabilityInvoker,
@@ -190,7 +191,7 @@ def test_plan_executes_only_through_execution_engine(sandbox: Path) -> None:
             }
         ],
     )
-    result = service.execute_plan(plan)
+    result = service.execute_plan(plan, context=make_auth_context())
     assert result.status == "completed"
     assert len(result.step_results) == 1
     assert result.step_results[0].status == "completed"

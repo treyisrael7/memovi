@@ -69,25 +69,25 @@ Statuses:
 
 # Permission Enforcement
 
-Permission modes are **capability-specific** and workspace-scoped:
+Permission modes are **capability-specific**, workspace-scoped, and
+**server-owned**. See [`AUTHORIZATION.md`](AUTHORIZATION.md).
 
 | Mode | Behavior |
 | --- | --- |
-| `always_allow` | Execute immediately after resolution |
+| `always_allow` | Execute immediately after authorization |
 | `ask_every_time` | Return `pending_approval`; `approve` continues |
 | `deny` | Fail with `permission_denied` without invoking |
 
-Resolution order:
+Resolution order (Authorization Service):
 
-1. Optional `permission_mode` on the submitted `CapabilityExecutionPolicy`
-2. Workspace policy store for that capability
-3. Engine default (`ask_every_time`)
+1. Durable workspace policy store for that capability
+2. Engine default (`ask_every_time`)
 
-Future desktop settings will manage these policies. This milestone exposes the
-API (`PUT /capabilities/{id}/permission-mode`) and engine store.
+Clients must not submit `permission_mode` on execution requests. Policy changes
+use authenticated `PUT /capabilities/{id}/permission-mode`.
 
-After approval (or always-allow), the engine grants the capability's declared
-metadata permissions into `CapabilityContext.granted_permissions` for the
+After approval (or always-allow), the engine grants Authorization Service
+effective permissions into `CapabilityContext.granted_permissions` for the
 invoker/capability check.
 
 # Core Types
@@ -96,28 +96,32 @@ invoker/capability check.
 | --- | --- |
 | `CapabilityExecutionEngine` | Pipeline owner: resolve, authorize, invoke, audit |
 | `CapabilityExecutionRequest` | Workspace-scoped request with arguments and correlation |
-| `CapabilityExecutionContext` | Cancellation, conversation, source metadata |
+| `AuthenticatedExecutionContext` | Required user/session/workspace/request identity |
+| `CapabilityAuthorizationService` | Server-owned membership + policy decisions |
 | `CapabilityExecutionResult` | Status, output, duration, errors, metadata |
-| `CapabilityExecutionPolicy` | Timeout, cancellability, optional permission mode |
-| `ExecutionAuditEntry` | Immutable audit record with redacted arguments |
+| `CapabilityExecutionPolicy` | Timeout and cancellability (not client authz) |
+| `ExecutionAuditEntry` | Durable audit record with user, operation, redacted args |
 
 `CapabilityInvoker` remains the single-invocation executor. The engine sits
 **above** the invoker and is the only supported path for Intelligence.
 
 # Audit Model
 
-Every status transition appends an `ExecutionAuditEntry` capturing:
+Every status transition appends a durable `ExecutionAuditEntry` capturing:
 
 * Timestamp
+* User
 * Workspace
 * Capability id
+* Operation (when present)
 * Redacted arguments (secrets/tokens redacted)
 * Result summary (status, error code/message, has_output)
 * Duration
 * Optional conversation / correlation ids
 * Source (`intelligence`, `api`, …)
 
-Audit history is listed via `GET /capabilities/executions/audit` for future
+Audit history survives process restarts and is listed via
+`GET /capabilities/executions/audit` for future
 Activity views and debugging. The default store is in-memory; durable storage
 can replace the port later without changing the engine contract.
 

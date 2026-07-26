@@ -91,11 +91,18 @@ class CapabilityPlannerAdapter:
         workspace_id: WorkspaceId,
         goal: str,
         steps: Sequence[Mapping[str, object]],
+        caller_user_id: str,
+        caller_session_id: str,
+        caller_request_id: str,
         conversation_id: str | None = None,
         correlation_id: str | None = None,
         plan_id: str | None = None,
         metadata: Mapping[str, object] | None = None,
     ) -> ExecutionPlanResultView:
+        from memovi_automation.domain.value_objects.authenticated_execution_context import (
+            AuthenticatedExecutionContext,
+        )
+
         try:
             plan = self._planner.create_plan(
                 workspace_id=workspace_id,
@@ -108,7 +115,16 @@ class CapabilityPlannerAdapter:
             )
         except InvalidExecutionPlanError as exc:
             raise CapabilityPlannerBridgeError(str(exc)) from exc
-        result = self._plan_execution.execute_plan(plan)
+        auth_context = AuthenticatedExecutionContext.create(
+            user_id=caller_user_id,
+            workspace_id=workspace_id,
+            session_id=caller_session_id,
+            request_id=caller_request_id,
+            source="intelligence",
+            conversation_id=conversation_id,
+            correlation_id=correlation_id,
+        )
+        result = self._plan_execution.execute_plan(plan, context=auth_context)
         return _to_plan_result_view(result)
 
 

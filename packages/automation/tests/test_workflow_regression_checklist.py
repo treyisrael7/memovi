@@ -14,6 +14,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     BrowserCapabilityConfig,
     CapabilityExecutionEngine,
@@ -161,7 +162,7 @@ def test_planner_works_independently_of_workflows(tmp_path: Path) -> None:
             }
         ],
     )
-    result = PlanExecutionService(engine=engine, planner=planner).execute_plan(plan)
+    result = PlanExecutionService(engine=engine, planner=planner).execute_plan(plan, context=make_auth_context())
     assert result.status == "completed"
     assert result.step_results[0].output["exists"] is True
     # No workflow history side effects from planner-only path.
@@ -182,8 +183,7 @@ def test_individual_capability_execution_unchanged(tmp_path: Path) -> None:
             workspace_id=WORKSPACE,
             arguments={"operation": "read_file", "path": "note.txt"},
             source="regression",
-        )
-    )
+        ), make_auth_context())
     assert result.status.value == "completed"
     assert result.output["content"] == "solo"
 
@@ -226,6 +226,7 @@ def test_filesystem_read_write_inside_and_outside_workflows(tmp_path: Path) -> N
     result = workflow_engine.execute(
         workflow_id="write-then-read",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={"path": "out.txt", "content": "workflow-write"},
     )
     assert result.status == "completed"
@@ -242,6 +243,7 @@ def test_terminal_inside_workflow(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="run-command",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={
             "command": "echo terminal-ok",
             "working_directory": str(root),
@@ -262,6 +264,7 @@ def test_git_inside_workflow(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="summarize-git-status",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={"repository": str(repo)},
     )
     assert result.status == "completed"
@@ -276,6 +279,7 @@ def test_browser_inside_workflow(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="download-and-verify",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={
             "url": "https://example.com/a.txt",
             "destination": "inbox/a.txt",
@@ -296,6 +300,7 @@ def test_permissions_enforced_inside_workflows(tmp_path: Path) -> None:
     result = workflow_engine.execute(
         workflow_id="list-directory",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={"source_folder": str(root)},
     )
     assert result.status == "failed"
@@ -330,6 +335,7 @@ def test_workflow_ids_in_structured_logs_and_request_id_propagation(
             result = workflow_engine.execute(
                 workflow_id="download-and-verify",
                 workspace_id=WORKSPACE,
+                auth_context=make_auth_context(request_id="req-workflow-123"),
                 variables={
                     "url": "https://example.com/logged.txt",
                     "destination": "inbox/logged.txt",
@@ -385,11 +391,13 @@ def test_history_records_previous_runs(tmp_path: Path) -> None:
     first = workflow_engine.execute(
         workflow_id="list-directory",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={"source_folder": str(root)},
     )
     second = workflow_engine.execute(
         workflow_id="list-directory",
         workspace_id=WORKSPACE,
+        auth_context=make_auth_context(),
         variables={"source_folder": str(root)},
     )
     history = workflow_engine.history.list_for_workspace(workspace_id=WORKSPACE)

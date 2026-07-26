@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from memovi_shared import WorkspaceId
 
 from memovi_automation.api.dependencies import (
     get_active_workspace_id,
+    get_authenticated_execution_context,
     get_capability_execution_engine,
 )
 from memovi_automation.api.schemas import (
@@ -24,6 +25,7 @@ from memovi_automation.application.services.capability_execution_engine import (
     CapabilityExecutionEngine,
 )
 from memovi_automation.domain.exceptions import (
+    AuthorizationDeniedError,
     CapabilityExecutionNotFoundError,
     InvalidCapabilityArgumentsError,
     UnknownCapabilityError,
@@ -34,6 +36,9 @@ from memovi_automation.domain.value_objects import (
     CapabilityExecutionResult,
     CapabilityExecutionStatus,
     PermissionMode,
+)
+from memovi_automation.domain.value_objects.authenticated_execution_context import (
+    AuthenticatedExecutionContext,
 )
 
 router = APIRouter(prefix="/capabilities", tags=["capabilities"])
@@ -99,22 +104,29 @@ def list_capabilities(
 @router.put(
     "/{capability_id}/permission-mode",
     response_model=PermissionModeResponse,
-    summary="Set capability permission mode",
+    summary="Set server-owned capability permission mode",
 )
 def set_permission_mode(
     capability_id: str,
     body: SetPermissionModeRequest,
     engine: Annotated[CapabilityExecutionEngine, Depends(get_capability_execution_engine)],
     workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+    auth_context: Annotated[
+        AuthenticatedExecutionContext,
+        Depends(get_authenticated_execution_context),
+    ],
 ) -> PermissionModeResponse:
     try:
         engine.set_permission_mode(
             capability_id,
             PermissionMode(body.permission_mode),
             workspace_id=workspace_id,
+            context=auth_context,
         )
     except UnknownCapabilityError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except AuthorizationDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     return PermissionModeResponse(
         capability_id=capability_id,
         permission_mode=body.permission_mode,
@@ -128,25 +140,26 @@ def set_permission_mode(
     summary="Submit a capability execution",
     description=(
         "Submit an execution request to the Capability Execution Engine. "
-        "Depending on permission mode, the result may be pending_approval, "
-        "completed, failed, or cancelled. Intelligence and clients must use "
-        "this pipeline rather than invoking capabilities directly."
+        "Authorization and permission mode are evaluated exclusively by the server. "
+        "Depending on policy, the result may be pending_approval, completed, failed, "
+        "or cancelled."
     ),
 )
 def submit_execution(
     body: SubmitCapabilityExecutionRequest,
+    request: Request,
     engine: Annotated[CapabilityExecutionEngine, Depends(get_capability_execution_engine)],
     workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+    auth_context: Annotated[
+        AuthenticatedExecutionContext,
+        Depends(get_authenticated_execution_context),
+    ],
 ) -> CapabilityExecutionResponse:
+    _ = request
     policy = None
-    if body.permission_mode is not None or body.timeout_seconds is not None:
-        policy = CapabilityExecutionPolicy(
-            timeout_seconds=body.timeout_seconds if body.timeout_seconds is not None else 30.0,
-            permission_mode=(
-                PermissionMode(body.permission_mode) if body.permission_mode is not None else None
-            ),
-        )
-    request = CapabilityExecutionRequest.create(
+    if body.timeout_seconds is not None:
+        policy = CapabilityExecutionPolicy(timeout_seconds=body.timeout_seconds)
+    execution_request = CapabilityExecutionRequest.create(
         capability_id=body.capability_id,
         workspace_id=workspace_id,
         arguments=body.arguments,
@@ -156,12 +169,14 @@ def submit_execution(
         source="api",
     )
     try:
-        result = engine.submit(request)
+        result = engine.submit(execution_request, auth_context)
     except InvalidCapabilityArgumentsError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
+    except AuthorizationDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     return _execution_response(result)
 
 
@@ -216,7 +231,9 @@ def list_audit(
                 id=entry.id,
                 execution_id=entry.execution_id,
                 workspace_id=entry.workspace_id,
+                user_id=entry.user_id,
                 capability_id=entry.capability_id,
+                operation=entry.operation,
                 status=entry.status.value,
                 permission_mode=entry.permission_mode.value,
                 arguments=dict(entry.arguments),
@@ -259,11 +276,21 @@ def approve_execution(
     execution_id: str,
     engine: Annotated[CapabilityExecutionEngine, Depends(get_capability_execution_engine)],
     workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+    auth_context: Annotated[
+        AuthenticatedExecutionContext,
+        Depends(get_authenticated_execution_context),
+    ],
 ) -> CapabilityExecutionResponse:
     try:
-        result = engine.approve(execution_id, workspace_id=workspace_id)
+        result = engine.approve(
+            execution_id,
+            workspace_id=workspace_id,
+            context=auth_context,
+        )
     except CapabilityExecutionNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except AuthorizationDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     except InvalidCapabilityArgumentsError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -281,9 +308,19 @@ def cancel_execution(
     execution_id: str,
     engine: Annotated[CapabilityExecutionEngine, Depends(get_capability_execution_engine)],
     workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+    auth_context: Annotated[
+        AuthenticatedExecutionContext,
+        Depends(get_authenticated_execution_context),
+    ],
 ) -> CapabilityExecutionResponse:
     try:
-        result = engine.cancel(execution_id, workspace_id=workspace_id)
+        result = engine.cancel(
+            execution_id,
+            workspace_id=workspace_id,
+            context=auth_context,
+        )
     except CapabilityExecutionNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except AuthorizationDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     return _execution_response(result)

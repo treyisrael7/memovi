@@ -13,8 +13,6 @@ from memovi_automation import (
     CapabilityRegistry,
     FilesystemCapabilityConfig,
     GitCapabilityConfig,
-    InMemoryExecutionAuditStore,
-    InMemoryPermissionPolicyStore,
     InMemoryWorkflowHistoryStore,
     InMemoryWorkflowLibrary,
     PermissionMode,
@@ -27,10 +25,21 @@ from memovi_automation import (
     register_git_capability,
     register_terminal_capability,
 )
+from memovi_automation.application.services.capability_authorization_service import (
+    CapabilityAuthorizationService,
+)
+from memovi_automation.infrastructure.sqlalchemy_execution_audit_store import (
+    SqlAlchemyExecutionAuditStore,
+)
+from memovi_automation.infrastructure.sqlalchemy_permission_policy_store import (
+    SqlAlchemyPermissionPolicyStore,
+)
 from memovi_shared import DEFAULT_WORKSPACE_ID
 
+from api.authorization import SqlAlchemyWorkspaceMembershipPort
 from api.capability_execution_integration import CapabilityExecutionEngineAdapter
 from api.capability_planner_integration import CapabilityPlannerAdapter
+from api.database import create_session
 
 
 def _roots_from_env(env_name: str) -> tuple[Path, ...] | None:
@@ -47,8 +56,6 @@ def _filesystem_roots() -> tuple[Path, ...]:
     if configured is not None:
         return configured
 
-    # Prefer an isolated temp root over the process cwd (OneDrive/monorepo trees
-    # are a risky default and can make local probes unnecessarily heavy).
     fallback = Path(tempfile.mkdtemp(prefix="memovi-filesystem-"))
     return (fallback,)
 
@@ -84,22 +91,43 @@ def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
         BrowserCapabilityConfig.from_roots(browser_roots),
     )
 
-    permission_store = InMemoryPermissionPolicyStore(
+    def db_factory() -> object:
+        # Resolve at call time so tests can override app.state.auth_session_factory
+        # after create_app() wires the capability framework.
+        override = getattr(app.state, "auth_session_factory", None)
+        factory = override if callable(override) else create_session
+        return factory()
+
+    permission_store = SqlAlchemyPermissionPolicyStore(
+        db_factory,  # type: ignore[arg-type]
         default_mode=PermissionMode.ASK_EVERY_TIME,
     )
-    for capability_id in ("filesystem", "terminal", "git", "browser"):
-        permission_store.set(
-            capability_id,
-            PermissionMode.ASK_EVERY_TIME,
-            workspace_id=DEFAULT_WORKSPACE_ID,
-        )
+    # Seed Ask Every Time for the default workspace when durable DB is available.
+    try:
+        for capability_id in ("filesystem", "terminal", "git", "browser"):
+            permission_store.set(
+                capability_id,
+                PermissionMode.ASK_EVERY_TIME,
+                workspace_id=DEFAULT_WORKSPACE_ID,
+            )
+    except Exception:
+        # Local/unit app construction may run before migrations/tables exist.
+        pass
+
+    authorization = CapabilityAuthorizationService(
+        membership=SqlAlchemyWorkspaceMembershipPort(db_factory),  # type: ignore[arg-type]
+        permission_policies=permission_store,
+        registry=registry,
+        default_permission_mode=PermissionMode.ASK_EVERY_TIME,
+    )
 
     invoker = CapabilityInvoker(registry=registry)
     engine = CapabilityExecutionEngine(
         registry=registry,
         invoker=invoker,
         permission_policies=permission_store,
-        audit_store=InMemoryExecutionAuditStore(),
+        audit_store=SqlAlchemyExecutionAuditStore(db_factory),  # type: ignore[arg-type]
+        authorization=authorization,
         default_permission_mode=PermissionMode.ASK_EVERY_TIME,
     )
     planner = CapabilityPlanner(registry=registry)

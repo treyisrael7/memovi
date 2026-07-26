@@ -22,6 +22,9 @@ from memovi_automation.application import (
     WorkflowLibrary,
     WorkflowValidator,
 )
+from memovi_automation.application.services.capability_authorization_service import (
+    CapabilityAuthorizationService,
+)
 from memovi_automation.browser import (
     CAPABILITY_ID as BROWSER_CAPABILITY_ID,
 )
@@ -48,6 +51,8 @@ from memovi_automation.domain import (
     GIT_WRITE,
     NOTIFICATIONS_SEND,
     TERMINAL_EXECUTE,
+    AuthenticatedExecutionContext,
+    AuthorizationDeniedError,
     AutomationDomainError,
     CancellationToken,
     CapabilityCancelledError,
@@ -102,6 +107,8 @@ from memovi_automation.infrastructure import (
     InMemoryPermissionPolicyStore,
     InMemoryWorkflowHistoryStore,
     InMemoryWorkflowLibrary,
+    SqlAlchemyExecutionAuditStore,
+    SqlAlchemyPermissionPolicyStore,
     built_in_workflows,
 )
 from memovi_automation.git import (
@@ -143,11 +150,14 @@ __all__ = [
     "NOTIFICATIONS_SEND",
     "TERMINAL_CAPABILITY_ID",
     "TERMINAL_EXECUTE",
+    "AuthenticatedExecutionContext",
+    "AuthorizationDeniedError",
     "AutomationDomainError",
     "BrowserCapability",
     "BrowserCapabilityConfig",
     "CancellationToken",
     "Capability",
+    "CapabilityAuthorizationService",
     "CapabilityCancelledError",
     "CapabilityContext",
     "CapabilityError",
@@ -184,6 +194,8 @@ __all__ = [
     "InMemoryPermissionPolicyStore",
     "InMemoryWorkflowHistoryStore",
     "InMemoryWorkflowLibrary",
+    "SqlAlchemyExecutionAuditStore",
+    "SqlAlchemyPermissionPolicyStore",
     "InvalidCapabilityArgumentsError",
     "InvalidCapabilityError",
     "InvalidExecutionPlanError",

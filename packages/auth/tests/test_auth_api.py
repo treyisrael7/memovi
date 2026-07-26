@@ -1,13 +1,17 @@
 from collections.abc import Iterator
+from datetime import UTC, datetime
 
 from api.app import create_app
 from api.document_processing import configure_document_processing
 from auth.api.dependencies import get_database_session
-from auth.infrastructure.persistence import Base
+from auth.infrastructure.persistence import Base as AuthBase
 from documents.application.workers import DocumentProcessingWorkerConfig
 from documents.infrastructure.queue import InMemoryProcessingJobQueue
 from documents.infrastructure.storage import InMemoryObjectStorage
 from fastapi.testclient import TestClient
+from memovi_shared import DEFAULT_WORKSPACE_ID
+from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
+from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -19,8 +23,19 @@ def build_test_client() -> tuple[TestClient, Engine]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine)
+    AuthBase.metadata.create_all(engine)
+    WorkspaceBase.metadata.create_all(engine)
     session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+
+    with Session(engine) as session:
+        session.add(
+            WorkspaceRecord(
+                id=DEFAULT_WORKSPACE_ID.value,
+                name="Default",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            )
+        )
+        session.commit()
 
     def database_session() -> Iterator[Session]:
         session = session_factory()
@@ -34,6 +49,7 @@ def build_test_client() -> tuple[TestClient, Engine]:
             session.close()
 
     app = create_app()
+    app.state.auth_session_factory = session_factory
     configure_document_processing(
         app,
         session_factory=session_factory,
@@ -116,5 +132,15 @@ def test_login_rejects_invalid_password() -> None:
                 json={"email": "user@example.com", "password": "wrong-password"},
             )
             assert login_response.status_code == 401
+    finally:
+        engine.dispose()
+
+
+def test_protected_endpoint_requires_authentication() -> None:
+    client, engine = build_test_client()
+    try:
+        with client:
+            response = client.get("/workspaces")
+            assert response.status_code == 401
     finally:
         engine.dispose()

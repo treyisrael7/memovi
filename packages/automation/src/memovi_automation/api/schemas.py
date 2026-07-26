@@ -29,7 +29,6 @@ class SubmitCapabilityExecutionRequest(BaseModel):
     arguments: dict[str, Any] = Field(default_factory=dict)
     conversation_id: str | None = None
     correlation_id: str | None = None
-    permission_mode: Literal["always_allow", "ask_every_time", "deny"] | None = None
     timeout_seconds: float | None = Field(default=None, gt=0)
 
 
@@ -73,7 +72,9 @@ class ExecutionAuditEntryResponse(BaseModel):
     id: str
     execution_id: str
     workspace_id: str
+    user_id: str | None = None
     capability_id: str
+    operation: str | None = None
     status: str
     permission_mode: str
     arguments: dict[str, Any]

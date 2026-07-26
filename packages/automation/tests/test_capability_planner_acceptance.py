@@ -16,6 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     BrowserCapabilityConfig,
     CapabilityExecutionEngine,
@@ -238,7 +239,7 @@ def test_3_plans_execute_through_capability_execution_engine(tmp_path: Path) -> 
             }
         ],
     )
-    result = service.execute_plan(plan)
+    result = service.execute_plan(plan, context=make_auth_context())
     assert result.status == "completed"
     assert result.step_results[0].output["content"] == "planned"
 
@@ -420,7 +421,7 @@ def test_13_execution_exclusively_through_engine(tmp_path: Path) -> None:
     assert provider is not None
     assert provider.search_calls == 0
 
-    result = service.execute_plan(plan)
+    result = service.execute_plan(plan, context=make_auth_context())
     assert result.status == "completed"
     assert len(result.step_results) == 5
     assert [step.status for step in result.step_results] == ["completed"] * 5

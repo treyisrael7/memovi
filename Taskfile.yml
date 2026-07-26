@@ -22,8 +22,13 @@ tasks:
       - docker-up
     env:
       PYTHONPATH: "{{.BACKEND_PYTHONPATH}}"
+      # OneDrive/Windows: hardlinks fail (os error 396). Prefer copy installs.
+      UV_LINK_MODE: copy
     cmds:
-      - uv run --package memovi-api uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload --app-dir apps/api/src
+      # Sync workspace members + root runtime/dev/test groups (uvicorn lives here).
+      # Narrow `--package memovi-api` alone drops those groups.
+      - uv sync --all-packages --all-groups --link-mode=copy
+      - uv run --no-sync uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload --app-dir apps/api/src
 
   backend:dev:
     desc: Alias for `task backend`.

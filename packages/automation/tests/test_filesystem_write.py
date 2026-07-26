@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     FILESYSTEM_CREATE,
     FILESYSTEM_DELETE,
@@ -384,10 +385,12 @@ def test_refuse_modifying_allowed_root(sandbox: Path) -> None:
 def test_engine_write_audit_redacts_content(sandbox: Path) -> None:
     registry, invoker = _stack(sandbox)
     audit = InMemoryExecutionAuditStore()
+    policies = InMemoryPermissionPolicyStore(default_mode=PermissionMode.ALWAYS_ALLOW)
+    policies.set("filesystem", PermissionMode.ALWAYS_ALLOW, workspace_id=WorkspaceId.default())
     engine = CapabilityExecutionEngine(
         registry=registry,
         invoker=invoker,
-        permission_policies=InMemoryPermissionPolicyStore(),
+        permission_policies=policies,
         audit_store=audit,
         default_permission_mode=PermissionMode.ALWAYS_ALLOW,
     )
@@ -401,10 +404,8 @@ def test_engine_write_audit_redacts_content(sandbox: Path) -> None:
                 "path": "audited.txt",
                 "content": "super-secret-body",
             },
-            policy=CapabilityExecutionPolicy(permission_mode=PermissionMode.ALWAYS_ALLOW),
             source="test",
-        )
-    )
+        ), make_auth_context())
     assert result.status.value == "completed"
 
     entries = engine.list_audit(workspace_id=WorkspaceId.default())
@@ -437,11 +438,10 @@ def test_engine_ask_then_approve_write(sandbox: Path) -> None:
                 "content": "via-engine",
             },
             source="test",
-        )
-    )
+        ), make_auth_context())
     assert pending.status.value == "pending_approval"
     assert pending.metadata["operation_summary"]["operation"] == "create_file"
 
-    completed = engine.approve(pending.execution_id, workspace_id=workspace)
+    completed = engine.approve(pending.execution_id, workspace_id=workspace, context=make_auth_context(workspace_id=workspace))
     assert completed.status.value == "completed"
     assert (sandbox / "approved.txt").read_text(encoding="utf-8") == "via-engine"
