@@ -60,7 +60,7 @@ If you are not using Task, the equivalent commands are documented in
 |   `-- web/                  # Optional web client workspace (shell)
 |-- packages/
 |   |-- auth/
-|   |-- automation/           # Capability Framework + Filesystem Capability
+|   |-- automation/           # Capability Framework + Filesystem, Terminal, Git, Browser, workflows
 |   |-- models/               # Model Provider Framework
 |   |-- connectors/
 |   |-- config/
