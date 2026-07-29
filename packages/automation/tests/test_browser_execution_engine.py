@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     BrowserCapabilityConfig,
     CapabilityExecutionEngine,
@@ -19,6 +18,7 @@ from memovi_automation import (
 )
 from memovi_automation.browser import FetchResult, ProviderSearchResults, SearchHit
 from memovi_automation.browser.config import BrowserCapabilityConfig as Config
+from memovi_automation.testing import make_auth_context
 from memovi_shared import WorkspaceId
 
 
@@ -116,7 +116,11 @@ def test_ask_every_time_requires_approval_for_download(tmp_path: Path) -> None:
     assert pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
     assert pending.metadata["operation_summary"]["operation"] == "download_file"
 
-    completed = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
+    completed = engine.approve(
+        pending.execution_id,
+        workspace_id=WorkspaceId.default(),
+        context=make_auth_context(),
+    )
     assert completed.status is CapabilityExecutionStatus.COMPLETED
     assert Path(completed.output["destination"]).read_bytes() == b"payload"
 

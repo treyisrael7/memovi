@@ -18,7 +18,6 @@ import threading
 import time
 from pathlib import Path
 
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     BrowserCapabilityConfig,
     CapabilityExecutionEngine,
@@ -35,13 +34,14 @@ from memovi_automation import (
     register_filesystem_capability,
 )
 from memovi_automation.browser import (
-    FetchResult,
     INVALID_URL,
+    FetchResult,
     ProviderSearchResults,
     SearchHit,
 )
 from memovi_automation.browser.config import BrowserCapabilityConfig as Config
 from memovi_automation.domain.exceptions import CapabilityCancelledError
+from memovi_automation.testing import make_auth_context
 from memovi_shared import WorkspaceId
 
 SAMPLE_HTML = """<!DOCTYPE html>
@@ -256,7 +256,11 @@ def test_4_download_with_approval_saves_to_selected_directory(tmp_path: Path) ->
     )
     assert pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
 
-    completed = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
+    completed = engine.approve(
+        pending.execution_id,
+        workspace_id=WorkspaceId.default(),
+        context=make_auth_context(),
+    )
     assert completed.status is CapabilityExecutionStatus.COMPLETED
     dest = Path(completed.output["destination"])
     assert dest == (selected / "report.bin").resolve()
@@ -308,7 +312,11 @@ def test_5_cancel_in_progress_download_cleans_up(tmp_path: Path) -> None:
         time.sleep(0.05)
     assert staging.exists()
 
-    cancelled = engine.cancel(request.id, workspace_id=WorkspaceId.default(), context=make_auth_context())
+    cancelled = engine.cancel(
+            request.id,
+            workspace_id=WorkspaceId.default(),
+            context=make_auth_context(),
+        )
     assert cancelled.status is CapabilityExecutionStatus.CANCELLED
     worker.join(timeout=15)
 

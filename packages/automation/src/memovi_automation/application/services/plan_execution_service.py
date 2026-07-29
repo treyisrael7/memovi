@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from time import perf_counter
 
+from memovi_shared import WorkspaceId
+
 from memovi_automation.application.services.capability_execution_engine import (
     CapabilityExecutionEngine,
 )
@@ -26,7 +28,6 @@ from memovi_automation.domain.value_objects.execution_plan import (
     ExecutionPlanResult,
     ExecutionStepResult,
 )
-from memovi_shared import WorkspaceId
 
 
 class PlanExecutionService:

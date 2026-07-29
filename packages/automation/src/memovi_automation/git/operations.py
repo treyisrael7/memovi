@@ -61,7 +61,12 @@ def repository_info(
     timeout_seconds: float,
     cancellation: CancellationToken,
 ) -> dict[str, Any]:
-    _ensure_repository(repository, config=config, timeout_seconds=timeout_seconds, cancellation=cancellation)
+    _ensure_repository(
+        repository,
+        config=config,
+        timeout_seconds=timeout_seconds,
+        cancellation=cancellation,
+    )
     root = run_git(
         ["rev-parse", "--show-toplevel"],
         repository=repository,
@@ -110,7 +115,12 @@ def status(
     cancellation: CancellationToken,
     include_ignored: bool = False,
 ) -> dict[str, Any]:
-    _ensure_repository(repository, config=config, timeout_seconds=timeout_seconds, cancellation=cancellation)
+    _ensure_repository(
+        repository,
+        config=config,
+        timeout_seconds=timeout_seconds,
+        cancellation=cancellation,
+    )
     args = ["status", "--porcelain=v1", "-b"]
     if include_ignored:
         args.append("--ignored")
@@ -167,7 +177,12 @@ def list_branches(
     timeout_seconds: float,
     cancellation: CancellationToken,
 ) -> dict[str, Any]:
-    _ensure_repository(repository, config=config, timeout_seconds=timeout_seconds, cancellation=cancellation)
+    _ensure_repository(
+        repository,
+        config=config,
+        timeout_seconds=timeout_seconds,
+        cancellation=cancellation,
+    )
     local_result = run_git(
         ["for-each-ref", "--format=%(refname:short)%00%(HEAD)%00%(objectname:short)", "refs/heads"],
         repository=repository,
@@ -227,7 +242,12 @@ def checkout_branch(
     timeout_seconds: float,
     cancellation: CancellationToken,
 ) -> dict[str, Any]:
-    _ensure_repository(repository, config=config, timeout_seconds=timeout_seconds, cancellation=cancellation)
+    _ensure_repository(
+        repository,
+        config=config,
+        timeout_seconds=timeout_seconds,
+        cancellation=cancellation,
+    )
     name = _require_ref(branch, argument="branch")
     run_git(
         ["checkout", name],
@@ -263,7 +283,12 @@ def create_branch(
     timeout_seconds: float,
     cancellation: CancellationToken,
 ) -> dict[str, Any]:
-    _ensure_repository(repository, config=config, timeout_seconds=timeout_seconds, cancellation=cancellation)
+    _ensure_repository(
+        repository,
+        config=config,
+        timeout_seconds=timeout_seconds,
+        cancellation=cancellation,
+    )
     branch = _require_ref(name, argument="name")
     args = ["branch", branch]
     if start_point:
@@ -308,7 +333,12 @@ def stage_files(
     timeout_seconds: float,
     cancellation: CancellationToken,
 ) -> dict[str, Any]:
-    _ensure_repository(repository, config=config, timeout_seconds=timeout_seconds, cancellation=cancellation)
+    _ensure_repository(
+        repository,
+        config=config,
+        timeout_seconds=timeout_seconds,
+        cancellation=cancellation,
+    )
     normalized = _require_paths(paths)
     run_git(
         ["add", "--", *normalized],
@@ -334,7 +364,12 @@ def unstage_files(
     timeout_seconds: float,
     cancellation: CancellationToken,
 ) -> dict[str, Any]:
-    _ensure_repository(repository, config=config, timeout_seconds=timeout_seconds, cancellation=cancellation)
+    _ensure_repository(
+        repository,
+        config=config,
+        timeout_seconds=timeout_seconds,
+        cancellation=cancellation,
+    )
     normalized = _require_paths(paths)
     # Preferred modern form; falls back for older git.
     result = run_git(
@@ -371,7 +406,12 @@ def commit(
     cancellation: CancellationToken,
     allow_empty: bool = False,
 ) -> dict[str, Any]:
-    _ensure_repository(repository, config=config, timeout_seconds=timeout_seconds, cancellation=cancellation)
+    _ensure_repository(
+        repository,
+        config=config,
+        timeout_seconds=timeout_seconds,
+        cancellation=cancellation,
+    )
     if not isinstance(message, str) or not message.strip():
         raise CapabilityExecutionError(
             "Commit message is required.",
@@ -417,7 +457,12 @@ def commit_history(
     timeout_seconds: float,
     cancellation: CancellationToken,
 ) -> dict[str, Any]:
-    _ensure_repository(repository, config=config, timeout_seconds=timeout_seconds, cancellation=cancellation)
+    _ensure_repository(
+        repository,
+        config=config,
+        timeout_seconds=timeout_seconds,
+        cancellation=cancellation,
+    )
     args = [
         "log",
         f"-n{limit}",
@@ -465,7 +510,12 @@ def fetch(
     timeout_seconds: float,
     cancellation: CancellationToken,
 ) -> dict[str, Any]:
-    _ensure_repository(repository, config=config, timeout_seconds=timeout_seconds, cancellation=cancellation)
+    _ensure_repository(
+        repository,
+        config=config,
+        timeout_seconds=timeout_seconds,
+        cancellation=cancellation,
+    )
     args = ["fetch"]
     if remote:
         args.append(_require_ref(remote, argument="remote"))
@@ -495,7 +545,12 @@ def pull(
     timeout_seconds: float,
     cancellation: CancellationToken,
 ) -> dict[str, Any]:
-    _ensure_repository(repository, config=config, timeout_seconds=timeout_seconds, cancellation=cancellation)
+    _ensure_repository(
+        repository,
+        config=config,
+        timeout_seconds=timeout_seconds,
+        cancellation=cancellation,
+    )
     args = ["pull"]
     if remote:
         args.append(_require_ref(remote, argument="remote"))
@@ -529,7 +584,12 @@ def push(
     timeout_seconds: float,
     cancellation: CancellationToken,
 ) -> dict[str, Any]:
-    _ensure_repository(repository, config=config, timeout_seconds=timeout_seconds, cancellation=cancellation)
+    _ensure_repository(
+        repository,
+        config=config,
+        timeout_seconds=timeout_seconds,
+        cancellation=cancellation,
+    )
     args = ["push"]
     if set_upstream:
         args.append("-u")
@@ -565,7 +625,12 @@ def diff(
     timeout_seconds: float,
     cancellation: CancellationToken,
 ) -> dict[str, Any]:
-    _ensure_repository(repository, config=config, timeout_seconds=timeout_seconds, cancellation=cancellation)
+    _ensure_repository(
+        repository,
+        config=config,
+        timeout_seconds=timeout_seconds,
+        cancellation=cancellation,
+    )
     args = ["diff", "--no-ext-diff"]
     if staged:
         args.append("--cached")

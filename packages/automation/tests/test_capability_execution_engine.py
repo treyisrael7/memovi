@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     CapabilityExecutionEngine,
     CapabilityExecutionPolicy,
@@ -14,6 +13,7 @@ from memovi_automation import (
     PermissionMode,
     register_filesystem_capability,
 )
+from memovi_automation.testing import make_auth_context
 from memovi_shared import WorkspaceId
 
 
@@ -70,7 +70,11 @@ def test_ask_every_time_requires_approval(tmp_path: Path) -> None:
         ), make_auth_context())
     assert pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
 
-    completed = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
+    completed = engine.approve(
+        pending.execution_id,
+        workspace_id=WorkspaceId.default(),
+        context=make_auth_context(),
+    )
     assert completed.status is CapabilityExecutionStatus.COMPLETED
 
 
@@ -115,7 +119,11 @@ def test_cancel_pending_execution(tmp_path: Path) -> None:
             workspace_id=WorkspaceId.default(),
             arguments={"operation": "exists", "path": str(tmp_path)},
         ), make_auth_context())
-    cancelled = engine.cancel(pending.execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
+    cancelled = engine.cancel(
+        pending.execution_id,
+        workspace_id=WorkspaceId.default(),
+        context=make_auth_context(),
+    )
     assert cancelled.status is CapabilityExecutionStatus.CANCELLED
 
 

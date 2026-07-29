@@ -4,7 +4,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     FILESYSTEM_CREATE,
     FILESYSTEM_DELETE,
@@ -14,7 +13,6 @@ from memovi_automation import (
     FILESYSTEM_WRITE,
     CapabilityContext,
     CapabilityExecutionEngine,
-    CapabilityExecutionPolicy,
     CapabilityExecutionRequest,
     CapabilityInvoker,
     CapabilityRegistry,
@@ -31,6 +29,7 @@ from memovi_automation.filesystem import (
     OVERWRITE_REJECTED,
     PERMISSION_DENIED,
 )
+from memovi_automation.testing import make_auth_context
 from memovi_shared import WorkspaceId
 
 
@@ -442,6 +441,10 @@ def test_engine_ask_then_approve_write(sandbox: Path) -> None:
     assert pending.status.value == "pending_approval"
     assert pending.metadata["operation_summary"]["operation"] == "create_file"
 
-    completed = engine.approve(pending.execution_id, workspace_id=workspace, context=make_auth_context(workspace_id=workspace))
+    completed = engine.approve(
+        pending.execution_id,
+        workspace_id=workspace,
+        context=make_auth_context(workspace_id=workspace),
+    )
     assert completed.status.value == "completed"
     assert (sandbox / "approved.txt").read_text(encoding="utf-8") == "via-engine"

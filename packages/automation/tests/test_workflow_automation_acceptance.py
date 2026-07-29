@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     BrowserCapabilityConfig,
     CapabilityExecutionEngine,
@@ -46,6 +45,7 @@ from memovi_automation import (
 )
 from memovi_automation.browser import FetchResult, ProviderSearchResults, SearchHit
 from memovi_automation.browser.config import BrowserCapabilityConfig as BrowserConfig
+from memovi_automation.testing import make_auth_context
 from memovi_shared import WorkspaceId
 
 WORKSPACE = WorkspaceId.default()
@@ -58,7 +58,15 @@ class FakeBrowserProvider:
         self.download_calls = 0
         self.download_urls: list[str] = []
 
-    def fetch(self, url, *, config: BrowserConfig, timeout_seconds, cancellation=None, on_progress=None):
+    def fetch(
+        self,
+        url,
+        *,
+        config: BrowserConfig,
+        timeout_seconds,
+        cancellation=None,
+        on_progress=None,
+    ):
         self.fetch_calls += 1
         return FetchResult(
             url=url,
@@ -199,7 +207,7 @@ def test_2_steps_run_in_correct_order(tmp_path: Path) -> None:
     """2. Execute and verify each step runs in the correct order."""
     root = tmp_path / "ws"
     root.mkdir()
-    workflow_engine, engine, planner, _history, provider = _stack(root)
+    workflow_engine, _engine, planner, _history, provider = _stack(root)
     assert provider is not None
 
     result = workflow_engine.execute(

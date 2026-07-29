@@ -79,7 +79,11 @@ def _context(*, granted=frozenset({GIT_READ, GIT_WRITE, GIT_NETWORK})) -> Capabi
 def _invoke(invoker: CapabilityInvoker, *, arguments: dict, granted=None):
     return invoker.invoke(
         CapabilityRequest.create(capability_id=CAPABILITY_ID, arguments=arguments),
-        _context(granted=frozenset({GIT_READ, GIT_WRITE, GIT_NETWORK}) if granted is None else granted),
+        _context(
+            granted=frozenset({GIT_READ, GIT_WRITE, GIT_NETWORK})
+            if granted is None
+            else granted
+        ),
     )
 
 

@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     FILESYSTEM_READ,
     FILESYSTEM_WRITE,

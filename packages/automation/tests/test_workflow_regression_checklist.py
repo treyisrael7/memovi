@@ -14,7 +14,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     BrowserCapabilityConfig,
     CapabilityExecutionEngine,
@@ -42,6 +41,7 @@ from memovi_automation import (
 )
 from memovi_automation.browser import FetchResult, ProviderSearchResults, SearchHit
 from memovi_automation.browser.config import BrowserCapabilityConfig as BrowserConfig
+from memovi_automation.testing import make_auth_context
 from memovi_observability import RequestContext, bind_request_context, clear_request_context
 from memovi_shared import WorkspaceId
 
@@ -60,7 +60,15 @@ class FakeBrowserProvider:
             body=b"payload",
         )
 
-    def fetch(self, url, *, config: BrowserConfig, timeout_seconds, cancellation=None, on_progress=None):
+    def fetch(
+        self,
+        url,
+        *,
+        config: BrowserConfig,
+        timeout_seconds,
+        cancellation=None,
+        on_progress=None,
+    ):
         return FetchResult(
             url=url,
             final_url=url,
@@ -162,7 +170,9 @@ def test_planner_works_independently_of_workflows(tmp_path: Path) -> None:
             }
         ],
     )
-    result = PlanExecutionService(engine=engine, planner=planner).execute_plan(plan, context=make_auth_context())
+    result = PlanExecutionService(engine=engine, planner=planner).execute_plan(
+        plan, context=make_auth_context()
+    )
     assert result.status == "completed"
     assert result.step_results[0].output["exists"] is True
     # No workflow history side effects from planner-only path.

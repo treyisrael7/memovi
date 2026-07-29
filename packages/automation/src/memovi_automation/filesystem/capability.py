@@ -259,9 +259,7 @@ def _has_filesystem_permission(
     if context.has_permission(required):
         return True
     # Coarse umbrella covers any write-side permission.
-    if required is not FILESYSTEM_READ and context.has_permission(FILESYSTEM_WRITE):
-        return True
-    return False
+    return bool(required is not FILESYSTEM_READ and context.has_permission(FILESYSTEM_WRITE))
 
 
 def _require_string_argument(arguments: Mapping[str, object], name: str) -> str:

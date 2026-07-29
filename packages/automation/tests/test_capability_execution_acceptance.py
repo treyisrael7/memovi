@@ -9,7 +9,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from api.capability_execution_integration import CapabilityExecutionEngineAdapter
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     FILESYSTEM_READ,
     CapabilityContext,
@@ -27,6 +26,7 @@ from memovi_automation import (
     PermissionMode,
     register_filesystem_capability,
 )
+from memovi_automation.testing import make_auth_context
 from memovi_intelligence.application.commands.request_capability_execution import (
     RequestCapabilityExecution,
     RequestCapabilityExecutionCommand,
@@ -191,7 +191,11 @@ def test_4_ask_every_time_pauses_until_approval() -> None:
     still_pending = engine.get(pending.execution_id, workspace_id=WorkspaceId.default())
     assert still_pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
 
-    approved = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
+    approved = engine.approve(
+        pending.execution_id,
+        workspace_id=WorkspaceId.default(),
+        context=make_auth_context(),
+    )
     assert approved.status is CapabilityExecutionStatus.COMPLETED
     assert isinstance(approved.output, dict)
     assert approved.output["result"] == "structured-mock-payload"

@@ -19,7 +19,6 @@ import time
 from pathlib import Path
 
 import pytest
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     CapabilityExecutionEngine,
     CapabilityExecutionPolicy,
@@ -33,6 +32,7 @@ from memovi_automation import (
     TerminalCapabilityConfig,
     register_terminal_capability,
 )
+from memovi_automation.testing import make_auth_context
 from memovi_shared import WorkspaceId
 
 
@@ -178,7 +178,11 @@ def test_4_long_running_command_cancellation(sandbox: Path) -> None:
             time.sleep(0.05)
             continue
         if current.status is CapabilityExecutionStatus.EXECUTING:
-            cancelled = engine.cancel(request.id, workspace_id=WorkspaceId.default(), context=make_auth_context())
+            cancelled = engine.cancel(
+            request.id,
+            workspace_id=WorkspaceId.default(),
+            context=make_auth_context(),
+        )
             break
         if current.status in {
             CapabilityExecutionStatus.COMPLETED,
@@ -253,7 +257,11 @@ def test_8_ask_every_time_requires_approval(sandbox: Path) -> None:
     assert pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
     assert pending.output is None
 
-    approved = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
+    approved = engine.approve(
+        pending.execution_id,
+        workspace_id=WorkspaceId.default(),
+        context=make_auth_context(),
+    )
     assert approved.status is CapabilityExecutionStatus.COMPLETED
     assert approved.output is not None
     assert "needs-approval" in approved.output["stdout"]

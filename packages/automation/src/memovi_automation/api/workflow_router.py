@@ -13,9 +13,6 @@ from memovi_automation.api.dependencies import (
     get_authenticated_execution_context,
     get_workflow_engine,
 )
-from memovi_automation.domain.value_objects.authenticated_execution_context import (
-    AuthenticatedExecutionContext,
-)
 from memovi_automation.api.workflow_schemas import (
     ExecuteWorkflowRequest,
     WorkflowDefinitionResponse,
@@ -31,6 +28,9 @@ from memovi_automation.application.services.workflow_engine import WorkflowEngin
 from memovi_automation.domain.exceptions import (
     InvalidWorkflowError,
     UnknownWorkflowError,
+)
+from memovi_automation.domain.value_objects.authenticated_execution_context import (
+    AuthenticatedExecutionContext,
 )
 from memovi_automation.domain.value_objects.workflow import (
     WorkflowDefinition,

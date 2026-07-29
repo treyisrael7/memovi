@@ -3,7 +3,6 @@ import threading
 import time
 from pathlib import Path
 
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     CapabilityExecutionEngine,
     CapabilityExecutionPolicy,
@@ -17,6 +16,7 @@ from memovi_automation import (
     TerminalCapabilityConfig,
     register_terminal_capability,
 )
+from memovi_automation.testing import make_auth_context
 from memovi_shared import WorkspaceId
 
 
@@ -65,7 +65,9 @@ def test_always_allow_executes_terminal_through_engine(tmp_path: Path) -> None:
     assert result.output["exit_code"] == 0
     audit = engine.list_audit(workspace_id=WorkspaceId.default())
     assert any(entry.status is CapabilityExecutionStatus.COMPLETED for entry in audit)
-    completed = [entry for entry in audit if entry.status is CapabilityExecutionStatus.COMPLETED][0]
+    completed = next(
+        entry for entry in audit if entry.status is CapabilityExecutionStatus.COMPLETED
+    )
     assert completed.result_summary.get("exit_code") == 0
     assert completed.arguments.get("command") == "echo engine-ok"
     assert "env" not in completed.arguments or isinstance(completed.arguments.get("env"), dict)
@@ -83,7 +85,11 @@ def test_ask_every_time_requires_approval(tmp_path: Path) -> None:
     assert pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
     assert pending.metadata["operation_summary"]["command"] == "echo needs-approval"
 
-    completed = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
+    completed = engine.approve(
+        pending.execution_id,
+        workspace_id=WorkspaceId.default(),
+        context=make_auth_context(),
+    )
     assert completed.status is CapabilityExecutionStatus.COMPLETED
     assert "needs-approval" in str(completed.output["stdout"])
 
@@ -118,7 +124,9 @@ def test_sensitive_env_is_redacted_in_audit(tmp_path: Path) -> None:
         ), make_auth_context())
     assert result.status is CapabilityExecutionStatus.COMPLETED
     audit = engine.list_audit(workspace_id=WorkspaceId.default())
-    completed = [entry for entry in audit if entry.status is CapabilityExecutionStatus.COMPLETED][0]
+    completed = next(
+        entry for entry in audit if entry.status is CapabilityExecutionStatus.COMPLETED
+    )
     env = completed.arguments["env"]
     assert env["VISIBLE_FLAG"] == "ok"
     assert env["API_TOKEN"] == "[REDACTED]"
@@ -133,7 +141,11 @@ def test_cancel_pending_terminal_execution(tmp_path: Path) -> None:
             workspace_id=WorkspaceId.default(),
             arguments={"command": _echo("never")},
         ), make_auth_context())
-    cancelled = engine.cancel(pending.execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
+    cancelled = engine.cancel(
+        pending.execution_id,
+        workspace_id=WorkspaceId.default(),
+        context=make_auth_context(),
+    )
     assert cancelled.status is CapabilityExecutionStatus.CANCELLED
 
 
@@ -164,7 +176,11 @@ def test_cancel_running_terminal_process(tmp_path: Path) -> None:
             time.sleep(0.05)
             continue
         if current.status is CapabilityExecutionStatus.EXECUTING:
-            cancelled = engine.cancel(execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
+            cancelled = engine.cancel(
+            execution_id,
+            workspace_id=WorkspaceId.default(),
+            context=make_auth_context(),
+        )
             assert cancelled.status is CapabilityExecutionStatus.CANCELLED
             break
         if current.status in {

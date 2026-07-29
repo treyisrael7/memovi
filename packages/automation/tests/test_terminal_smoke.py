@@ -12,7 +12,6 @@ import sys
 from pathlib import Path
 
 import pytest
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     TERMINAL_EXECUTE,
     CapabilityContext,
@@ -29,6 +28,7 @@ from memovi_automation import (
     register_terminal_capability,
 )
 from memovi_automation.terminal import CAPABILITY_ID
+from memovi_automation.testing import make_auth_context
 from memovi_shared import WorkspaceId
 
 

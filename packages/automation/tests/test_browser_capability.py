@@ -18,8 +18,8 @@ from memovi_automation import (
 )
 from memovi_automation.browser import (
     CAPABILITY_ID,
-    FetchResult,
     INVALID_URL,
+    FetchResult,
     ProviderSearchResults,
     SearchHit,
 )
@@ -134,7 +134,11 @@ def _invoke(invoker: CapabilityInvoker, *, arguments: dict, granted=None):
 
 
 def _html_page(url: str, *, title: str, body: str, final_url: str | None = None) -> FetchResult:
-    html = f"<html><head><title>{title}</title><meta name='description' content='demo'></head><body>{body}</body></html>"
+    html = (
+        f"<html><head><title>{title}</title>"
+        f"<meta name='description' content='demo'></head>"
+        f"<body>{body}</body></html>"
+    )
     return FetchResult(
         url=url,
         final_url=final_url or url,

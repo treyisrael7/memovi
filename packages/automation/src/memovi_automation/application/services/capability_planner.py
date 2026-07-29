@@ -10,6 +10,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from memovi_shared import WorkspaceId
+
 from memovi_automation.application.services.capability_registry import CapabilityRegistry
 from memovi_automation.application.services.execution_plan_validator import (
     ExecutionPlanValidator,
@@ -20,7 +22,6 @@ from memovi_automation.domain.value_objects.execution_plan import (
     ExecutionPlan,
     ExecutionStep,
 )
-from memovi_shared import WorkspaceId
 
 
 class CapabilityPlanner:

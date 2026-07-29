@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     FILESYSTEM_CREATE,
     FILESYSTEM_DELETE,
@@ -15,7 +14,6 @@ from memovi_automation import (
     FILESYSTEM_READ,
     CapabilityContext,
     CapabilityExecutionEngine,
-    CapabilityExecutionPolicy,
     CapabilityExecutionRequest,
     CapabilityInvoker,
     CapabilityRegistry,
@@ -27,6 +25,7 @@ from memovi_automation import (
     register_filesystem_capability,
 )
 from memovi_automation.filesystem import CAPABILITY_ID, OVERWRITE_REJECTED
+from memovi_automation.testing import make_auth_context
 from memovi_shared import WorkspaceId
 
 WRITE_OPS_UNDER_TEST = (
@@ -263,7 +262,7 @@ def test_acceptance_7_overwrite_policy_reject_is_respected(engine_stack) -> None
 
 
 def test_acceptance_8_path_traversal_is_rejected(engine_stack, tmp_path: Path) -> None:
-    sandbox, invoker, _engine, _audit = engine_stack
+    _sandbox, invoker, _engine, _audit = engine_stack
     outside = tmp_path / "outside"
     outside.mkdir()
     secret = outside / "secret.txt"

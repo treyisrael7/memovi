@@ -102,6 +102,14 @@ from memovi_automation.filesystem import (
     FilesystemCapabilityConfig,
     register_filesystem_capability,
 )
+from memovi_automation.git import (
+    CAPABILITY_ID as GIT_CAPABILITY_ID,
+)
+from memovi_automation.git import (
+    GitCapability,
+    GitCapabilityConfig,
+    register_git_capability,
+)
 from memovi_automation.infrastructure import (
     InMemoryExecutionAuditStore,
     InMemoryPermissionPolicyStore,
@@ -110,14 +118,6 @@ from memovi_automation.infrastructure import (
     SqlAlchemyExecutionAuditStore,
     SqlAlchemyPermissionPolicyStore,
     built_in_workflows,
-)
-from memovi_automation.git import (
-    CAPABILITY_ID as GIT_CAPABILITY_ID,
-)
-from memovi_automation.git import (
-    GitCapability,
-    GitCapabilityConfig,
-    register_git_capability,
 )
 from memovi_automation.terminal import (
     CAPABILITY_ID as TERMINAL_CAPABILITY_ID,
@@ -194,8 +194,6 @@ __all__ = [
     "InMemoryPermissionPolicyStore",
     "InMemoryWorkflowHistoryStore",
     "InMemoryWorkflowLibrary",
-    "SqlAlchemyExecutionAuditStore",
-    "SqlAlchemyPermissionPolicyStore",
     "InvalidCapabilityArgumentsError",
     "InvalidCapabilityError",
     "InvalidExecutionPlanError",
@@ -203,6 +201,8 @@ __all__ = [
     "PermissionMode",
     "PermissionPolicyStore",
     "PlanExecutionService",
+    "SqlAlchemyExecutionAuditStore",
+    "SqlAlchemyPermissionPolicyStore",
     "TerminalCapability",
     "TerminalCapabilityConfig",
     "UnknownCapabilityError",

@@ -6,6 +6,7 @@ process objects or unparsed CLI dumps to callers.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import signal
 import subprocess
@@ -210,7 +211,5 @@ def _terminate_process(process: subprocess.Popen[str]) -> None:
     try:
         process.wait(timeout=1.0)
     except subprocess.TimeoutExpired:
-        try:
+        with contextlib.suppress(OSError):
             process.kill()
-        except OSError:
-            pass

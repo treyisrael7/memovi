@@ -11,10 +11,11 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from types import MappingProxyType
-from uuid import uuid5, UUID
+from uuid import UUID, uuid5
+
+from memovi_shared import WorkspaceId
 
 from memovi_automation.domain.exceptions import InvalidExecutionPlanError
-from memovi_shared import WorkspaceId
 
 # Stable namespace for content-derived plan ids (deterministic across identical requests).
 _PLAN_ID_NAMESPACE = UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")

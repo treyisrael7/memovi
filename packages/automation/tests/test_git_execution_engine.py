@@ -2,7 +2,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     CapabilityExecutionEngine,
     CapabilityExecutionRequest,
@@ -15,6 +14,7 @@ from memovi_automation import (
     PermissionMode,
     register_git_capability,
 )
+from memovi_automation.testing import make_auth_context
 from memovi_shared import WorkspaceId
 
 
@@ -110,7 +110,11 @@ def test_ask_every_time_requires_approval_for_commit(repo: Path) -> None:
     assert pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
     assert pending.metadata["operation_summary"]["operation"] == "commit"
 
-    completed = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
+    completed = engine.approve(
+        pending.execution_id,
+        workspace_id=WorkspaceId.default(),
+        context=make_auth_context(),
+    )
     assert completed.status is CapabilityExecutionStatus.COMPLETED
     assert completed.output["short_sha"]
 

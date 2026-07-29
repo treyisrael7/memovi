@@ -58,7 +58,8 @@ def validate_url(raw: object) -> str:
     scheme = parts.scheme.lower()
     if scheme not in _ALLOWED_SCHEMES:
         raise CapabilityExecutionError(
-            f"Unsupported URL scheme '{parts.scheme or '(none)'}'. Only http and https are allowed.",
+            f"Unsupported URL scheme '{parts.scheme or '(none)'}'. "
+            "Only http and https are allowed.",
             code=INVALID_URL,
             details={"url": url, "scheme": parts.scheme},
         )
@@ -92,7 +93,8 @@ def redact_url(url: str) -> str:
     redacted_pairs: list[tuple[str, str]] = []
     for key, value in parse_qsl(parts.query, keep_blank_values=True):
         if key.lower() in _SENSITIVE_QUERY_KEYS or any(
-            fragment in key.lower() for fragment in ("token", "secret", "password", "apikey", "api_key")
+            fragment in key.lower()
+            for fragment in ("token", "secret", "password", "apikey", "api_key")
         ):
             redacted_pairs.append((key, "REDACTED"))
         else:

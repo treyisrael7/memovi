@@ -6,6 +6,7 @@ process objects — only structured capture results.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import signal
 import subprocess
@@ -241,10 +242,8 @@ def _terminate_process(process: subprocess.Popen[str]) -> None:
                 process.kill()
         except OSError:
             pass
-        try:
+        with contextlib.suppress(subprocess.TimeoutExpired):
             process.wait(timeout=1.0)
-        except subprocess.TimeoutExpired:
-            pass
 
 
 class _OutputCollector:

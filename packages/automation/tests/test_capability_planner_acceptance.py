@@ -16,7 +16,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     BrowserCapabilityConfig,
     CapabilityExecutionEngine,
@@ -34,6 +33,7 @@ from memovi_automation import (
 )
 from memovi_automation.browser import FetchResult, ProviderSearchResults, SearchHit
 from memovi_automation.browser.config import BrowserCapabilityConfig as BrowserConfig
+from memovi_automation.testing import make_auth_context
 from memovi_shared import WorkspaceId
 
 
@@ -43,7 +43,15 @@ class FakeBrowserProvider:
         self.search_calls = 0
         self.download_calls = 0
 
-    def fetch(self, url, *, config: BrowserConfig, timeout_seconds, cancellation=None, on_progress=None):
+    def fetch(
+        self,
+        url,
+        *,
+        config: BrowserConfig,
+        timeout_seconds,
+        cancellation=None,
+        on_progress=None,
+    ):
         self.fetch_calls += 1
         html = (
             "<html><head><title>Planned Page</title>"

@@ -86,7 +86,7 @@ class AuthenticationMiddleware:
                 state["request_context"] = updated
                 bind_request_context(updated)
         else:
-            setattr(state, "authenticated_principal", principal)
+            state.authenticated_principal = principal
             current = getattr(state, "request_context", None)
             if isinstance(current, RequestContext):
                 updated = RequestContext(
@@ -96,7 +96,7 @@ class AuthenticationMiddleware:
                     timestamp=current.timestamp,
                     principal=principal.user_id,
                 )
-                setattr(state, "request_context", updated)
+                state.request_context = updated
                 bind_request_context(updated)
 
         await self.app(scope, receive, send)

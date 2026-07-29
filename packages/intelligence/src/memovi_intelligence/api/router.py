@@ -12,8 +12,8 @@ from memovi_shared import WorkspaceId
 from memovi_intelligence.api.dependencies import (
     get_active_workspace_id,
     get_capability_execution_port,
-    get_create_capability_execution_plan,
     get_conversation_service,
+    get_create_capability_execution_plan,
     get_execute_capability_execution_plan,
     get_execution_caller_identity,
     get_model_gateway,
@@ -57,10 +57,6 @@ from memovi_intelligence.application.commands import (
     SendConversationMessage,
     SendConversationMessageCommand,
 )
-from memovi_intelligence.application.ports_capability_planner import (
-    ExecutionPlanResultView,
-    ExecutionPlanView,
-)
 from memovi_intelligence.application.commands.send_conversation_message import (
     SendMessageStreamCompleted,
     SendMessageStreamToken,
@@ -69,6 +65,10 @@ from memovi_intelligence.application.ports_capability_execution import (
     CapabilityExecutionPort,
     CapabilityExecutionView,
     ExecutionCallerIdentity,
+)
+from memovi_intelligence.application.ports_capability_planner import (
+    ExecutionPlanResultView,
+    ExecutionPlanView,
 )
 from memovi_intelligence.application.services import ConversationService, ModelGateway
 from memovi_intelligence.domain.exceptions import (

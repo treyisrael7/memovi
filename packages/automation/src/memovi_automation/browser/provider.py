@@ -238,7 +238,7 @@ class HttpBrowserProvider:
             method="GET",
         )
         try:
-            with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310
+            with urlopen(request, timeout=timeout_seconds) as response:
                 _check_cancelled(cancellation)
                 final_url = response.geturl()
                 status_code = int(getattr(response, "status", 200) or 200)
@@ -310,12 +310,6 @@ class HttpBrowserProvider:
         except CapabilityCancelledError:
             raise
         except TimeoutError as exc:
-            raise CapabilityExecutionError(
-                "Browser request timed out.",
-                code=TIMEOUT,
-                details={"url": url},
-            ) from exc
-        except socket.timeout as exc:
             raise CapabilityExecutionError(
                 "Browser request timed out.",
                 code=TIMEOUT,

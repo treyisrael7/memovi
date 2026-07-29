@@ -34,8 +34,8 @@ from memovi_automation.browser.provider import (
 from memovi_automation.browser.url_safety import redact_url, validate_url
 
 __all__ = [
-    "CAPABILITY_ID",
     "CANCELLED",
+    "CAPABILITY_ID",
     "DESTINATION_EXISTS",
     "DOWNLOAD_FAILED",
     "DOWNLOAD_OPERATIONS",

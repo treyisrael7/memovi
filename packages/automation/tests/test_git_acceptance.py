@@ -18,7 +18,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from memovi_automation.testing import make_auth_context
 from memovi_automation import (
     GIT_NETWORK,
     GIT_READ,
@@ -36,6 +35,7 @@ from memovi_automation import (
     PermissionMode,
     register_git_capability,
 )
+from memovi_automation.testing import make_auth_context
 from memovi_shared import WorkspaceId
 
 
@@ -309,7 +309,11 @@ def test_9_confirmation_required_until_approved(repo: Path) -> None:
     current = engine.get(pending.execution_id, workspace_id=WorkspaceId.default())
     assert current.status is CapabilityExecutionStatus.PENDING_APPROVAL
 
-    approved = engine.approve(pending.execution_id, workspace_id=WorkspaceId.default(), context=make_auth_context())
+    approved = engine.approve(
+        pending.execution_id,
+        workspace_id=WorkspaceId.default(),
+        context=make_auth_context(),
+    )
     assert approved.status is CapabilityExecutionStatus.COMPLETED
     assert approved.output is not None
     assert approved.output["message"] == "needs approval"
