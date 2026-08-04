@@ -49,7 +49,10 @@ Explorer labels map to that model:
 | Concepts | Structural groupings by `source_type` and `mime_type` |
 | Relationships | Provenance edges (`document_of`, `chunk_of`) |
 | Sources | Documents in the active workspace |
-| Search | Indexed retrieval over knowledge (`GET /search`) |
+
+Global and per-document search lives on the dedicated Search page (see
+[`DESKTOP_CLIENT.md`](DESKTOP_CLIENT.md#search)), which opens results here for
+inspection. The explorer itself does not duplicate a second search UI.
 
 Semantic entity extraction, topic concepts, confidence scoring, and graph
 visualization are future pipeline stages. Until then:
@@ -64,7 +67,6 @@ visualization are future pipeline stages. Until then:
 Desktop Knowledge page
   │
   ├─ Overview     GET /memory/dashboard
-  ├─ Search       GET /search
   ├─ Concepts     GET /memory/concepts
   ├─ Entities     GET /memory + GET /memory/{id}
   ├─ Relationships GET /memory/relationships
@@ -75,19 +77,20 @@ Desktop Knowledge page
 
 Typical inspection path:
 
-1. Open **Knowledge** in the desktop shell.
+1. Open **Knowledge** in the desktop shell, or arrive here from a Search
+   result or a document's detail pane.
 2. Review **Overview** counts for the active workspace.
-3. Browse **Entities** or **Search** to find an item.
-4. Inspect summary, source document, related concepts, sibling entities,
-   confidence, and timestamps in the detail pane.
+3. Browse **Entities**, or use the **Search** page to find an item and open
+   it here.
+4. Inspect summary, source document (with processing status), related
+   concepts, sibling entities, confidence, and timestamps in the detail pane.
 5. Follow provenance into **Sources** or **Relationships**.
+6. Start a grounded conversation directly from an entity or source with "Ask
+   about this."
 
 Workspace isolation is enforced by the API through `X-Memovi-Workspace-Id`.
 The desktop only forwards the active workspace selection; it never invents
 ownership or filters across workspaces locally.
-
-Search updates as the query and filters change (workspace, document, source /
-entity type). Ranking stays on the backend.
 
 # Knowledge Navigation
 
@@ -150,7 +153,7 @@ All knowledge decisions remain behind Memory, Documents, and Search APIs.
 | `GET /memory/relationships` | Provenance relationship list |
 | `GET /documents` | Source document list |
 | `GET /documents/{id}` | Source document detail |
-| `GET /search` | Full-text / semantic / hybrid search |
+| `GET /search` | Full-text / semantic / hybrid search (used by the dedicated Search page) |
 
 # Out of Scope
 

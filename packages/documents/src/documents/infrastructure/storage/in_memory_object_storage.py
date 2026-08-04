@@ -12,3 +12,6 @@ class InMemoryObjectStorage:
             return self.objects[key][0]
         except KeyError as exc:
             raise FileNotFoundError(key) from exc
+
+    def delete_object(self, key: str) -> None:
+        self.objects.pop(key, None)

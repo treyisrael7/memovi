@@ -21,7 +21,6 @@ export function Sidebar() {
             onClick={() => setActivePage(page.id)}
           >
             <span className="nav-label">{page.label}</span>
-            {!page.available ? <span className="nav-badge">Soon</span> : null}
           </button>
         ))}
       </nav>

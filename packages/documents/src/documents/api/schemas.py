@@ -17,6 +17,9 @@ class DocumentResponse(BaseModel):
     mime_type: str
     source_type: str
     created_at: datetime
+    processing_status: str | None = None
+    processing_failure_reason: str | None = None
+    processing_updated_at: datetime | None = None
 
 
 class DocumentListResponse(BaseModel):
@@ -24,6 +27,12 @@ class DocumentListResponse(BaseModel):
 
 
 class IngestDocumentResponse(BaseModel):
+    document_id: str
+    processing_job_id: str
+    processing_status: str
+
+
+class ReprocessDocumentResponse(BaseModel):
     document_id: str
     processing_job_id: str
     processing_status: str

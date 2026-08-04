@@ -24,6 +24,10 @@ class DocumentRepository(Protocol):
     def add(self, document: Document) -> None:
         raise NotImplementedError
 
+    def delete(self, document_id: DocumentId) -> None:
+        """Permanently remove a document and its versions/processing jobs."""
+        raise NotImplementedError
+
     def list_by_workspace(self, *, workspace_id: WorkspaceId) -> list[Document]:
         raise NotImplementedError
 

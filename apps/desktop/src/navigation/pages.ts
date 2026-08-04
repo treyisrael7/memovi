@@ -1,25 +1,22 @@
 /**
  * Navigation registry for the desktop shell.
- * Future product pages register here without redesigning the shell layout.
+ * Every entry here is a real, working product surface — unfinished
+ * functionality stays out of the registry rather than being advertised
+ * as a placeholder.
  */
 export type PageId =
   | "home"
   | "chat"
-  | "knowledge"
   | "documents"
+  | "knowledge"
   | "search"
-  | "workspaces"
-  | "models"
   | "workflows"
   | "activity"
-  | "capabilities"
   | "settings";
 
 export interface PageDefinition {
   id: PageId;
   label: string;
-  /** When false, the shell shows a placeholder instead of a real page. */
-  available: boolean;
   description: string;
 }
 
@@ -27,70 +24,43 @@ export const PAGES: readonly PageDefinition[] = [
   {
     id: "home",
     label: "Home",
-    available: true,
     description: "Application shell overview and connection status.",
   },
   {
     id: "chat",
-    label: "Chat",
-    available: true,
-    description: "Conversation interface over the Reasoning API.",
-  },
-  {
-    id: "knowledge",
-    label: "Knowledge",
-    available: true,
-    description:
-      "Inspect extracted knowledge: search, concepts, entities, relationships, and sources.",
+    label: "Conversations",
+    description: "Ask questions grounded in your knowledge.",
   },
   {
     id: "documents",
     label: "Documents",
-    available: false,
-    description: "Document library and ingestion status.",
+    description: "Import documents and track processing into knowledge.",
+  },
+  {
+    id: "knowledge",
+    label: "Knowledge",
+    description: "Explore what Memovi knows, its provenance, and connections.",
   },
   {
     id: "search",
     label: "Search",
-    available: false,
-    description: "Keyword, semantic, and hybrid retrieval.",
-  },
-  {
-    id: "workspaces",
-    label: "Workspaces",
-    available: false,
-    description: "Workspace selection and management.",
-  },
-  {
-    id: "models",
-    label: "Models",
-    available: false,
-    description: "Model provider configuration and health.",
+    description: "Search documents and extracted knowledge.",
   },
   {
     id: "workflows",
     label: "Workflows",
-    available: true,
     description:
       "Reusable capability workflows: library, run, progress, and history.",
   },
   {
     id: "activity",
     label: "Activity",
-    available: false,
-    description: "Background jobs and indexing activity.",
-  },
-  {
-    id: "capabilities",
-    label: "Capabilities",
-    available: false,
-    description: "Permissioned environment capabilities.",
+    description: "A timeline of ingestion, knowledge, and capability events.",
   },
   {
     id: "settings",
     label: "Settings",
-    available: false,
-    description: "Desktop and account preferences.",
+    description: "Model, workspace, capability, and appearance preferences.",
   },
 ] as const;
 

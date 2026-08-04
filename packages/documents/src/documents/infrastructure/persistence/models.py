@@ -24,8 +24,14 @@ class DocumentRecord(Base):
     source_type: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    versions: Mapped[list[DocumentVersionRecord]] = relationship(back_populates="document")
-    processing_jobs: Mapped[list[ProcessingJobRecord]] = relationship(back_populates="document")
+    versions: Mapped[list[DocumentVersionRecord]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan",
+    )
+    processing_jobs: Mapped[list[ProcessingJobRecord]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan",
+    )
 
 
 class DocumentVersionRecord(Base):

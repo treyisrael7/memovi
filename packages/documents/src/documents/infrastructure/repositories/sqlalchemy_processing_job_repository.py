@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session as OrmSession
@@ -28,6 +29,27 @@ class SqlAlchemyProcessingJobRepository:
         if record is None:
             return None
         return self._to_domain(record)
+
+    def get_latest_by_document_ids(
+        self,
+        document_ids: Sequence[DocumentId],
+    ) -> dict[str, ProcessingJob]:
+        if not document_ids:
+            return {}
+        ids = [document_id.value for document_id in document_ids]
+        records = (
+            self._session.query(ProcessingJobRecord)
+            .filter(ProcessingJobRecord.document_id.in_(ids))
+            .order_by(ProcessingJobRecord.created_at.desc())
+            .all()
+        )
+        latest_by_document: dict[str, ProcessingJobRecord] = {}
+        for record in records:
+            latest_by_document.setdefault(record.document_id, record)
+        return {
+            document_id: self._to_domain(record)
+            for document_id, record in latest_by_document.items()
+        }
 
     def add(self, job: ProcessingJob) -> None:
         self._session.add(

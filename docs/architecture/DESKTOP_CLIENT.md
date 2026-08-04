@@ -42,7 +42,7 @@ Desktop may:
 * Call platform HTTP APIs
 * Cache presentation state for the current session
 * Show connection and readiness status
-* Navigate between reserved product pages
+* Navigate between product pages
 * Render streaming tokens and markdown for conversation UX
 
 # Package Layout
@@ -51,9 +51,13 @@ Desktop may:
 apps/desktop/
   src/                      # React + TypeScript UI (Vite)
     api/                    # Thin HTTP client over platform contracts
-    components/             # Shell chrome + Chat page
-    navigation/             # Page registry for future surfaces
-    state/                  # Application shell state
+    components/             # Shell chrome + product pages
+      ui/                   # Shared presentation primitives (empty/loading/
+                             # dialog/badge/toast) reused across pages
+    navigation/             # Page registry for the primary navigation
+    state/                  # Application shell state, incl. cross-page
+                             # "seed" handoffs (e.g. open Chat/Knowledge/
+                             # Documents from another page with context)
     styles/                 # Theme and layout
   src-tauri/                # Tauri / Rust host (windowing only)
 ```
@@ -73,6 +77,10 @@ The shell probes:
 2. `GET /ready` — dependency readiness (database, migrations, search, workspace, …)
 3. `GET /workspaces` — populate the workspace selector when the API is reachable
 4. `GET /conversations/models` — populate the model selector
+
+Diagnostics for connection status, environment, and per-component readiness are
+also surfaced to the user directly in Settings → Diagnostics, so operators do
+not need developer tools to understand backend health.
 
 Connection states:
 
@@ -98,13 +106,21 @@ a second transport stack.
 
 The shell provides:
 
-* Sidebar with a page registry
+* Sidebar with the primary navigation (Home, Conversations, Documents,
+  Knowledge, Search, Workflows, Activity, Settings)
 * Top bar with active workspace, active model, and connection status
 * Main content area
 * Status bar with connection details and retry
 * Light / dark theme toggle
 * Startup connection detection
-* Chat page for the conversation experience
+* Shared UI primitives (`components/ui/`) for empty states, loading states,
+  status badges, confirmation dialogs, and toast notifications, used
+  consistently across every page
+
+Every page registered in `src/navigation/pages.ts` is a real, working surface.
+The registry intentionally contains no placeholder entries: a page is only
+added once it has a working implementation, so navigation always reflects
+current product capability.
 
 # Conversation Flow
 
@@ -153,41 +169,89 @@ filesystem/browser APIs locally. See
 Markdown rendering, code-block copy, message copy, retry on failed responses,
 and auto-scroll are presentation concerns only.
 
-# Future Expansion
+A conversation can also be started *from* Documents or Knowledge ("Ask about
+this document" / "Ask about this"): those pages create a conversation via
+`POST /conversations`, then hand the new conversation id and a draft prompt to
+Chat through `AppStateContext` (`startConversationAbout` / `chatSeed`). Chat
+picks up the seed on mount, selects the conversation, and prefills the
+composer — the user still presses Send. This keeps conversation creation and
+message history on the Intelligence API; the seed is only a UI handoff.
 
-Pages are registered in `src/navigation/pages.ts`:
+# Product Pages
 
-* Home (available)
-* Chat (available)
-* Knowledge (available) — Knowledge Explorer
-* Workflows (available) — library, run, progress, history
-* Documents
-* Search
-* Workspaces
-* Models
-* Activity
-* Capabilities
-* Settings
+Pages are registered in `src/navigation/pages.ts`. Every entry is implemented:
 
-Unavailable pages render a reserved placeholder inside the same shell. Adding a
-real page means implementing a view and flipping `available` — not redesigning
-navigation, windowing, or connection management.
+* **Home** — connection/workspace/model summary and shortcuts into Documents
+  and Conversations
+* **Conversations** (Chat) — the grounded chat experience described above
+* **Documents** — import, processing status, and lifecycle (see below)
+* **Knowledge** — Knowledge Explorer: browse extracted entities, concepts,
+  relationships, and sources
+* **Search** — global, per-document, and knowledge search with recent
+  searches (see below)
+* **Workflows** — library, run, progress, history
+* **Activity** — a cross-domain timeline of what happened in the workspace
+  (see below)
+* **Settings** — model, workspace, capability policy, appearance, and
+  diagnostics (see below)
 
-Future desktop features should continue to consume platform APIs:
+Each page consumes existing platform APIs only; none owns business logic:
 
+* Documents → Documents API (`/documents`)
 * Knowledge → Memory + Documents + Search APIs (see [`KNOWLEDGE_EXPLORER.md`](KNOWLEDGE_EXPLORER.md))
-* Documents → Documents API
-* Search → Search API
-* Workspaces → Workspaces API + `X-Memovi-Workspace-Id`
-* Models → future Models HTTP surface over `packages/models`
+* Search → Search API (`/search`)
 * Workflows → `/workflows` API (library, execute, history); approvals still via
   Capability Execution Engine
-* Capabilities → Capability Framework (`packages/automation`) with desktop
-  approval UX later
+* Activity → composes `/documents`, `/memory`, `/workflows/history`, and
+  `/capabilities/executions/audit` into one timeline, client-side
+* Settings → `/conversations/models`, `/workspaces`, `/capabilities`, and the
+  connection probe used for diagnostics
+
+# Documents
+
+Documents is the primary ingestion surface: drag-and-drop or file-picker
+upload, live processing status, reprocessing, and deletion.
+
+```text
+Desktop Documents
+  │
+  ├─ GET    /documents                     list + processing status
+  ├─ GET    /documents/{id}                detail
+  ├─ POST   /documents                     upload (multipart, progress via XHR)
+  ├─ POST   /documents/{id}/reprocess      re-queue ingestion
+  └─ DELETE /documents/{id}                remove document + artifact + knowledge
+```
+
+Each document reports `processing_status` (`pending` → `extracting` /
+`normalizing` → `completed` or `failed`) and, on failure, a
+`processing_failure_reason`. While any document is still processing, the page
+polls the list on a short interval so status advances without a manual
+refresh. Deletion is confirmed through the shared `ConfirmDialog` before the
+API call runs. "Ask about this document" opens a grounded conversation, gated
+on the document having finished processing.
+
+# Search
+
+Search is a dedicated experience over the same knowledge index used by
+Knowledge and Chat citations — it does not introduce a second search
+implementation.
+
+```text
+Desktop Search
+  │
+  ├─ GET /documents                                     document picker
+  └─ GET /search?q&mode&document_id                     hybrid/keyword/semantic
+```
+
+Scopes map onto existing search modes: "All content" (hybrid), "This
+document" (keyword, scoped to a chosen document), and "Knowledge" (semantic).
+Recent searches persist per-workspace in local storage as a convenience only;
+they are not synced to the backend. Selecting a result opens it in Knowledge;
+"Ask about this" opens a grounded conversation.
 
 # Knowledge Explorer
 
-Knowledge is a thin inspection surface over Memory, Documents, and Search.
+Knowledge is a thin inspection surface over Memory and Documents.
 
 ```text
 Desktop Knowledge
@@ -198,16 +262,45 @@ Desktop Knowledge
   ├─ GET /memory/concepts
   ├─ GET /memory/relationships
   ├─ GET /documents
-  ├─ GET /documents/{id}
-  └─ GET /search?q&mode&document_id&source_type
+  └─ GET /documents/{id}
 ```
 
-Sections: Overview, Search, Concepts, Entities, Relationships, Sources.
+Sections: Overview, Entities, Concepts, Relationships, Sources. Global search
+lives on the dedicated Search page and opens results here for inspection
+rather than duplicating a second search UI inside the explorer.
 
-Selecting an item shows summary, source document, related concepts/entities,
-confidence, and last updated. Workspace switching reloads explorer data for the
-active workspace header. Desktop performs no ranking, materialization, or
-ownership logic.
+Selecting an item shows summary, source document (with processing status),
+related concepts/entities, confidence, and last updated — the provenance a
+user needs to trust a piece of knowledge. Workspace switching reloads
+explorer data for the active workspace header. Desktop performs no ranking,
+materialization, or ownership logic.
+
+# Activity
+
+Activity is a read-only timeline explaining what has happened in the active
+workspace: documents uploaded, processing completed/failed, knowledge
+extracted, workflows executed, and capabilities executed. It is composed
+entirely from existing durable records — document processing state, memory
+records, workflow history, and the Capability Execution Engine's audit log
+(`/capabilities/executions/audit`) — merged and sorted client-side. Desktop
+does not introduce a new audit store; it presents the platform's existing
+observability and audit data in product terms.
+
+# Settings
+
+Settings consolidates configuration that previously had no dedicated home:
+
+* **General** — active model (`/conversations/models`) and theme
+* **Workspaces** — list, switch, and create workspaces (`/workspaces`)
+* **Capabilities** — per-capability permission mode
+  (`PUT /capabilities/{id}/permission-mode`); the server remains the sole
+  authority on whether an action is actually allowed at execution time
+* **Diagnostics** — the same connection snapshot (`/health`, `/ready`) used by
+  the top bar and status bar, presented with per-component detail
+
+Settings never exposes internal implementation details (table names, provider
+SDK identifiers, queue internals); it speaks in product terms (model,
+workspace, capability, appearance, diagnostics).
 
 # Running Locally
 

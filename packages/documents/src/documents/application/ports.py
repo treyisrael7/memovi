@@ -41,6 +41,9 @@ class ObjectStorage(Protocol):
     def get_object(self, key: str) -> bytes:
         raise NotImplementedError
 
+    def delete_object(self, key: str) -> None:
+        raise NotImplementedError
+
 
 class DocumentProcessor(Protocol):
     """Extracts textual content from an immutable document artifact."""

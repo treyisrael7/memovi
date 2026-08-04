@@ -8,6 +8,10 @@ from documents.application.commands.create_document import (
     CreateDocumentCommand,
     CreateDocumentResult,
 )
+from documents.application.commands.delete_document import (
+    DeleteDocument,
+    DeleteDocumentCommand,
+)
 from documents.application.commands.enqueue_document_processing import (
     EnqueueDocumentProcessing,
     EnqueueDocumentProcessingCommand,
@@ -27,6 +31,11 @@ from documents.application.commands.process_document import (
     ProcessDocumentCommand,
     ProcessDocumentResult,
 )
+from documents.application.commands.reprocess_document import (
+    ReprocessDocument,
+    ReprocessDocumentCommand,
+    ReprocessDocumentResult,
+)
 from documents.application.commands.start_processing import (
     StartProcessing,
     StartProcessingCommand,
@@ -40,6 +49,8 @@ __all__ = [
     "CreateDocument",
     "CreateDocumentCommand",
     "CreateDocumentResult",
+    "DeleteDocument",
+    "DeleteDocumentCommand",
     "EnqueueDocumentProcessing",
     "EnqueueDocumentProcessingCommand",
     "FailProcessing",
@@ -51,6 +62,9 @@ __all__ = [
     "ProcessDocument",
     "ProcessDocumentCommand",
     "ProcessDocumentResult",
+    "ReprocessDocument",
+    "ReprocessDocumentCommand",
+    "ReprocessDocumentResult",
     "StartProcessing",
     "StartProcessingCommand",
     "StartProcessingResult",

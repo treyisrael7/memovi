@@ -124,16 +124,34 @@ export interface SearchResponse {
   results: SearchResultItem[];
 }
 
+export type ProcessingStatus =
+  "pending" | "extracting" | "normalizing" | "completed" | "failed" | string;
+
 export interface DocumentSummary {
   id: string;
   name: string;
   mime_type: string;
   source_type: string;
   created_at: string;
+  processing_status?: ProcessingStatus | null;
+  processing_failure_reason?: string | null;
+  processing_updated_at?: string | null;
 }
 
 export interface DocumentListResponse {
   items: DocumentSummary[];
+}
+
+export interface IngestDocumentResponse {
+  document_id: string;
+  processing_job_id: string;
+  processing_status: ProcessingStatus;
+}
+
+export interface ReprocessDocumentResponse {
+  document_id: string;
+  processing_job_id: string;
+  processing_status: ProcessingStatus;
 }
 
 export interface KnowledgeChunk {
@@ -220,10 +238,7 @@ export type CapabilityExecutionStatus =
   | string;
 
 export type PermissionMode =
-  | "always_allow"
-  | "ask_every_time"
-  | "deny"
-  | string;
+  "always_allow" | "ask_every_time" | "deny" | string;
 
 export interface CapabilityExecution {
   execution_id: string;
@@ -252,6 +267,29 @@ export interface CapabilityExecutionListResponse {
   count: number;
 }
 
+export interface ExecutionAuditEntry {
+  id: string;
+  execution_id: string;
+  workspace_id: string;
+  user_id: string;
+  capability_id: string;
+  operation: string;
+  status: CapabilityExecutionStatus;
+  permission_mode: PermissionMode;
+  arguments: Record<string, unknown>;
+  result_summary: Record<string, unknown>;
+  duration: number;
+  timestamp: string;
+  conversation_id?: string | null;
+  correlation_id?: string | null;
+  source: string;
+}
+
+export interface ExecutionAuditListResponse {
+  items: ExecutionAuditEntry[];
+  count: number;
+}
+
 export interface ConversationCapabilityExecutionListResponse {
   conversation_id: string;
   items: CapabilityExecution[];
@@ -274,6 +312,11 @@ export interface CapabilityMetadata {
 export interface CapabilityListResponse {
   items: CapabilityMetadata[];
   count: number;
+}
+
+export interface PermissionModeResponse {
+  capability_id: string;
+  permission_mode: PermissionMode;
 }
 
 export type WorkflowExecutionStatus =

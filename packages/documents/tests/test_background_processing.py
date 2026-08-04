@@ -1,5 +1,6 @@
 import time
 from collections.abc import Iterator
+from datetime import UTC, datetime
 
 import pytest
 from api.app import create_app
@@ -25,6 +26,9 @@ from documents.infrastructure.persistence.models import (
 )
 from documents.infrastructure.queue import InMemoryProcessingJobQueue
 from fastapi.testclient import TestClient
+from memovi_shared import DEFAULT_WORKSPACE_ID
+from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
+from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -94,7 +98,18 @@ def background_processing_client(
     )
     AuthBase.metadata.create_all(engine)
     DocumentsBase.metadata.create_all(engine)
+    WorkspaceBase.metadata.create_all(engine)
     test_session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+
+    with Session(engine) as seed_session:
+        seed_session.add(
+            WorkspaceRecord(
+                id=DEFAULT_WORKSPACE_ID.value,
+                name="Default",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            )
+        )
+        seed_session.commit()
 
     def database_session() -> Iterator[Session]:
         session = test_session_factory()
@@ -111,6 +126,7 @@ def background_processing_client(
         return test_session_factory()
 
     app = create_app()
+    app.state.auth_session_factory = test_session_factory
     queue = InMemoryProcessingJobQueue()
     configure_document_processing(
         app,
@@ -132,6 +148,11 @@ def background_processing_client(
     app.dependency_overrides[get_object_storage] = lambda: object_storage
 
     with TestClient(app, base_url="https://testserver") as client:
+        register_response = client.post(
+            "/auth/register",
+            json={"email": "processing-tester@example.com", "password": "password123"},
+        )
+        assert register_response.status_code == 201
         yield client, engine, object_storage, event_publisher
 
     engine.dispose()

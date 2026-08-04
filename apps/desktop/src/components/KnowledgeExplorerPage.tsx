@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { ApiRequestError } from "../api/client";
+import { createConversation } from "../api/conversations";
 import { getDocument, listDocuments } from "../api/documents";
 import {
   getKnowledge,
@@ -9,7 +10,6 @@ import {
   listKnowledge,
   listRelationships,
 } from "../api/memory";
-import { searchKnowledge, type SearchMode } from "../api/search";
 import type {
   ConceptSummary,
   DocumentSummary,
@@ -17,23 +17,18 @@ import type {
   KnowledgeDetail,
   KnowledgeSummary,
   RelationshipSummary,
-  SearchResultItem,
 } from "../api/types";
 import { useAppState } from "../state/AppStateContext";
+import { processingStatusBadge, StatusBadge } from "./ui/StatusBadge";
+import { useToast } from "./ui/ToastContext";
 
 type ExplorerSection =
-  | "overview"
-  | "search"
-  | "concepts"
-  | "entities"
-  | "relationships"
-  | "sources";
+  "overview" | "concepts" | "entities" | "relationships" | "sources";
 
 const SECTIONS: ReadonlyArray<{ id: ExplorerSection; label: string }> = [
   { id: "overview", label: "Overview" },
-  { id: "search", label: "Search" },
-  { id: "concepts", label: "Concepts" },
   { id: "entities", label: "Entities" },
+  { id: "concepts", label: "Concepts" },
   { id: "relationships", label: "Relationships" },
   { id: "sources", label: "Sources" },
 ];
@@ -55,7 +50,14 @@ function shortId(value: string): string {
 }
 
 export function KnowledgeExplorerPage() {
-  const { activeWorkspace, connection } = useAppState();
+  const {
+    activeWorkspace,
+    connection,
+    knowledgeSeed,
+    clearKnowledgeSeed,
+    startConversationAbout,
+  } = useAppState();
+  const { showToast } = useToast();
   const workspaceId = activeWorkspace?.id ?? null;
   const canUseBackend =
     connection.status === "connected" || connection.status === "degraded";
@@ -71,23 +73,25 @@ export function KnowledgeExplorerPage() {
   const [sources, setSources] = useState<DocumentSummary[]>([]);
 
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
-  const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null);
-  const [selectedRelationshipId, setSelectedRelationshipId] = useState<string | null>(
+  const [selectedConceptId, setSelectedConceptId] = useState<string | null>(
     null,
   );
+  const [selectedRelationshipId, setSelectedRelationshipId] = useState<
+    string | null
+  >(null);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
-  const [selectedSearchKey, setSelectedSearchKey] = useState<string | null>(null);
 
   const [detail, setDetail] = useState<KnowledgeDetail | null>(null);
-  const [sourceDetail, setSourceDetail] = useState<DocumentSummary | null>(null);
-  const [relatedEntities, setRelatedEntities] = useState<KnowledgeSummary[]>([]);
+  const [sourceDetail, setSourceDetail] = useState<DocumentSummary | null>(
+    null,
+  );
+  const [relatedEntities, setRelatedEntities] = useState<KnowledgeSummary[]>(
+    [],
+  );
 
-  const [query, setQuery] = useState("");
-  const [searchMode, setSearchMode] = useState<SearchMode>("hybrid");
   const [filterDocumentId, setFilterDocumentId] = useState("");
   const [filterSourceType, setFilterSourceType] = useState("");
   const [filterEntityType, setFilterEntityType] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
 
   const sourceById = useMemo(() => {
     const map = new Map<string, DocumentSummary>();
@@ -103,17 +107,9 @@ export function KnowledgeExplorerPage() {
   );
 
   const selectedRelationship = useMemo(
-    () => relationships.find((item) => item.id === selectedRelationshipId) ?? null,
-    [relationships, selectedRelationshipId],
-  );
-
-  const selectedSearchResult = useMemo(
     () =>
-      searchResults.find(
-        (item) =>
-          `${item.search_document_id}:${item.knowledge_item_id}` === selectedSearchKey,
-      ) ?? null,
-    [searchResults, selectedSearchKey],
+      relationships.find((item) => item.id === selectedRelationshipId) ?? null,
+    [relationships, selectedRelationshipId],
   );
 
   useEffect(() => {
@@ -123,7 +119,6 @@ export function KnowledgeExplorerPage() {
       setConcepts([]);
       setRelationships([]);
       setSources([]);
-      setSearchResults([]);
       setDetail(null);
       setSourceDetail(null);
       setRelatedEntities([]);
@@ -145,41 +140,52 @@ export function KnowledgeExplorerPage() {
       listRelationships(workspaceId),
       listDocuments(workspaceId),
     ])
-      .then(([dash, knowledge, conceptList, relationshipList, documentList]) => {
-        if (cancelled) return;
-        setDashboard(dash);
-        setEntities(knowledge.items);
-        setConcepts(conceptList.items);
-        setRelationships(relationshipList.items);
-        setSources(documentList.items);
-        setSelectedEntityId((current) => {
-          if (current && knowledge.items.some((item) => item.id === current)) {
-            return current;
-          }
-          return knowledge.items[0]?.id ?? null;
-        });
-        setSelectedConceptId((current) => {
-          if (current && conceptList.items.some((item) => item.id === current)) {
-            return current;
-          }
-          return conceptList.items[0]?.id ?? null;
-        });
-        setSelectedRelationshipId((current) => {
-          if (
-            current &&
-            relationshipList.items.some((item) => item.id === current)
-          ) {
-            return current;
-          }
-          return relationshipList.items[0]?.id ?? null;
-        });
-        setSelectedSourceId((current) => {
-          if (current && documentList.items.some((item) => item.id === current)) {
-            return current;
-          }
-          return documentList.items[0]?.id ?? null;
-        });
-      })
+      .then(
+        ([dash, knowledge, conceptList, relationshipList, documentList]) => {
+          if (cancelled) return;
+          setDashboard(dash);
+          setEntities(knowledge.items);
+          setConcepts(conceptList.items);
+          setRelationships(relationshipList.items);
+          setSources(documentList.items);
+          setSelectedEntityId((current) => {
+            if (
+              current &&
+              knowledge.items.some((item) => item.id === current)
+            ) {
+              return current;
+            }
+            return knowledge.items[0]?.id ?? null;
+          });
+          setSelectedConceptId((current) => {
+            if (
+              current &&
+              conceptList.items.some((item) => item.id === current)
+            ) {
+              return current;
+            }
+            return conceptList.items[0]?.id ?? null;
+          });
+          setSelectedRelationshipId((current) => {
+            if (
+              current &&
+              relationshipList.items.some((item) => item.id === current)
+            ) {
+              return current;
+            }
+            return relationshipList.items[0]?.id ?? null;
+          });
+          setSelectedSourceId((current) => {
+            if (
+              current &&
+              documentList.items.some((item) => item.id === current)
+            ) {
+              return current;
+            }
+            return documentList.items[0]?.id ?? null;
+          });
+        },
+      )
       .catch((err: unknown) => {
         if (!cancelled) {
           setError(
@@ -259,78 +265,11 @@ export function KnowledgeExplorerPage() {
   }, [workspaceId, canUseBackend, selectedSourceId]);
 
   useEffect(() => {
-    if (!workspaceId || !canUseBackend) {
-      setSearchResults([]);
-      return;
-    }
-    const trimmed = query.trim();
-    if (!trimmed) {
-      setSearchResults([]);
-      setSelectedSearchKey(null);
-      return;
-    }
-
-    let cancelled = false;
-    const handle = window.setTimeout(() => {
-      void searchKnowledge(workspaceId, {
-        q: trimmed,
-        mode: searchMode,
-        documentId: filterDocumentId || undefined,
-        sourceType: filterSourceType || filterEntityType || undefined,
-      })
-        .then((payload) => {
-          if (cancelled) return;
-          setSearchResults(payload.results);
-          setSelectedSearchKey((current) => {
-            if (
-              current &&
-              payload.results.some(
-                (item) =>
-                  `${item.search_document_id}:${item.knowledge_item_id}` === current,
-              )
-            ) {
-              return current;
-            }
-            const first = payload.results[0];
-            return first
-              ? `${first.search_document_id}:${first.knowledge_item_id}`
-              : null;
-          });
-        })
-        .catch((err: unknown) => {
-          if (!cancelled) {
-            setError(
-              err instanceof ApiRequestError
-                ? err.message
-                : "Search failed.",
-            );
-          }
-        });
-    }, 200);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(handle);
-    };
-  }, [
-    workspaceId,
-    canUseBackend,
-    query,
-    searchMode,
-    filterDocumentId,
-    filterSourceType,
-    filterEntityType,
-  ]);
-
-  useEffect(() => {
-    if (
-      section === "search" &&
-      selectedSearchResult?.knowledge_item_id &&
-      selectedSearchResult.knowledge_item_id !== selectedEntityId
-    ) {
-      setSelectedEntityId(selectedSearchResult.knowledge_item_id);
-    }
-  }, [section, selectedSearchResult, selectedEntityId]);
+    if (!knowledgeSeed) return;
+    setSelectedEntityId(knowledgeSeed.knowledgeItemId);
+    setSection("entities");
+    clearKnowledgeSeed();
+  }, [knowledgeSeed, clearKnowledgeSeed]);
 
   function openEntity(knowledgeItemId: string) {
     setSelectedEntityId(knowledgeItemId);
@@ -340,6 +279,42 @@ export function KnowledgeExplorerPage() {
   function openSource(documentId: string) {
     setSelectedSourceId(documentId);
     setSection("sources");
+  }
+
+  async function handleAskAboutEntity(summary: string) {
+    if (!workspaceId) return;
+    try {
+      const created = await createConversation(workspaceId);
+      startConversationAbout(
+        created.conversation_id,
+        `Tell me more about: "${summary.slice(0, 200)}"`,
+      );
+    } catch (err) {
+      showToast(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Failed to start a conversation.",
+        "bad",
+      );
+    }
+  }
+
+  async function handleAskAboutSource(documentName: string) {
+    if (!workspaceId) return;
+    try {
+      const created = await createConversation(workspaceId);
+      startConversationAbout(
+        created.conversation_id,
+        `Tell me what you know from "${documentName}".`,
+      );
+    } catch (err) {
+      showToast(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Failed to start a conversation.",
+        "bad",
+      );
+    }
   }
 
   function renderDetailPanel() {
@@ -378,12 +353,14 @@ export function KnowledgeExplorerPage() {
           </dl>
           <h3>By source type</h3>
           <ul className="explorer-count-list">
-            {Object.entries(dashboard.source_type_counts).map(([key, count]) => (
-              <li key={key}>
-                <span>{key}</span>
-                <strong>{count}</strong>
-              </li>
-            ))}
+            {Object.entries(dashboard.source_type_counts).map(
+              ([key, count]) => (
+                <li key={key}>
+                  <span>{key}</span>
+                  <strong>{count}</strong>
+                </li>
+              ),
+            )}
             {Object.keys(dashboard.source_type_counts).length === 0 && (
               <li className="muted">No source types yet.</li>
             )}
@@ -460,13 +437,15 @@ export function KnowledgeExplorerPage() {
             <div>
               <dt>From</dt>
               <dd>
-                {selectedRelationship.from_kind} {shortId(selectedRelationship.from_id)}
+                {selectedRelationship.from_kind}{" "}
+                {shortId(selectedRelationship.from_id)}
               </dd>
             </div>
             <div>
               <dt>To</dt>
               <dd>
-                {selectedRelationship.to_kind} {shortId(selectedRelationship.to_id)}
+                {selectedRelationship.to_kind}{" "}
+                {shortId(selectedRelationship.to_id)}
               </dd>
             </div>
             <div>
@@ -495,7 +474,9 @@ export function KnowledgeExplorerPage() {
             <button
               type="button"
               className="primary-action"
-              onClick={() => openEntity(selectedRelationship.knowledge_item_id!)}
+              onClick={() =>
+                openEntity(selectedRelationship.knowledge_item_id!)
+              }
             >
               Open related entity
             </button>
@@ -510,7 +491,12 @@ export function KnowledgeExplorerPage() {
       }
       return (
         <div className="explorer-detail-body">
-          <h2>{sourceDetail.name}</h2>
+          <div className="document-detail-header">
+            <h2>{sourceDetail.name}</h2>
+            <StatusBadge
+              {...processingStatusBadge(sourceDetail.processing_status)}
+            />
+          </div>
           <dl className="explorer-meta">
             <div>
               <dt>Source type</dt>
@@ -533,6 +519,14 @@ export function KnowledgeExplorerPage() {
               <dd>{sourceDetail.id}</dd>
             </div>
           </dl>
+          <button
+            type="button"
+            className="primary-action"
+            onClick={() => void handleAskAboutSource(sourceDetail.name)}
+            disabled={sourceDetail.processing_status !== "completed"}
+          >
+            Ask about this document
+          </button>
           <h3>Derived knowledge</h3>
           <ul className="explorer-link-list">
             {relatedEntities.map((item) => (
@@ -543,7 +537,9 @@ export function KnowledgeExplorerPage() {
               </li>
             ))}
             {relatedEntities.length === 0 && (
-              <li className="muted">No materialized knowledge for this source yet.</li>
+              <li className="muted">
+                No materialized knowledge for this source yet.
+              </li>
             )}
           </ul>
         </div>
@@ -607,6 +603,16 @@ export function KnowledgeExplorerPage() {
           </div>
         </dl>
 
+        <button
+          type="button"
+          className="primary-action"
+          onClick={() =>
+            void handleAskAboutEntity(detail.summary || shortId(detail.id))
+          }
+        >
+          Ask about this
+        </button>
+
         <h3>Related concepts</h3>
         <ul className="explorer-link-list">
           {relatedConcepts.map((concept) => (
@@ -632,7 +638,8 @@ export function KnowledgeExplorerPage() {
           {entities
             .filter(
               (item) =>
-                item.document_id === detail.document_id && item.id !== detail.id,
+                item.document_id === detail.document_id &&
+                item.id !== detail.id,
             )
             .map((item) => (
               <li key={item.id}>
@@ -670,49 +677,10 @@ export function KnowledgeExplorerPage() {
       return (
         <div className="explorer-list-empty">
           <p className="muted">
-            Overview summarizes the active workspace. Use the sections to inspect
-            entities, concepts, relationships, and sources.
+            Overview summarizes the active workspace. Use the sections to
+            inspect entities, concepts, relationships, and sources.
           </p>
         </div>
-      );
-    }
-
-    if (section === "search") {
-      return (
-        <ul className="explorer-list">
-          {searchResults.map((result) => {
-            const key = `${result.search_document_id}:${result.knowledge_item_id}`;
-            return (
-              <li key={key}>
-                <button
-                  type="button"
-                  data-active={selectedSearchKey === key}
-                  onClick={() => {
-                    setSelectedSearchKey(key);
-                    setSelectedEntityId(result.knowledge_item_id);
-                  }}
-                >
-                  <span className="explorer-list-title">
-                    {result.text.slice(0, 120) || shortId(result.knowledge_item_id)}
-                  </span>
-                  <span className="explorer-list-meta">
-                    score {result.score.toFixed(3)} ·{" "}
-                    {sourceById.get(result.document_id)?.name ??
-                      shortId(result.document_id)}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-          {query.trim() && searchResults.length === 0 && (
-            <li className="muted explorer-list-empty-item">No matches.</li>
-          )}
-          {!query.trim() && (
-            <li className="muted explorer-list-empty-item">
-              Type a query to search knowledge.
-            </li>
-          )}
-        </ul>
       );
     }
 
@@ -750,7 +718,9 @@ export function KnowledgeExplorerPage() {
                 data-active={selectedRelationshipId === rel.id}
                 onClick={() => setSelectedRelationshipId(rel.id)}
               >
-                <span className="explorer-list-title">{rel.relationship_type}</span>
+                <span className="explorer-list-title">
+                  {rel.relationship_type}
+                </span>
                 <span className="explorer-list-meta">
                   {rel.from_kind} → {rel.to_kind}
                 </span>
@@ -776,7 +746,12 @@ export function KnowledgeExplorerPage() {
                 data-active={selectedSourceId === source.id}
                 onClick={() => setSelectedSourceId(source.id)}
               >
-                <span className="explorer-list-title">{source.name}</span>
+                <div className="documents-list-title-row">
+                  <span className="explorer-list-title">{source.name}</span>
+                  <StatusBadge
+                    {...processingStatusBadge(source.processing_status)}
+                  />
+                </div>
                 <span className="explorer-list-meta">
                   {source.source_type} · {source.mime_type}
                 </span>
@@ -811,7 +786,8 @@ export function KnowledgeExplorerPage() {
         ))}
         {entities.length === 0 && (
           <li className="muted explorer-list-empty-item">
-            No knowledge entities yet. Ingest documents to materialize knowledge.
+            No knowledge entities yet. Ingest documents to materialize
+            knowledge.
           </li>
         )}
       </ul>
@@ -842,40 +818,15 @@ export function KnowledgeExplorerPage() {
       <section className="explorer-main">
         <header className="explorer-toolbar">
           <div className="explorer-filters">
-            {(section === "search" || section === "entities") && (
+            {section === "entities" && (
               <>
-                {section === "search" && (
-                  <>
-                    <label>
-                      <span>Search</span>
-                      <input
-                        type="search"
-                        value={query}
-                        onChange={(event) => setQuery(event.target.value)}
-                        placeholder="Search knowledge…"
-                        autoFocus={section === "search"}
-                      />
-                    </label>
-                    <label>
-                      <span>Mode</span>
-                      <select
-                        value={searchMode}
-                        onChange={(event) =>
-                          setSearchMode(event.target.value as SearchMode)
-                        }
-                      >
-                        <option value="hybrid">Hybrid</option>
-                        <option value="keyword">Keyword</option>
-                        <option value="semantic">Semantic</option>
-                      </select>
-                    </label>
-                  </>
-                )}
                 <label>
                   <span>Source document</span>
                   <select
                     value={filterDocumentId}
-                    onChange={(event) => setFilterDocumentId(event.target.value)}
+                    onChange={(event) =>
+                      setFilterDocumentId(event.target.value)
+                    }
                   >
                     <option value="">All sources</option>
                     {sources.map((source) => (
@@ -889,7 +840,9 @@ export function KnowledgeExplorerPage() {
                   <span>Source type</span>
                   <select
                     value={filterSourceType}
-                    onChange={(event) => setFilterSourceType(event.target.value)}
+                    onChange={(event) =>
+                      setFilterSourceType(event.target.value)
+                    }
                   >
                     <option value="">All</option>
                     {Array.from(
@@ -906,7 +859,9 @@ export function KnowledgeExplorerPage() {
                   <input
                     type="text"
                     value={filterEntityType}
-                    onChange={(event) => setFilterEntityType(event.target.value)}
+                    onChange={(event) =>
+                      setFilterEntityType(event.target.value)
+                    }
                     placeholder="source or mime"
                   />
                 </label>
@@ -926,7 +881,8 @@ export function KnowledgeExplorerPage() {
 
         {!canUseBackend && (
           <p className="muted">
-            Connect to the backend to inspect knowledge for the active workspace.
+            Connect to the backend to inspect knowledge for the active
+            workspace.
           </p>
         )}
 

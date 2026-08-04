@@ -4,12 +4,30 @@ import type {
   CapabilityExecutionListResponse,
   CapabilityListResponse,
   ConversationCapabilityExecutionListResponse,
+  ExecutionAuditListResponse,
+  PermissionModeResponse,
 } from "./types";
 
 export async function listCapabilities(
   workspaceId: string,
 ): Promise<CapabilityListResponse> {
   return apiFetch<CapabilityListResponse>("/capabilities", { workspaceId });
+}
+
+export async function setCapabilityPermissionMode(
+  workspaceId: string,
+  capabilityId: string,
+  permissionMode: string,
+): Promise<PermissionModeResponse> {
+  return apiFetch<PermissionModeResponse>(
+    `/capabilities/${capabilityId}/permission-mode`,
+    {
+      workspaceId,
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ permission_mode: permissionMode }),
+    },
+  );
 }
 
 export async function listPendingExecutions(
@@ -27,6 +45,16 @@ export async function listConversationExecutions(
 ): Promise<ConversationCapabilityExecutionListResponse> {
   return apiFetch<ConversationCapabilityExecutionListResponse>(
     `/conversations/${conversationId}/capability-executions`,
+    { workspaceId },
+  );
+}
+
+export async function listExecutionAudit(
+  workspaceId: string,
+  limit = 100,
+): Promise<ExecutionAuditListResponse> {
+  return apiFetch<ExecutionAuditListResponse>(
+    `/capabilities/executions/audit?limit=${limit}`,
     { workspaceId },
   );
 }

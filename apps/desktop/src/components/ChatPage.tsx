@@ -32,6 +32,7 @@ import type {
   ConversationSummary,
 } from "../api/types";
 import { useAppState } from "../state/AppStateContext";
+import { ConfirmDialog } from "./ui/ConfirmDialog";
 
 interface UiMessage extends ConversationMessage {
   id: string;
@@ -116,8 +117,7 @@ function operationSummaryText(execution: CapabilityExecution): string | null {
     return null;
   }
   const record = summary as Record<string, unknown>;
-  const command =
-    typeof record.command === "string" ? record.command : null;
+  const command = typeof record.command === "string" ? record.command : null;
   const workingDirectory =
     typeof record.working_directory === "string"
       ? record.working_directory
@@ -188,7 +188,9 @@ function isBrowserExecution(execution: CapabilityExecution): boolean {
 function gitApprovalCopy(execution: CapabilityExecution): string {
   const summary = execution.metadata?.operation_summary;
   const operation =
-    summary && typeof summary === "object" && typeof (summary as { operation?: unknown }).operation === "string"
+    summary &&
+    typeof summary === "object" &&
+    typeof (summary as { operation?: unknown }).operation === "string"
       ? (summary as { operation: string }).operation
       : null;
   if (
@@ -209,7 +211,9 @@ function gitApprovalCopy(execution: CapabilityExecution): string {
 function browserApprovalCopy(execution: CapabilityExecution): string {
   const summary = execution.metadata?.operation_summary;
   const operation =
-    summary && typeof summary === "object" && typeof (summary as { operation?: unknown }).operation === "string"
+    summary &&
+    typeof summary === "object" &&
+    typeof (summary as { operation?: unknown }).operation === "string"
       ? (summary as { operation: string }).operation
       : null;
   if (operation === "download_file") {
@@ -258,7 +262,9 @@ function BrowserResultView({
 }) {
   const operation = output.operation ?? "browser";
   const progress =
-    typeof output.progress === "number" ? Math.max(0, Math.min(1, output.progress)) : null;
+    typeof output.progress === "number"
+      ? Math.max(0, Math.min(1, output.progress))
+      : null;
 
   if (live) {
     return (
@@ -288,7 +294,9 @@ function BrowserResultView({
       <div className="capability-browser-result">
         <p className="capability-browser-meta">
           {output.result_count ?? output.results?.length ?? 0} result
-          {(output.result_count ?? output.results?.length ?? 0) === 1 ? "" : "s"}
+          {(output.result_count ?? output.results?.length ?? 0) === 1
+            ? ""
+            : "s"}
           {output.query ? ` for “${output.query}”` : ""}
         </p>
         <ul className="capability-browser-results">
@@ -308,7 +316,8 @@ function BrowserResultView({
     return (
       <div className="capability-browser-result">
         <p className="capability-browser-meta">
-          Saved {typeof output.bytes_written === "number"
+          Saved{" "}
+          {typeof output.bytes_written === "number"
             ? `${output.bytes_written.toLocaleString()} bytes`
             : "file"}
           {output.destination ? ` → ${output.destination}` : ""}
@@ -402,7 +411,10 @@ function GitResultView({ output }: { output: GitOutput }) {
           </p>
           <ul className="capability-git-branches">
             {(output.local ?? []).map((branch) => (
-              <li key={branch.name ?? "local"} data-current={branch.current ? "true" : "false"}>
+              <li
+                key={branch.name ?? "local"}
+                data-current={branch.current ? "true" : "false"}
+              >
                 {branch.name}
                 {branch.current ? " (current)" : ""}
               </li>
@@ -429,7 +441,9 @@ function GitResultView({ output }: { output: GitOutput }) {
         </p>
       ) : null}
       {operation === "diff" && typeof output.patch === "string" ? (
-        <pre className="capability-output capability-git-diff">{output.patch}</pre>
+        <pre className="capability-output capability-git-diff">
+          {output.patch}
+        </pre>
       ) : null}
       {operation !== "status" &&
       operation !== "list_branches" &&
@@ -444,13 +458,7 @@ function GitResultView({ output }: { output: GitOutput }) {
   );
 }
 
-function GitFileGroup({
-  label,
-  paths,
-}: {
-  label: string;
-  paths?: string[];
-}) {
+function GitFileGroup({ label, paths }: { label: string; paths?: string[] }) {
   if (!paths || paths.length === 0) {
     return null;
   }
@@ -466,9 +474,7 @@ function GitFileGroup({
   );
 }
 
-function asTerminalOutput(
-  output: unknown,
-): {
+function asTerminalOutput(output: unknown): {
   exit_code?: number;
   stdout?: string;
   stderr?: string;
@@ -503,8 +509,10 @@ function TerminalOutputView({
   };
   live?: boolean;
 }) {
-  const hasStdout = typeof output.stdout === "string" && output.stdout.length > 0;
-  const hasStderr = typeof output.stderr === "string" && output.stderr.length > 0;
+  const hasStdout =
+    typeof output.stdout === "string" && output.stdout.length > 0;
+  const hasStderr =
+    typeof output.stderr === "string" && output.stderr.length > 0;
   return (
     <div className="capability-terminal-result">
       {!live && typeof output.exit_code === "number" ? (
@@ -551,8 +559,7 @@ function undoMessage(execution: CapabilityExecution): string | null {
 }
 
 function executionLabel(execution: CapabilityExecution): string {
-  const error =
-    execution.error?.message ?? execution.error_message ?? null;
+  const error = execution.error?.message ?? execution.error_message ?? null;
   switch (execution.status) {
     case "pending_approval":
       return "Awaiting confirmation";
@@ -622,10 +629,7 @@ function CapabilityExecutionPanel({
               typeof browserOutput.progress === "number" ||
               typeof browserOutput.bytes_received === "number");
           return (
-            <li
-              key={execution.execution_id}
-              data-status={execution.status}
-            >
+            <li key={execution.execution_id} data-status={execution.status}>
               <div>
                 <strong>{execution.capability_id}</strong>
                 <span className="capability-status">
@@ -684,7 +688,8 @@ function CapabilityExecutionPanel({
                   {hasLiveBrowserProgress && browserOutput ? (
                     <BrowserResultView output={browserOutput} live />
                   ) : null}
-                  {isTerminalExecution(execution) || isBrowserExecution(execution) ? (
+                  {isTerminalExecution(execution) ||
+                  isBrowserExecution(execution) ? (
                     <div className="capability-actions">
                       <button
                         type="button"
@@ -767,13 +772,14 @@ function CapabilityExecutionPanel({
 }
 
 export function ChatPage() {
-  const { activeWorkspace, activeModel, connection } = useAppState();
+  const { activeWorkspace, activeModel, connection, chatSeed, clearChatSeed } =
+    useAppState();
   const workspaceId = activeWorkspace?.id ?? null;
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(
-    null,
-  );
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(null);
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -784,6 +790,8 @@ export function ChatPage() {
   const [renameDraft, setRenameDraft] = useState("");
   const [executions, setExecutions] = useState<CapabilityExecution[]>([]);
   const [executionBusyId, setExecutionBusyId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [isDeletingConversation, setIsDeletingConversation] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -897,6 +905,27 @@ export function ChatPage() {
   }, [workspaceId, canUseBackend]);
 
   useEffect(() => {
+    if (!chatSeed || !workspaceId || !canUseBackend) {
+      return;
+    }
+    let cancelled = false;
+    void listConversations(workspaceId)
+      .then((payload) => {
+        if (cancelled) return;
+        setConversations(payload.conversations);
+        setActiveConversationId(chatSeed.conversationId);
+        setDraft(chatSeed.draft);
+      })
+      .finally(() => {
+        if (!cancelled) clearChatSeed();
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatSeed, workspaceId, canUseBackend]);
+
+  useEffect(() => {
     if (!workspaceId || !activeConversationId || !canUseBackend) {
       setMessages([]);
       return;
@@ -966,10 +995,12 @@ export function ChatPage() {
     }
   }
 
-  async function handleDelete(conversationId: string) {
-    if (!workspaceId || isStreaming) {
+  async function handleConfirmDelete() {
+    if (!workspaceId || !pendingDeleteId) {
       return;
     }
+    const conversationId = pendingDeleteId;
+    setIsDeletingConversation(true);
     try {
       await deleteConversation(workspaceId, conversationId);
       setConversations((current) =>
@@ -979,12 +1010,15 @@ export function ChatPage() {
         setActiveConversationId(null);
         setMessages([]);
       }
+      setPendingDeleteId(null);
     } catch (err) {
       setError(
         err instanceof ApiRequestError
           ? err.message
           : "Failed to delete conversation.",
       );
+    } finally {
+      setIsDeletingConversation(false);
     }
   }
 
@@ -1222,7 +1256,9 @@ export function ChatPage() {
     if (!workspaceId) return;
     const retry = execution.metadata?.retry_arguments;
     if (!retry || typeof retry !== "object") {
-      setError("Cannot replace: original capability arguments are unavailable.");
+      setError(
+        "Cannot replace: original capability arguments are unavailable.",
+      );
       return;
     }
     setExecutionBusyId(execution.execution_id);
@@ -1230,14 +1266,15 @@ export function ChatPage() {
       const result = await submitCapabilityExecution(workspaceId, {
         capability_id: execution.capability_id,
         conversation_id: execution.conversation_id,
-        permission_mode: execution.permission_mode,
         arguments: {
           ...(retry as Record<string, unknown>),
           overwrite_policy: "replace",
         },
       });
       setExecutions((current) => [
-        ...current.filter((item) => item.execution_id !== execution.execution_id),
+        ...current.filter(
+          (item) => item.execution_id !== execution.execution_id,
+        ),
         result,
       ]);
     } catch (err) {
@@ -1314,10 +1351,7 @@ export function ChatPage() {
                       autoFocus
                     />
                     <button type="submit">Save</button>
-                    <button
-                      type="button"
-                      onClick={() => setRenamingId(null)}
-                    >
+                    <button type="button" onClick={() => setRenamingId(null)}>
                       Cancel
                     </button>
                   </form>
@@ -1351,7 +1385,7 @@ export function ChatPage() {
                       <button
                         type="button"
                         onClick={() =>
-                          void handleDelete(conversation.conversation_id)
+                          setPendingDeleteId(conversation.conversation_id)
                         }
                         disabled={isStreaming}
                       >
@@ -1395,9 +1429,7 @@ export function ChatPage() {
                 data-failed={message.failed ? "true" : "false"}
               >
                 <header>
-                  <strong>
-                    {message.role === "user" ? "You" : "Memovi"}
-                  </strong>
+                  <strong>{message.role === "user" ? "You" : "Memovi"}</strong>
                   <div className="message-actions">
                     <button
                       type="button"
@@ -1480,6 +1512,18 @@ export function ChatPage() {
           </div>
         </form>
       </section>
+
+      {pendingDeleteId ? (
+        <ConfirmDialog
+          title="Delete this conversation?"
+          description="This removes the conversation and its messages. This cannot be undone."
+          confirmLabel="Delete"
+          tone="danger"
+          busy={isDeletingConversation}
+          onConfirm={() => void handleConfirmDelete()}
+          onCancel={() => setPendingDeleteId(null)}
+        />
+      ) : null}
     </div>
   );
 }

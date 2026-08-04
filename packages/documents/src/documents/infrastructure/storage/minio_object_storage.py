@@ -63,6 +63,9 @@ class MinioObjectStorage:
             raise TypeError("Object storage response body must be bytes.")
         return body
 
+    def delete_object(self, key: str) -> None:
+        self._client.delete_object(Bucket=self._bucket_name, Key=key)
+
     def _ensure_bucket_exists(self) -> None:
         try:
             self._client.head_bucket(Bucket=self._bucket_name)

@@ -1,8 +1,12 @@
 import { API_BASE_URL } from "../api/config";
 import { getPage } from "../navigation/pages";
 import { useAppState } from "../state/AppStateContext";
+import { ActivityPage } from "./ActivityPage";
 import { ChatPage } from "./ChatPage";
+import { DocumentsPage } from "./DocumentsPage";
 import { KnowledgeExplorerPage } from "./KnowledgeExplorerPage";
+import { SearchPage } from "./SearchPage";
+import { SettingsPage } from "./SettingsPage";
 import { WorkflowsPage } from "./WorkflowsPage";
 
 function ConnectionBanner() {
@@ -28,8 +32,7 @@ function ConnectionBanner() {
   if (connection.status === "degraded") {
     return (
       <div className="banner" data-tone="warn" role="status">
-        {connection.error ??
-          "Backend is reachable but not fully ready."}
+        {connection.error ?? "Backend is reachable but not fully ready."}
       </div>
     );
   }
@@ -42,16 +45,16 @@ function ConnectionBanner() {
 }
 
 function HomePage() {
-  const { connection, activeWorkspace, activeModelLabel } = useAppState();
+  const { connection, activeWorkspace, activeModelLabel, setActivePage } =
+    useAppState();
 
   return (
     <section className="panel">
       <ConnectionBanner />
-      <h1>Desktop shell</h1>
+      <h1>Welcome to Memovi</h1>
       <p className="lede">
-        Memovi&apos;s flagship client is a lightweight native shell over the
-        FastAPI platform. Use Chat for conversations and Knowledge to inspect
-        what Memovi already knows; other pages remain reserved product surfaces.
+        Import documents, let Memovi turn them into connected knowledge, then
+        search or ask questions grounded in what it knows.
       </p>
 
       <dl className="meta-grid">
@@ -72,25 +75,23 @@ function HomePage() {
           <dd>{API_BASE_URL}</dd>
         </div>
       </dl>
-    </section>
-  );
-}
 
-function PlaceholderPage({
-  pageId,
-}: {
-  pageId: ReturnType<typeof getPage>["id"];
-}) {
-  const page = getPage(pageId);
-
-  return (
-    <section className="panel placeholder-page">
-      <h1>{page.label}</h1>
-      <p>{page.description}</p>
-      <p>
-        This page is reserved for a future product surface. The shell already
-        supports navigation here without redesigning the application layout.
-      </p>
+      <div className="document-detail-actions home-actions">
+        <button
+          type="button"
+          className="primary-button"
+          onClick={() => setActivePage("documents")}
+        >
+          Import documents
+        </button>
+        <button
+          type="button"
+          className="retry-button"
+          onClick={() => setActivePage("chat")}
+        >
+          Start a conversation
+        </button>
+      </div>
     </section>
   );
 }
@@ -100,16 +101,32 @@ export function MainContent() {
   const page = getPage(activePage);
 
   let body;
-  if (page.available && page.id === "chat") {
-    body = <ChatPage />;
-  } else if (page.available && page.id === "knowledge") {
-    body = <KnowledgeExplorerPage />;
-  } else if (page.available && page.id === "workflows") {
-    body = <WorkflowsPage />;
-  } else if (page.available && page.id === "home") {
-    body = <HomePage />;
-  } else {
-    body = <PlaceholderPage pageId={page.id} />;
+  switch (page.id) {
+    case "chat":
+      body = <ChatPage />;
+      break;
+    case "knowledge":
+      body = <KnowledgeExplorerPage />;
+      break;
+    case "workflows":
+      body = <WorkflowsPage />;
+      break;
+    case "documents":
+      body = <DocumentsPage />;
+      break;
+    case "search":
+      body = <SearchPage />;
+      break;
+    case "activity":
+      body = <ActivityPage />;
+      break;
+    case "settings":
+      body = <SettingsPage />;
+      break;
+    case "home":
+    default:
+      body = <HomePage />;
+      break;
   }
 
   return (

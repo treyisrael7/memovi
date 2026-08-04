@@ -7,10 +7,12 @@ from sqlalchemy.orm import Session as OrmSession
 from documents.application.commands import (
     CompleteProcessing,
     CreateDocument,
+    DeleteDocument,
     EnqueueDocumentProcessing,
     FailProcessing,
     IngestLocalDocument,
     ProcessDocument,
+    ReprocessDocument,
     StartProcessing,
 )
 from documents.application.ports import ObjectStorage, ProcessingJobQueue
@@ -113,12 +115,31 @@ def get_fail_processing(session: DatabaseSession) -> FailProcessing:
 def get_document_query(session: DatabaseSession) -> GetDocument:
     return GetDocument(
         documents=SqlAlchemyDocumentRepository(session),
+        processing_jobs=SqlAlchemyProcessingJobRepository(session),
     )
 
 
 def get_list_documents_query(session: DatabaseSession) -> ListDocuments:
     return ListDocuments(
         documents=SqlAlchemyDocumentRepository(session),
+        processing_jobs=SqlAlchemyProcessingJobRepository(session),
+    )
+
+
+def get_delete_document(
+    session: DatabaseSession,
+    object_storage: ObjectStorageDependency,
+) -> DeleteDocument:
+    return DeleteDocument(
+        documents=SqlAlchemyDocumentRepository(session),
+        object_storage=object_storage,
+    )
+
+
+def get_reprocess_document(session: DatabaseSession) -> ReprocessDocument:
+    return ReprocessDocument(
+        documents=SqlAlchemyDocumentRepository(session),
+        processing_jobs=SqlAlchemyProcessingJobRepository(session),
     )
 
 

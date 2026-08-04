@@ -7,6 +7,16 @@ export async function listWorkspaces(): Promise<WorkspaceResponse[]> {
   return payload.workspaces;
 }
 
+export async function createWorkspace(
+  name: string,
+): Promise<WorkspaceResponse> {
+  return apiFetch<WorkspaceResponse>("/workspaces", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+}
+
 /** Prefer the seeded default workspace when present; otherwise the first listed. */
 export function resolveActiveWorkspace(
   workspaces: WorkspaceResponse[],

@@ -53,6 +53,12 @@ class SqlAlchemyDocumentRepository:
                 )
             )
 
+    def delete(self, document_id: DocumentId) -> None:
+        with timed_operation("repository.delete", repository=_REPO):
+            record = self._session.get(DocumentRecord, document_id.value)
+            if record is not None:
+                self._session.delete(record)
+
     def list_by_workspace(self, *, workspace_id: WorkspaceId) -> list[Document]:
         records = (
             self._session.query(DocumentRecord)
