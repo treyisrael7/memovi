@@ -9,7 +9,8 @@ from typing import Annotated
 from auth.application.dto import AuthenticatedPrincipal
 from fastapi import Depends, Header, HTTPException, Request, status
 from memovi_observability import RequestContext, bind_request_context, get_request_context
-from memovi_shared import DEFAULT_WORKSPACE_ID, InvalidWorkspaceIdError, WorkspaceId
+from memovi_shared import InvalidWorkspaceIdError, WorkspaceId
+from memovi_shared.workspace_header import WORKSPACE_HEADER, parse_workspace_id
 from memovi_workspace.domain.exceptions import WorkspaceNotFoundError
 from memovi_workspace.infrastructure.repositories import (
     SqlAlchemyWorkspaceMembershipRepository,
@@ -19,8 +20,6 @@ from sqlalchemy.orm import Session as OrmSession
 
 from api.auth_context import get_authenticated_principal
 from api.database import database_session
-
-WORKSPACE_HEADER = "X-Memovi-Workspace-Id"
 
 
 @dataclass(slots=True)
@@ -101,10 +100,10 @@ async def get_active_workspace_id(
     Explicit headers must identify an existing workspace the user belongs to.
     """
     if x_memovi_workspace_id is None or not x_memovi_workspace_id.strip():
-        workspace_id = DEFAULT_WORKSPACE_ID
+        workspace_id = parse_workspace_id(None)
     else:
         try:
-            workspace_id = WorkspaceId(x_memovi_workspace_id.strip())
+            workspace_id = parse_workspace_id(x_memovi_workspace_id)
         except InvalidWorkspaceIdError as exc:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

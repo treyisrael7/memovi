@@ -13,11 +13,11 @@ JWT, OAuth, RBAC, or API keys.
 
 ## Layers
 
-- `domain` contains auth business concepts, value objects, repository interfaces,
-  domain events, domain exceptions, and domain services.
-- `application` contains future use-case commands, queries, DTOs, and services.
-- `api` contains transport-specific FastAPI routers, schemas, and dependencies.
-- `infrastructure` contains future persistence, repository, security, and provider adapters.
+- `domain` — auth business concepts, value objects, repository interfaces, domain events,
+  domain exceptions, and domain services.
+- `application` — use-case commands, queries, DTOs, and services.
+- `api` — transport-specific FastAPI routers, schemas, and dependencies.
+- `infrastructure` — persistence, repository, security, and provider adapters.
 
 The import package is `auth` because the package boundary is already clear from
 `packages/auth`.

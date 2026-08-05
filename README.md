@@ -80,14 +80,10 @@ If you are not using Task, the equivalent commands are documented in
 |   |-- ARCHITECTURE.md
 |   |-- ROADMAP.md
 |   |-- STATUS.md
-|   |-- adr/
 |   |-- architecture/         # Architecture deep-dives
 |   `-- development/          # Local development docs
 |-- scripts/
-|-- tests/
-|   |-- architecture/
-|   |-- integration/
-|   `-- fixtures/
+|-- tests/                    # Reserved for future cross-package tests (placeholders today)
 |-- .devcontainer/            # VS Code Dev Container definition
 |-- .github/workflows/        # Repository validation workflows
 |-- compose.yml               # Local PostgreSQL, Redis, and MinIO

@@ -12,6 +12,7 @@ def initialize_logging() -> None:
 
 
 def validate_configuration() -> None:
+    """Reserved startup hook for future required-environment validation."""
     return None
 
 

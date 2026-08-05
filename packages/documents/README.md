@@ -24,7 +24,10 @@ from `packages/documents`.
 - `infrastructure` — persistence, processors, object storage, queue implementations
 - `api` — upload endpoint, schemas, dependencies, and router
 
-## Out of scope for this foundation
+## Out of scope for this package
 
-- OCR, chunking, and embeddings
 - Distributed queues and external worker runtimes
+- Connector-specific ingestion adapters (owned by `memovi-connectors` when implemented)
+
+Chunking, knowledge materialization, and search indexing are handled by the Memory and
+Search packages after document processing completes.

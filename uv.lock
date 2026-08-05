@@ -923,6 +923,12 @@ requires-dist = [
 name = "memovi-shared"
 version = "0.1.0"
 source = { editable = "packages/shared" }
+dependencies = [
+    { name = "fastapi" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "fastapi" }]
 
 [[package]]
 name = "memovi-workspace"

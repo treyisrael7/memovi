@@ -55,7 +55,7 @@ See [`architecture/README.md`](architecture/README.md) for the full deep-dive in
 | Document | Purpose |
 | --- | --- |
 | [`ENGINEERING_SNAPSHOT.md`](ENGINEERING_SNAPSHOT.md) | Handoff snapshot of current implementation |
-| [`adr/`](adr/) | Architecture Decision Records |
+| [`architecture/STABILIZATION_1.md`](architecture/STABILIZATION_1.md) | Platform stabilization pass summary |
 
 ---
 

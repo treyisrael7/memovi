@@ -24,18 +24,22 @@ memovi/
 ├── .github/workflows/
 ├── apps/
 │   ├── api/                 # FastAPI composition root (platform API)
+│   ├── desktop/             # Flagship Tauri desktop client
 │   └── web/                 # Optional web client shell (not primary product)
 ├── packages/
 │   ├── auth/                # memovi-auth
+│   ├── automation/          # memovi-automation
 │   ├── config/              # memovi-config (scaffold)
 │   ├── connectors/          # memovi-connectors (scaffold)
 │   ├── contracts/           # memovi-contracts (scaffold)
 │   ├── documents/           # memovi-documents
 │   ├── intelligence/        # memovi-intelligence
 │   ├── memory/              # memovi-memory
+│   ├── models/              # memovi-models (framework only)
 │   ├── observability/       # memovi-observability
 │   ├── search/              # memovi-search
-│   └── shared/              # memovi-shared
+│   ├── shared/              # memovi-shared
+│   └── workspace/           # memovi-workspace
 ├── database/
 │   └── migrations/versions/ # Alembic revisions
 ├── docker/                  # .gitkeep only
@@ -48,11 +52,10 @@ memovi/
 │   ├── PHILOSOPHY.md
 │   ├── ENGINEERING_SNAPSHOT.md
 │   ├── README.md
-│   ├── adr/
 │   ├── architecture/
 │   └── development/
 ├── scripts/
-├── tests/
+├── tests/                   # Reserved placeholders for future cross-package tests
 ├── README.md
 ├── LICENSE
 ├── alembic.ini
@@ -70,28 +73,29 @@ memovi/
 |---------|--------------|-------------|--------|
 | auth | `memovi-auth` | `auth` | Implemented |
 | documents | `memovi-documents` | `documents` | Implemented |
-| memory | `memovi-memory` | `memovi_memory` | Implemented (no HTTP routes) |
+| memory | `memovi-memory` | `memovi_memory` | Implemented |
 | search | `memovi-search` | `memovi_search` | Implemented |
 | intelligence | `memovi-intelligence` | `memovi_intelligence` | Implemented |
+| automation | `memovi-automation` | `memovi_automation` | Implemented |
+| workspace | `memovi-workspace` | `memovi_workspace` | Implemented |
+| models | `memovi-models` | `memovi_models` | Framework only (not wired to API) |
 | config | `memovi-config` | `memovi_config` | Scaffold only |
 | connectors | `memovi-connectors` | `memovi_connectors` | Scaffold only |
 | contracts | `memovi-contracts` | `memovi_contracts` | Scaffold only |
 | observability | `memovi-observability` | `memovi_observability` | RequestContext, structured logs, metrics, diagnostic events, OTel spans |
-| shared | `memovi-shared` | `memovi_shared` | Scaffold only |
+| shared | `memovi-shared` | `memovi_shared` | `WorkspaceId`, workspace header parsing, FastAPI workspace dependency |
 
 ## Apps
 
 | App | Role |
 |-----|------|
 | `apps/api` | Backend composition root / platform API. Registers routers, DB sessions, document processing worker, in-process event bus, memory/search/intelligence integration adapters. |
-| `apps/desktop` | Flagship Tauri desktop client shell foundation (connection status, navigation registry). |
+| `apps/desktop` | Flagship Tauri + React desktop client. Consumes the platform API; does not own business logic. |
 | `apps/web` | Optional web client workspace shell. |
 
 ## Shared libraries
 
-There is no substantive shared library code.
-
-* `packages/shared` — empty package root
+* `packages/shared` — `WorkspaceId`, workspace header constants, parsing helpers, and package-default FastAPI workspace dependency
 * `packages/contracts` — empty `events/`, `messages/`, `schemas/`
 * `packages/config` — empty settings package
 * `packages/observability` — RequestContext, structured JSON logging, MetricsRecorder, diagnostic emitter, OTel-API tracing
@@ -304,11 +308,11 @@ Durable knowledge items and chunks. Materialization from processed documents. Ch
 ### DTOs / API schemas
 
 * DTOs: `KnowledgeDto`, `KnowledgeItemDto`, `ChunkDto`, `ProcessedDocumentSnapshot`, `ProcessingCompletedNotification`
-* API schemas exist but are unused by routes: `KnowledgeItemResponse`, `ChunkResponse`, `KnowledgeItemListResponse`
+* API schemas: knowledge explorer responses (`KnowledgeSummaryResponse`, `KnowledgeDetailResponse`, `ChunkResponse`, etc.)
 
 ### API routers
 
-None active.
+`/memory` — knowledge explorer list, detail, concepts, relationships, dashboard
 
 ### Dependencies on other domains
 
@@ -959,7 +963,7 @@ No API or web service is defined in Compose.
 * `EmbeddingProviderConfig` — kind selection helper (not env-loaded end-to-end)
 * `DocumentProcessingWorkerConfig` — worker tuning
 * `memovi_config` package — empty; not wired
-* `apps/api` `validate_configuration()` — no-op
+* `apps/api` `validate_configuration()` — reserved startup hook (currently no-op)
 
 ## Feature flags
 

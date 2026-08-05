@@ -51,6 +51,7 @@ document that matches the concern being changed or reviewed.
 | [`observability.md`](observability.md) | Telemetry for requests, workers, events, AI, connectors, search, errors, and performance |
 | [`deployment.md`](deployment.md) | Self-hostable posture, runtime components, infrastructure isolation, and deployment constraints |
 | [`scaling.md`](scaling.md) | Evolution strategy, worker scaling, storage scaling, and future service extraction |
+| [`STABILIZATION_1.md`](STABILIZATION_1.md) | Platform stabilization pass I: refactors, debt removed, future recommendations |
 
 # Maintenance Rules
 
