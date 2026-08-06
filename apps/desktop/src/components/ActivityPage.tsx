@@ -6,8 +6,11 @@ import { listDocuments } from "../api/documents";
 import { listKnowledge } from "../api/memory";
 import { listWorkflowHistory } from "../api/workflows";
 import { useAppState } from "../state/AppStateContext";
+import { Alert } from "./ui/Alert";
 import { EmptyState } from "./ui/EmptyState";
 import { LoadingState } from "./ui/LoadingState";
+import { SectionHeader } from "./ui/SectionHeader";
+import { Tabs } from "./ui/Tabs";
 
 type ActivityKind =
   | "document_uploaded"
@@ -174,32 +177,23 @@ export function ActivityPage() {
 
   return (
     <div className="activity-page">
-      <div>
-        <h1>Activity</h1>
-        <p className="muted">
-          A timeline of ingestion, knowledge, and capability events in this
-          workspace.
-        </p>
-        <div className="activity-filters">
-          {KIND_FILTERS.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              className="search-tab"
-              data-active={filter === entry.id}
-              onClick={() => setFilter(entry.id)}
-            >
-              {entry.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <SectionHeader
+        title="Activity"
+        description="A timeline of ingestion, knowledge, and capability events in this workspace."
+        level={1}
+      />
+      <Tabs
+        aria-label="Activity filters"
+        className="activity-filters"
+        value={filter}
+        onChange={(id) => setFilter(id as ActivityKind | "all")}
+        items={KIND_FILTERS.map((entry) => ({
+          id: entry.id,
+          label: entry.label,
+        }))}
+      />
 
-      {error ? (
-        <div className="banner" data-tone="bad" role="alert">
-          {error}
-        </div>
-      ) : null}
+      {error ? <Alert tone="bad">{error}</Alert> : null}
 
       {!canUseBackend ? (
         <EmptyState

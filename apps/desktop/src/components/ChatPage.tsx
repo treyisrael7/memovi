@@ -32,7 +32,10 @@ import type {
   ConversationSummary,
 } from "../api/types";
 import { useAppState } from "../state/AppStateContext";
+import { Button } from "./ui/Button";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
+import { EmptyState } from "./ui/EmptyState";
+import { LoadingState } from "./ui/LoadingState";
 
 interface UiMessage extends ConversationMessage {
   id: string;
@@ -1314,20 +1317,18 @@ export function ChatPage() {
       <aside className="chat-sidebar" aria-label="Conversations">
         <div className="chat-sidebar-header">
           <h2>Conversations</h2>
-          <button
-            type="button"
-            className="primary-button"
+          <Button
             onClick={() => void handleNewConversation()}
             disabled={!canUseBackend || isStreaming}
           >
             New Conversation
-          </button>
+          </Button>
         </div>
 
         {isLoadingList ? (
-          <p className="muted">Loading conversations…</p>
+          <LoadingState label="Loading conversations…" />
         ) : conversations.length === 0 ? (
-          <p className="muted">No conversations yet.</p>
+          <EmptyState title="No conversations yet" />
         ) : (
           <ul className="conversation-list">
             {conversations.map((conversation) => (
@@ -1412,13 +1413,17 @@ export function ChatPage() {
 
         <div className="message-list" aria-live="polite">
           {!activeConversationId ? (
-            <p className="muted">
-              Create a conversation to start chatting with Memovi.
-            </p>
+            <EmptyState
+              title="Start a conversation"
+              description="Create a conversation to start chatting with Memovi."
+            />
           ) : isLoadingMessages ? (
-            <p className="muted">Loading messages…</p>
+            <LoadingState label="Loading messages…" />
           ) : messages.length === 0 ? (
-            <p className="muted">No messages yet. Ask a question below.</p>
+            <EmptyState
+              title="No messages yet"
+              description="Ask a question below."
+            />
           ) : (
             messages.map((message) => (
               <article
@@ -1493,21 +1498,13 @@ export function ChatPage() {
           />
           <div className="composer-actions">
             {isStreaming ? (
-              <button
-                type="button"
-                className="danger-button"
-                onClick={stopGeneration}
-              >
+              <Button variant="danger" onClick={stopGeneration}>
                 Stop
-              </button>
+              </Button>
             ) : (
-              <button
-                type="submit"
-                className="primary-button"
-                disabled={!canUseBackend || !draft.trim()}
-              >
+              <Button type="submit" disabled={!canUseBackend || !draft.trim()}>
                 Send
-              </button>
+              </Button>
             )}
           </div>
         </form>

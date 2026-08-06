@@ -19,6 +19,7 @@ import type {
   RelationshipSummary,
 } from "../api/types";
 import { useAppState } from "../state/AppStateContext";
+import { EmptyState } from "./ui/EmptyState";
 import { processingStatusBadge, StatusBadge } from "./ui/StatusBadge";
 import { useToast } from "./ui/ToastContext";
 
@@ -320,7 +321,7 @@ export function KnowledgeExplorerPage() {
   function renderDetailPanel() {
     if (section === "overview") {
       if (!dashboard) {
-        return <p className="muted">No dashboard data yet.</p>;
+        return <EmptyState title="No dashboard data yet" />;
       }
       return (
         <div className="explorer-detail-body">
@@ -383,7 +384,12 @@ export function KnowledgeExplorerPage() {
 
     if (section === "concepts") {
       if (!selectedConcept) {
-        return <p className="muted">Select a concept to inspect.</p>;
+        return (
+          <EmptyState
+            title="Select a concept"
+            description="Choose a concept from the list to inspect it."
+          />
+        );
       }
       const related = entities.filter((item) =>
         selectedConcept.knowledge_item_ids.includes(item.id),
@@ -425,7 +431,12 @@ export function KnowledgeExplorerPage() {
 
     if (section === "relationships") {
       if (!selectedRelationship) {
-        return <p className="muted">Select a relationship to inspect.</p>;
+        return (
+          <EmptyState
+            title="Select a relationship"
+            description="Choose a relationship from the list to inspect it."
+          />
+        );
       }
       return (
         <div className="explorer-detail-body">
@@ -487,7 +498,12 @@ export function KnowledgeExplorerPage() {
 
     if (section === "sources") {
       if (!sourceDetail) {
-        return <p className="muted">Select a source document to inspect.</p>;
+        return (
+          <EmptyState
+            title="Select a source document"
+            description="Choose a source from the list to inspect it."
+          />
+        );
       }
       return (
         <div className="explorer-detail-body">
@@ -548,7 +564,12 @@ export function KnowledgeExplorerPage() {
 
     // search + entities share knowledge detail
     if (!detail) {
-      return <p className="muted">Select an item to inspect.</p>;
+      return (
+        <EmptyState
+          title="Select an item"
+          description="Choose an item from the list to inspect it."
+        />
+      );
     }
 
     const relatedConcepts = concepts.filter((concept) =>

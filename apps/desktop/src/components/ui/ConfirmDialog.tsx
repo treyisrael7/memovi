@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { Button } from "./Button";
+import { Modal } from "./Modal";
 
-interface ConfirmDialogProps {
+export interface ConfirmationDialogProps {
   title: string;
   description?: string;
   confirmLabel?: string;
@@ -12,7 +13,7 @@ interface ConfirmDialogProps {
 }
 
 /** Consistent modal confirmation used for destructive or high-stakes actions. */
-export function ConfirmDialog({
+export function ConfirmationDialog({
   title,
   description,
   confirmLabel = "Confirm",
@@ -21,53 +22,32 @@ export function ConfirmDialog({
   busy = false,
   onConfirm,
   onCancel,
-}: ConfirmDialogProps) {
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && !busy) {
-        onCancel();
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [busy, onCancel]);
-
+}: ConfirmationDialogProps) {
   return (
-    <div
-      className="dialog-overlay"
-      role="presentation"
-      onClick={() => !busy && onCancel()}
-    >
-      <div
-        className="dialog"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2 id="confirm-dialog-title">{title}</h2>
-        {description ? (
-          <p className="dialog-description">{description}</p>
-        ) : null}
-        <div className="dialog-actions">
-          <button
-            type="button"
-            className="retry-button"
-            onClick={onCancel}
-            disabled={busy}
-          >
+    <Modal
+      title={title}
+      busy={busy}
+      onClose={onCancel}
+      role="alertdialog"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onCancel} disabled={busy}>
             {cancelLabel}
-          </button>
-          <button
-            type="button"
-            className={tone === "danger" ? "danger-button" : "primary-button"}
+          </Button>
+          <Button
+            variant={tone === "danger" ? "danger" : "primary"}
             onClick={onConfirm}
-            disabled={busy}
+            busy={busy}
           >
             {busy ? "Working…" : confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </>
+      }
+    >
+      {description ? <p className="dialog-description">{description}</p> : null}
+    </Modal>
   );
 }
+
+/** @deprecated Prefer ConfirmationDialog — kept for existing page imports. */
+export const ConfirmDialog = ConfirmationDialog;

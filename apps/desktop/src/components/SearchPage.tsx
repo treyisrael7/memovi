@@ -6,8 +6,14 @@ import { listDocuments } from "../api/documents";
 import { searchKnowledge, type SearchMode } from "../api/search";
 import type { DocumentSummary, SearchResultItem } from "../api/types";
 import { useAppState } from "../state/AppStateContext";
+import { Alert } from "./ui/Alert";
+import { Button } from "./ui/Button";
+import { Dropdown } from "./ui/Dropdown";
 import { EmptyState } from "./ui/EmptyState";
 import { LoadingState } from "./ui/LoadingState";
+import { SearchInput } from "./ui/SearchInput";
+import { SectionHeader } from "./ui/SectionHeader";
+import { Tabs } from "./ui/Tabs";
 import { useToast } from "./ui/ToastContext";
 
 type SearchScope = "all" | "document" | "knowledge";
@@ -184,7 +190,7 @@ export function SearchPage() {
   return (
     <div className="search-page">
       <div className="search-header">
-        <h1>Search</h1>
+        <SectionHeader title="Search" level={1} />
         <form
           className="search-input-row"
           onSubmit={(event) => {
@@ -192,8 +198,7 @@ export function SearchPage() {
             handleSubmit();
           }}
         >
-          <input
-            type="search"
+          <SearchInput
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onBlur={() => handleSubmit()}
@@ -203,31 +208,27 @@ export function SearchPage() {
           />
         </form>
 
-        <div className="search-tabs" role="tablist" aria-label="Search scope">
-          {SCOPES.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              role="tab"
-              className="search-tab"
-              data-active={scope === entry.id}
-              onClick={() => setScope(entry.id)}
-            >
-              {entry.label}
-            </button>
-          ))}
+        <div className="search-scope-row">
+          <Tabs
+            aria-label="Search scope"
+            value={scope}
+            onChange={(id) => setScope(id as SearchScope)}
+            items={SCOPES.map((entry) => ({
+              id: entry.id,
+              label: entry.label,
+            }))}
+          />
           {scope === "document" ? (
-            <select
+            <Dropdown
+              aria-label="Document"
               value={documentId}
               onChange={(event) => setDocumentId(event.target.value)}
-            >
-              <option value="">Choose a document…</option>
-              {documents.map((document) => (
-                <option key={document.id} value={document.id}>
-                  {document.name}
-                </option>
-              ))}
-            </select>
+              placeholder="Choose a document…"
+              options={documents.map((document) => ({
+                value: document.id,
+                label: document.name,
+              }))}
+            />
           ) : null}
         </div>
 
@@ -248,11 +249,7 @@ export function SearchPage() {
         ) : null}
       </div>
 
-      {error ? (
-        <div className="banner" data-tone="bad" role="alert">
-          {error}
-        </div>
-      ) : null}
+      {error ? <Alert tone="bad">{error}</Alert> : null}
 
       {!canUseBackend ? (
         <EmptyState
@@ -290,13 +287,12 @@ export function SearchPage() {
               </button>
               <p className="search-result-snippet">{result.text}</p>
               <div className="search-result-actions">
-                <button
-                  type="button"
-                  className="retry-button"
+                <Button
+                  variant="secondary"
                   onClick={() => void handleAskAbout(result)}
                 >
                   Ask about this
-                </button>
+                </Button>
               </div>
             </div>
           ))}

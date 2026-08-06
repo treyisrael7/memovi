@@ -90,6 +90,20 @@ const initialConnection: ConnectionSnapshot = {
 
 const AppStateContext = createContext<AppStateValue | null>(null);
 
+const THEME_STORAGE_KEY = "memovi.desktop.theme";
+
+function readStoredTheme(): ThemeMode {
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "light" || stored === "dark") {
+      return stored;
+    }
+  } catch {
+    // Ignore storage failures (private mode, quota, etc.).
+  }
+  return "light";
+}
+
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [connection, setConnection] =
     useState<ConnectionSnapshot>(initialConnection);
@@ -100,7 +114,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [activeModel, setActiveModelState] =
     useState<ActiveModelSelection | null>(null);
   const [activePage, setActivePage] = useState<PageId>("chat");
-  const [theme, setThemeState] = useState<ThemeMode>("light");
+  const [theme, setThemeState] = useState<ThemeMode>(() => readStoredTheme());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [chatSeed, setChatSeed] = useState<ChatSeed | null>(null);
   const chatSeedNonce = useRef(0);
@@ -200,6 +214,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // Ignore storage failures (private mode, quota, etc.).
+    }
   }, [theme]);
 
   const setTheme = useCallback((next: ThemeMode) => {

@@ -50,6 +50,14 @@ See [`architecture/README.md`](architecture/README.md) for the full deep-dive in
 
 ---
 
+## Design
+
+| Document | Purpose |
+| --- | --- |
+| [`design/DESIGN_SYSTEM.md`](design/DESIGN_SYSTEM.md) | Desktop design tokens, components, and UX standards |
+
+---
+
 ## Engineering notes
 
 | Document | Purpose |

@@ -1,5 +1,8 @@
 import type { ConnectionStatus } from "../api/health";
 import { useAppState } from "../state/AppStateContext";
+import { Button } from "./ui/Button";
+import { Dropdown } from "./ui/Dropdown";
+import { TopBarLayout } from "./ui/TopBarLayout";
 
 function toneForStatus(status: ConnectionStatus): "ok" | "warn" | "bad" | "idle" {
   switch (status) {
@@ -41,30 +44,27 @@ export function TopBar() {
   } = useAppState();
 
   return (
-    <header className="top-bar">
-      <div className="top-bar-cluster">
-        <label className="top-bar-field">
-          <span>Workspace</span>
-          <select
+    <TopBarLayout
+      left={
+        <>
+          <Dropdown
+            label="Workspace"
+            className="top-bar-field"
             value={activeWorkspace?.id ?? ""}
             disabled={!activeWorkspace || workspaces.length === 0}
             onChange={(event) => setActiveWorkspaceId(event.target.value)}
-          >
-            {workspaces.length === 0 ? (
-              <option value="">Unavailable</option>
-            ) : (
-              workspaces.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
-                  {workspace.name}
-                </option>
-              ))
-            )}
-          </select>
-        </label>
-
-        <label className="top-bar-field">
-          <span>Model</span>
-          <select
+            options={
+              workspaces.length === 0
+                ? [{ value: "", label: "Unavailable" }]
+                : workspaces.map((workspace) => ({
+                    value: workspace.id,
+                    label: workspace.name,
+                  }))
+            }
+          />
+          <Dropdown
+            label="Model"
+            className="top-bar-field"
             value={
               activeModel
                 ? `${activeModel.provider}::${activeModel.model}`
@@ -84,41 +84,36 @@ export function TopBar() {
                 });
               }
             }}
-          >
-            {availableModels.length === 0 ? (
-              <option value="">No model selected</option>
-            ) : (
-              availableModels.map((item) => (
-                <option
-                  key={`${item.provider}::${item.model}`}
-                  value={`${item.provider}::${item.model}`}
-                >
-                  {item.label}
-                </option>
-              ))
-            )}
-          </select>
-        </label>
-      </div>
-
-      <div className="top-bar-cluster">
-        <span className="status-pill">
-          <span
-            className="status-dot"
-            data-tone={toneForStatus(connection.status)}
-            aria-hidden="true"
+            options={
+              availableModels.length === 0
+                ? [{ value: "", label: "No model selected" }]
+                : availableModels.map((item) => ({
+                    value: `${item.provider}::${item.model}`,
+                    label: item.label,
+                  }))
+            }
           />
-          {labelForStatus(connection.status)}
-        </span>
-        <button
-          type="button"
-          className="retry-button"
-          onClick={() => void refreshConnection()}
-          disabled={isRefreshing}
-        >
-          {isRefreshing ? "Refreshing…" : "Retry"}
-        </button>
-      </div>
-    </header>
+        </>
+      }
+      right={
+        <>
+          <span className="status-pill">
+            <span
+              className="status-dot"
+              data-tone={toneForStatus(connection.status)}
+              aria-hidden="true"
+            />
+            {labelForStatus(connection.status)}
+          </span>
+          <Button
+            variant="secondary"
+            onClick={() => void refreshConnection()}
+            busy={isRefreshing}
+          >
+            {isRefreshing ? "Refreshing…" : "Retry"}
+          </Button>
+        </>
+      }
+    />
   );
 }

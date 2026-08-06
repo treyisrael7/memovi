@@ -321,6 +321,7 @@ Ship the flagship desktop knowledge OS on the V1 platform API.
 **Primary Deliverables**
 
 * Native desktop application (`apps/desktop` Tauri shell foundation shipped)
+* Design system / UX foundation (tokens, shared components, interaction standards)
 * Conversation UI
 * Knowledge Explorer (read-only inspection of memory)
 * Collections
@@ -333,6 +334,7 @@ Ship the flagship desktop knowledge OS on the V1 platform API.
 
 * Desktop is clearly the primary product surface.
 * UX consumes platform APIs; business logic stays in backend domains.
+* Screens share one visual language and reusable UI primitives.
 * Local-model and filesystem-oriented UX is possible without backend redesign.
 
 ---

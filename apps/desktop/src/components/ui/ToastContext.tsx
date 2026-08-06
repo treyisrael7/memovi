@@ -22,7 +22,8 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-const TOAST_DURATION_MS = 4000;
+/** Default toast visibility; matches --duration scale for transient feedback. */
+export const TOAST_DURATION_MS = 4000;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -58,4 +59,19 @@ export function useToast(): ToastContextValue {
     throw new Error("useToast must be used within ToastProvider");
   }
   return context;
+}
+
+/** Presentational toast item for documentation and custom stacks. */
+export function Toast({
+  message,
+  tone = "info",
+}: {
+  message: string;
+  tone?: ToastTone;
+}) {
+  return (
+    <div className="toast" data-tone={tone}>
+      {message}
+    </div>
+  );
 }

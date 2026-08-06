@@ -1,50 +1,167 @@
+/*
+ * Memovi design tokens
+ * Semantic CSS variables for light/dark themes.
+ * Prefer these over hardcoded values in components and pages.
+ */
+
+:root {
+  /* Spacing scale (4px base) */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Typography */
+  --font-sans:
+    "Segoe UI", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    "Cascadia Code", "Segoe UI Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.82rem;
+  --text-md: 0.9rem;
+  --text-base: 1rem;
+  --text-lg: 1.1rem;
+  --text-xl: 1.4rem;
+  --text-2xl: 1.55rem;
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.45;
+  --leading-relaxed: 1.55;
+
+  --weight-regular: 400;
+  --weight-medium: 540;
+  --weight-semibold: 600;
+  --weight-bold: 650;
+
+  /* Radius */
+  --radius-sm: 0.35rem;
+  --radius-md: 0.45rem;
+  --radius-lg: 0.6rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 12px 28px rgba(15, 23, 42, 0.16);
+
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+  --duration-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1.1);
+
+  /* Z-index layers */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-dropdown: 40;
+  --z-overlay: 100;
+  --z-modal: 110;
+  --z-toast: 200;
+  --z-tooltip: 220;
+
+  /* Icon sizes */
+  --icon-sm: 0.875rem;
+  --icon-md: 1rem;
+  --icon-lg: 1.25rem;
+
+  /* Focus ring */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  font-family: var(--font-sans);
+}
+
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --bg-app: #f4f6f8;
-  --bg-panel: #ffffff;
-  --bg-sidebar: #1c2430;
-  --bg-sidebar-hover: #2a3443;
-  --bg-sidebar-active: #334155;
-  --border: #d7dee7;
-  --text: #15202b;
-  --text-muted: #5b6b7c;
-  --text-sidebar: #d7dee7;
-  --text-sidebar-muted: #93a1b3;
-  --accent: #0f766e;
-  --accent-soft: #ccfbf1;
-  --status-ok: #15803d;
-  --status-warn: #b45309;
-  --status-bad: #b91c1c;
-  --status-idle: #64748b;
-  --shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
-  font-family:
-    "Segoe UI",
-    "IBM Plex Sans",
-    ui-sans-serif,
-    system-ui,
-    sans-serif;
+
+  --color-bg-app: #f4f6f8;
+  --color-bg-panel: #ffffff;
+  --color-bg-subtle: #eef2f6;
+  --color-bg-sidebar: #1c2430;
+  --color-bg-sidebar-hover: #2a3443;
+  --color-bg-sidebar-active: #334155;
+  --color-border: #d7dee7;
+  --color-border-strong: #b8c4d2;
+  --color-text: #15202b;
+  --color-text-muted: #5b6b7c;
+  --color-text-inverse: #ffffff;
+  --color-text-sidebar: #d7dee7;
+  --color-text-sidebar-muted: #93a1b3;
+  --color-accent: #0f766e;
+  --color-accent-hover: #0d9488;
+  --color-accent-soft: #ccfbf1;
+  --color-accent-contrast: #ffffff;
+  --color-status-ok: #15803d;
+  --color-status-warn: #b45309;
+  --color-status-bad: #b91c1c;
+  --color-status-idle: #64748b;
+  --color-overlay: rgba(8, 12, 18, 0.5);
+  --color-focus-ring: #0f766e;
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 12px 28px rgba(15, 23, 42, 0.16);
+
+  /* Backward-compatible aliases used by existing shell styles */
+  --bg-app: var(--color-bg-app);
+  --bg-panel: var(--color-bg-panel);
+  --bg-sidebar: var(--color-bg-sidebar);
+  --bg-sidebar-hover: var(--color-bg-sidebar-hover);
+  --bg-sidebar-active: var(--color-bg-sidebar-active);
+  --border: var(--color-border);
+  --text: var(--color-text);
+  --text-muted: var(--color-text-muted);
+  --text-sidebar: var(--color-text-sidebar);
+  --text-sidebar-muted: var(--color-text-sidebar-muted);
+  --accent: var(--color-accent);
+  --accent-soft: var(--color-accent-soft);
+  --status-ok: var(--color-status-ok);
+  --status-warn: var(--color-status-warn);
+  --status-bad: var(--color-status-bad);
+  --status-idle: var(--color-status-idle);
+  --shadow: var(--shadow-sm);
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg-app: #0f141a;
-  --bg-panel: #171e27;
-  --bg-sidebar: #0b1016;
-  --bg-sidebar-hover: #1a2330;
-  --bg-sidebar-active: #243041;
-  --border: #2a3544;
-  --text: #e8eef5;
-  --text-muted: #9aabbd;
-  --text-sidebar: #d7dee7;
-  --text-sidebar-muted: #7f8fa3;
-  --accent: #2dd4bf;
-  --accent-soft: #134e4a;
-  --status-ok: #4ade80;
-  --status-warn: #fbbf24;
-  --status-bad: #f87171;
-  --status-idle: #94a3b8;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+
+  --color-bg-app: #0f141a;
+  --color-bg-panel: #171e27;
+  --color-bg-subtle: #1c2530;
+  --color-bg-sidebar: #0b1016;
+  --color-bg-sidebar-hover: #1a2330;
+  --color-bg-sidebar-active: #243041;
+  --color-border: #2a3544;
+  --color-border-strong: #3a4a5c;
+  --color-text: #e8eef5;
+  --color-text-muted: #9aabbd;
+  --color-text-inverse: #0b1016;
+  --color-text-sidebar: #d7dee7;
+  --color-text-sidebar-muted: #7f8fa3;
+  --color-accent: #2dd4bf;
+  --color-accent-hover: #5eead4;
+  --color-accent-soft: #134e4a;
+  --color-accent-contrast: #042f2e;
+  --color-status-ok: #4ade80;
+  --color-status-warn: #fbbf24;
+  --color-status-bad: #f87171;
+  --color-status-idle: #94a3b8;
+  --color-overlay: rgba(0, 0, 0, 0.55);
+  --color-focus-ring: #2dd4bf;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 14px 32px rgba(0, 0, 0, 0.5);
 }
 
 *,
@@ -61,11 +178,36 @@ body,
 }
 
 body {
-  background: var(--bg-app);
-  color: var(--text);
+  background: var(--color-bg-app);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
 }
 
-button {
+button,
+input,
+select,
+textarea {
   font: inherit;
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

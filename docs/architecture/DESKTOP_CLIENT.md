@@ -52,15 +52,18 @@ apps/desktop/
   src/                      # React + TypeScript UI (Vite)
     api/                    # Thin HTTP client over platform contracts
     components/             # Shell chrome + product pages
-      ui/                   # Shared presentation primitives (empty/loading/
-                             # dialog/badge/toast) reused across pages
+      ui/                   # Design-system primitives (layout, inputs,
+                             # feedback, display, navigation) reused across pages
     navigation/             # Page registry for the primary navigation
     state/                  # Application shell state, incl. cross-page
                              # "seed" handoffs (e.g. open Chat/Knowledge/
                              # Documents from another page with context)
-    styles/                 # Theme and layout
+    styles/                 # Tokens (theme.css), component styles, shell/page CSS
   src-tauri/                # Tauri / Rust host (windowing only)
 ```
+
+The design system is documented in
+[`../design/DESIGN_SYSTEM.md`](../design/DESIGN_SYSTEM.md).
 
 The Rust host owns native window lifecycle. Product UI and API consumption live
 in the TypeScript frontend. Backend domains stay in Python packages.
@@ -111,11 +114,11 @@ The shell provides:
 * Top bar with active workspace, active model, and connection status
 * Main content area
 * Status bar with connection details and retry
-* Light / dark theme toggle
+* Light / dark theme toggle (persisted locally)
 * Startup connection detection
-* Shared UI primitives (`components/ui/`) for empty states, loading states,
-  status badges, confirmation dialogs, and toast notifications, used
-  consistently across every page
+* Design-system UI primitives (`components/ui/`) for layout, inputs, feedback,
+  display, and navigation — used consistently across every page. See
+  [`../design/DESIGN_SYSTEM.md`](../design/DESIGN_SYSTEM.md).
 
 Every page registered in `src/navigation/pages.ts` is a real, working surface.
 The registry intentionally contains no placeholder entries: a page is only

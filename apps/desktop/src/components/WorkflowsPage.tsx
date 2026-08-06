@@ -17,6 +17,13 @@ import {
   cancelCapabilityExecution,
 } from "../api/capabilities";
 import { useAppState } from "../state/AppStateContext";
+import { Alert } from "./ui/Alert";
+import { Button } from "./ui/Button";
+import { EmptyState } from "./ui/EmptyState";
+import { executionStatusBadge, StatusBadge } from "./ui/StatusBadge";
+import { Tabs } from "./ui/Tabs";
+import { PageLayout } from "./ui/PageLayout";
+import { LoadingState } from "./ui/LoadingState";
 
 type WorkflowTab = "library" | "run" | "history";
 
@@ -212,63 +219,45 @@ export function WorkflowsPage() {
 
   if (!workspaceId) {
     return (
-      <section className="panel">
-        <h1>Workflows</h1>
-        <p className="lede">Select a workspace to browse and run workflows.</p>
-      </section>
+      <PageLayout
+        title="Workflows"
+        description="Select a workspace to browse and run workflows."
+      >
+        <EmptyState title="No workspace selected" />
+      </PageLayout>
     );
   }
 
   return (
-    <section className="panel workflows-page">
-      <header className="workflows-header">
-        <div>
-          <h1>Workflows</h1>
-          <p className="lede">
-            Reusable capability sequences. Desktop owns presentation only —
-            planning and execution stay on the platform.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="primary-button"
-          onClick={() => void refresh()}
-          disabled={isLoading}
-        >
+    <PageLayout
+      className="workflows-page"
+      title="Workflows"
+      description="Reusable capability sequences. Desktop owns presentation only — planning and execution stay on the platform."
+      actions={
+        <Button onClick={() => void refresh()} busy={isLoading}>
           Refresh
-        </button>
-      </header>
+        </Button>
+      }
+    >
+      <Tabs
+        aria-label="Workflow views"
+        className="workflows-tabs"
+        value={tab}
+        onChange={(id) => setTab(id as WorkflowTab)}
+        items={[
+          { id: "library", label: "Library" },
+          { id: "run", label: "Run / Progress" },
+          { id: "history", label: "History" },
+        ]}
+      />
 
-      <div className="workflows-tabs" role="tablist">
-        {(
-          [
-            ["library", "Library"],
-            ["run", "Run / Progress"],
-            ["history", "History"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            className="workflows-tab"
-            data-active={tab === id}
-            aria-selected={tab === id}
-            onClick={() => setTab(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {error ? (
-        <p className="chat-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Alert tone="bad">{error}</Alert> : null}
 
       {!canUseBackend ? (
-        <p className="lede">Connect to the backend to use workflows.</p>
+        <EmptyState
+          title="Backend unavailable"
+          description="Connect to the backend to use workflows."
+        />
       ) : null}
 
       {tab === "library" ? (
@@ -295,7 +284,14 @@ export function WorkflowsPage() {
               </li>
             ))}
             {workflows.length === 0 && !isLoading ? (
-              <li className="lede">No workflows registered.</li>
+              <li>
+                <EmptyState title="No workflows registered" />
+              </li>
+            ) : null}
+            {isLoading && workflows.length === 0 ? (
+              <li>
+                <LoadingState label="Loading workflows…" />
+              </li>
             ) : null}
           </ul>
           {selected ? (
@@ -325,13 +321,7 @@ export function WorkflowsPage() {
                   <li>No variables</li>
                 ) : null}
               </ul>
-              <button
-                type="button"
-                className="primary-button"
-                onClick={() => setTab("run")}
-              >
-                Configure &amp; Run
-              </button>
+              <Button onClick={() => setTab("run")}>Configure & Run</Button>
             </article>
           ) : null}
         </div>
@@ -364,18 +354,20 @@ export function WorkflowsPage() {
                 ))}
               </div>
               <div className="workflows-actions">
-                <button
-                  type="button"
-                  className="primary-button"
+                <Button
                   disabled={isRunning}
+                  busy={isRunning}
                   onClick={() => void handleRun()}
                 >
                   {isRunning ? "Running…" : "Run Workflow"}
-                </button>
+                </Button>
               </div>
             </>
           ) : (
-            <p className="lede">Select a workflow from the library.</p>
+            <EmptyState
+              title="Select a workflow"
+              description="Choose a workflow from the library to configure and run."
+            />
           )}
 
           {latestResult ? (
@@ -384,7 +376,9 @@ export function WorkflowsPage() {
               <dl className="meta-grid">
                 <div className="meta-card">
                   <dt>Status</dt>
-                  <dd data-status={latestResult.status}>{latestResult.status}</dd>
+                  <dd>
+                    <StatusBadge {...executionStatusBadge(latestResult.status)} />
+                  </dd>
                 </div>
                 <div className="meta-card">
                   <dt>Duration</dt>
@@ -407,22 +401,19 @@ export function WorkflowsPage() {
                     that step, then re-run the workflow if remaining steps did
                     not execute.
                   </p>
-                  <button
-                    type="button"
-                    className="primary-button"
+                  <Button
                     disabled={isRunning}
                     onClick={() => void handleApprovePending()}
                   >
                     Approve
-                  </button>
-                  <button
-                    type="button"
-                    className="danger-button"
+                  </Button>
+                  <Button
+                    variant="danger"
                     disabled={isRunning}
                     onClick={() => void handleDenyPending()}
                   >
                     Deny
-                  </button>
+                  </Button>
                 </div>
               ) : null}
 
@@ -488,6 +479,6 @@ export function WorkflowsPage() {
           </ul>
         </div>
       ) : null}
-    </section>
+    </PageLayout>
   );
 }

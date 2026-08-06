@@ -93,6 +93,40 @@
   background: var(--bg-sidebar-hover);
 }
 
+.theme-toggle-switch {
+  width: 100%;
+  justify-content: space-between;
+  color: var(--text-sidebar);
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+}
+
+.theme-toggle-switch:hover {
+  background: var(--bg-sidebar-hover);
+}
+
+.top-bar-field.ui-field {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.top-bar-field .ui-field__label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.top-bar-field .ui-select {
+  max-width: 16rem;
+  padding: 0.3rem 0.55rem;
+  background: var(--bg-app);
+}
+
 .main {
   display: flex;
   flex-direction: column;
@@ -1133,6 +1167,21 @@ button.linkish {
   font-weight: 600;
 }
 
+.workflows-tabs .ui-tab {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  border-radius: 0.45rem;
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.workflows-tabs .ui-tab[data-active="true"] {
+  background: color-mix(in srgb, var(--bg-panel) 70%, var(--bg-app));
+  font-weight: 600;
+}
+
 .workflows-split {
   display: grid;
   grid-template-columns: minmax(220px, 280px) 1fr;
@@ -1590,6 +1639,11 @@ button.linkish {
   align-items: center;
 }
 
+.search-input-row .ui-search {
+  flex: 1;
+  min-width: 16rem;
+}
+
 .search-input-row input[type="search"] {
   flex: 1;
   min-width: 16rem;
@@ -1599,6 +1653,13 @@ button.linkish {
   color: inherit;
   padding: 0.55rem 0.8rem;
   font-size: 0.95rem;
+}
+
+.search-scope-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .search-tabs {

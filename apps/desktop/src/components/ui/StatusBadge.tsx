@@ -1,3 +1,5 @@
+import { Badge, type BadgeTone } from "./Badge";
+
 export type StatusTone = "ok" | "warn" | "bad" | "idle";
 
 interface StatusBadgeProps {
@@ -7,11 +9,7 @@ interface StatusBadgeProps {
 
 /** Consistent status pill used for processing status, executions, and workflows. */
 export function StatusBadge({ label, tone }: StatusBadgeProps) {
-  return (
-    <span className="status-badge" data-tone={tone}>
-      {label}
-    </span>
-  );
+  return <Badge label={label} tone={tone as BadgeTone} />;
 }
 
 const PROCESSING_TONE: Record<string, StatusTone> = {

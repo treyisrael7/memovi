@@ -51,3 +51,6 @@ pnpm tauri:dev
 ## Architecture
 
 See [`docs/architecture/DESKTOP_CLIENT.md`](../../docs/architecture/DESKTOP_CLIENT.md).
+
+UI primitives and design tokens are documented in
+[`docs/design/DESIGN_SYSTEM.md`](../../docs/design/DESIGN_SYSTEM.md).

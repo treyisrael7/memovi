@@ -2,7 +2,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type DragEvent,
 } from "react";
@@ -18,9 +17,14 @@ import {
 } from "../api/documents";
 import type { DocumentSummary } from "../api/types";
 import { useAppState } from "../state/AppStateContext";
+import { Alert } from "./ui/Alert";
+import { Button } from "./ui/Button";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { EmptyState } from "./ui/EmptyState";
+import { FilePicker } from "./ui/FilePicker";
 import { LoadingState } from "./ui/LoadingState";
+import { ProgressBar } from "./ui/ProgressBar";
+import { SectionHeader } from "./ui/SectionHeader";
 import { processingStatusBadge, StatusBadge } from "./ui/StatusBadge";
 import { useToast } from "./ui/ToastContext";
 
@@ -63,8 +67,6 @@ export function DocumentsPage() {
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [reprocessingId, setReprocessingId] = useState<string | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedDocument = useMemo(
     () => documents.find((doc) => doc.id === selectedId) ?? null,
@@ -269,15 +271,11 @@ export function DocumentsPage() {
 
   return (
     <div className="documents-page">
-      <div className="documents-header">
-        <div>
-          <h1>Documents</h1>
-          <p>
-            Import documents to turn them into searchable, connected knowledge.
-            Track processing here from upload through extraction.
-          </p>
-        </div>
-      </div>
+      <SectionHeader
+        title="Documents"
+        description="Import documents to turn them into searchable, connected knowledge. Track processing here from upload through extraction."
+        level={1}
+      />
 
       <div
         className="dropzone"
@@ -293,25 +291,10 @@ export function DocumentsPage() {
           <strong>Drag and drop</strong> documents here, or use the file picker.
           {!canUseBackend ? " Connect to the backend to import documents." : ""}
         </p>
-        <button
-          type="button"
-          className="primary-button"
+        <FilePicker
           disabled={!canUseBackend || !workspaceId}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          Choose files
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          hidden
-          onChange={(event) => {
-            if (event.target.files) {
-              handleFiles(event.target.files);
-            }
-            event.target.value = "";
-          }}
+          buttonLabel="Choose files"
+          onFilesSelected={handleFiles}
         />
       </div>
 
@@ -328,23 +311,14 @@ export function DocumentsPage() {
                       ? "Uploaded"
                       : `Failed: ${task.error}`}
                 </div>
-                <div className="progress-bar">
-                  <div
-                    className="progress-bar-fill"
-                    style={{ width: `${Math.round(task.progress * 100)}%` }}
-                  />
-                </div>
+                <ProgressBar value={Math.round(task.progress * 100)} />
               </div>
             </div>
           ))}
         </div>
       ) : null}
 
-      {error ? (
-        <div className="banner" data-tone="bad" role="alert">
-          {error}
-        </div>
-      ) : null}
+      {error ? <Alert tone="bad">{error}</Alert> : null}
 
       <div className="documents-split">
         {isLoading ? (
@@ -405,9 +379,9 @@ export function DocumentsPage() {
 
               {selectedDocument.processing_status === "failed" &&
               selectedDocument.processing_failure_reason ? (
-                <div className="banner document-detail-error" data-tone="bad">
+                <Alert tone="bad" className="document-detail-error">
                   {selectedDocument.processing_failure_reason}
-                </div>
+                </Alert>
               ) : null}
 
               <dl className="meta-grid">
@@ -428,9 +402,7 @@ export function DocumentsPage() {
               </dl>
 
               <div className="document-detail-actions">
-                <button
-                  type="button"
-                  className="primary-button"
+                <Button
                   onClick={() => void handleAskAbout(selectedDocument)}
                   disabled={
                     !canUseBackend ||
@@ -443,27 +415,24 @@ export function DocumentsPage() {
                   }
                 >
                   Ask about this document
-                </button>
-                <button
-                  type="button"
-                  className="retry-button"
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={() => void handleReprocess(selectedDocument)}
-                  disabled={
-                    !canUseBackend || reprocessingId === selectedDocument.id
-                  }
+                  busy={reprocessingId === selectedDocument.id}
+                  disabled={!canUseBackend}
                 >
                   {reprocessingId === selectedDocument.id
                     ? "Queuing…"
                     : "Reprocess"}
-                </button>
-                <button
-                  type="button"
-                  className="danger-button"
+                </Button>
+                <Button
+                  variant="danger"
                   onClick={() => setPendingDelete(selectedDocument)}
                   disabled={!canUseBackend}
                 >
                   Delete
-                </button>
+                </Button>
               </div>
             </>
           )}

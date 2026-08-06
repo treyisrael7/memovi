@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-07-25 (Milestone 28).
+system on a reusable backend platform. Last reviewed: 2026-08-05 (Milestone 31).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -675,34 +675,38 @@ API stability remain.
 **Overall Status:** In progress
 
 The flagship Tauri desktop shell lives in `apps/desktop`. It launches, probes
-backend health/readiness, and exposes Chat, Knowledge Explorer, and Workflows over
-the platform APIs. Remaining product pages are still placeholders.
+backend health/readiness, and exposes working product pages over the platform
+APIs. Milestone 31 established the official design system so new screens compose
+shared UI primitives.
 
 **Completed**
 
 * `apps/desktop` Tauri + React shell foundation
 * Sidebar / top bar / main content / status bar layout
 * Backend connection detection, reconnect polling, and friendly errors
-* Navigation registry for Chat, Knowledge, Workflows, Documents, Search, Workspaces,
-  Models, Activity, Capabilities, and Settings
+* Navigation registry for Home, Chat, Knowledge, Workflows, Documents, Search,
+  Activity, and Settings
 * Chat conversation experience (list/create/rename/delete, history, SSE streaming,
   markdown/code copy, stop/retry, workspace + model selectors)
 * Knowledge Explorer (overview, search, concepts, entities, relationships, sources)
 * Workflows page (library, run, progress, history) over `/workflows`
+* Documents, Search, Activity, and Settings product pages
+* Design system: tokens (light/dark), reusable `components/ui/` library, UX
+  standards for loading/empty/error/confirm/toast, and
+  `docs/design/DESIGN_SYSTEM.md`
 * `docs/architecture/DESKTOP_CLIENT.md`
 * `docs/architecture/KNOWLEDGE_EXPLORER.md`
 
 **In Progress**
 
-* Desktop foundation validation and local developer workflow
+* Continuing to deepen page consistency on top of the design system
 
 **Remaining**
 
 * Collections
-* Settings
-* Model management product page
-* Workspace management product page
-* Indexing status
+* Model management product depth beyond Settings selectors
+* Workspace management product depth beyond Settings
+* Indexing status surface
 
 **Known Risks**
 
@@ -711,7 +715,46 @@ the platform APIs. Remaining product pages are still placeholders.
 
 **Next Recommended Work**
 
+* Assemble new desktop surfaces exclusively from design-system primitives
 * Expand Documents ingestion UX and deepen semantic entity/concept extraction behind explorer labels
+
+---
+
+# Milestone 31 — UX Foundation & Design System
+
+**Overall Status:** Complete
+
+Established the first official desktop design system: centralized tokens,
+reusable UI components, shared interaction patterns, accessibility baselines,
+and page consistency without changing backend behavior.
+
+**Completed**
+
+* Design tokens for color, typography, spacing, radius, shadow, icons, motion,
+  and z-index with light/dark themes
+* Component library under `apps/desktop/src/components/ui/` (layout, inputs,
+  feedback, display, navigation)
+* UX standards for loading, empty, error, confirmation, success, focus, and
+  keyboard patterns
+* Existing pages retrofitted onto shared primitives where appropriate
+* `docs/design/DESIGN_SYSTEM.md`
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Gradual replacement of remaining page-local control markup as pages evolve
+
+**Known Risks**
+
+* Page-local CSS in `shell.css` still carries historical styles; prefer tokens
+  and `components.css` for new work
+
+**Next Recommended Work**
+
+* Keep new desktop UI on design-system primitives; avoid page-specific controls
 
 ---
 

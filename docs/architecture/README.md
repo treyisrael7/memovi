@@ -47,6 +47,7 @@ document that matches the concern being changed or reviewed.
 | [`BROWSER_CAPABILITY.md`](BROWSER_CAPABILITY.md) | Browser capability: navigation, read, search, download, safety |
 | [`MODEL_PROVIDER_FRAMEWORK.md`](MODEL_PROVIDER_FRAMEWORK.md) | Provider-neutral model abstractions, registry, capabilities, health |
 | [`DESKTOP_CLIENT.md`](DESKTOP_CLIENT.md) | Flagship Tauri desktop shell, client boundaries, and API communication |
+| [`../design/DESIGN_SYSTEM.md`](../design/DESIGN_SYSTEM.md) | Desktop design system: tokens, components, interaction, accessibility |
 | [`KNOWLEDGE_EXPLORER.md`](KNOWLEDGE_EXPLORER.md) | Read-only knowledge inspection, provenance navigation, explorer contracts |
 | [`observability.md`](observability.md) | Telemetry for requests, workers, events, AI, connectors, search, errors, and performance |
 | [`deployment.md`](deployment.md) | Self-hostable posture, runtime components, infrastructure isolation, and deployment constraints |

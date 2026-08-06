@@ -8,8 +8,13 @@ import { ApiRequestError } from "../api/client";
 import type { CapabilityMetadata, PermissionMode } from "../api/types";
 import { createWorkspace } from "../api/workspaces";
 import { type ThemeMode, useAppState } from "../state/AppStateContext";
+import { Alert } from "./ui/Alert";
+import { Badge } from "./ui/Badge";
+import { Button } from "./ui/Button";
+import { Dropdown } from "./ui/Dropdown";
 import { EmptyState } from "./ui/EmptyState";
 import { LoadingState } from "./ui/LoadingState";
+import { TextInput } from "./ui/TextInput";
 import { useToast } from "./ui/ToastContext";
 
 type SettingsSection =
@@ -36,53 +41,47 @@ function GeneralSection() {
     <div className="settings-section">
       <h2>Model</h2>
       <p className="muted">Choose the language model used for conversations.</p>
-      <label className="settings-field">
-        <span>Active model</span>
-        <select
-          value={
-            activeModel ? `${activeModel.provider}::${activeModel.model}` : ""
+      <Dropdown
+        label="Active model"
+        className="settings-field"
+        value={
+          activeModel ? `${activeModel.provider}::${activeModel.model}` : ""
+        }
+        disabled={availableModels.length === 0}
+        onChange={(event) => {
+          const [provider, model] = event.target.value.split("::");
+          const match = availableModels.find(
+            (item) => item.provider === provider && item.model === model,
+          );
+          if (match) {
+            setActiveModel({
+              provider: match.provider,
+              model: match.model,
+              label: match.label,
+            });
           }
-          disabled={availableModels.length === 0}
-          onChange={(event) => {
-            const [provider, model] = event.target.value.split("::");
-            const match = availableModels.find(
-              (item) => item.provider === provider && item.model === model,
-            );
-            if (match) {
-              setActiveModel({
-                provider: match.provider,
-                model: match.model,
-                label: match.label,
-              });
-            }
-          }}
-        >
-          {availableModels.length === 0 ? (
-            <option value="">No model available</option>
-          ) : (
-            availableModels.map((item) => (
-              <option
-                key={`${item.provider}::${item.model}`}
-                value={`${item.provider}::${item.model}`}
-              >
-                {item.label}
-              </option>
-            ))
-          )}
-        </select>
-      </label>
+        }}
+        options={
+          availableModels.length === 0
+            ? [{ value: "", label: "No model available" }]
+            : availableModels.map((item) => ({
+                value: `${item.provider}::${item.model}`,
+                label: item.label,
+              }))
+        }
+      />
 
       <h2>Appearance</h2>
-      <label className="settings-field">
-        <span>Theme</span>
-        <select
-          value={theme}
-          onChange={(event) => setTheme(event.target.value as ThemeMode)}
-        >
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-        </select>
-      </label>
+      <Dropdown
+        label="Theme"
+        className="settings-field"
+        value={theme}
+        onChange={(event) => setTheme(event.target.value as ThemeMode)}
+        options={[
+          { value: "light", label: "Light" },
+          { value: "dark", label: "Dark" },
+        ]}
+      />
     </div>
   );
 }
@@ -131,17 +130,15 @@ function WorkspacesSection() {
           <li key={workspace.id}>
             <span>{workspace.name}</span>
             {workspace.id === activeWorkspace?.id ? (
-              <span className="status-badge" data-tone="ok">
-                Active
-              </span>
+              <Badge label="Active" tone="ok" />
             ) : (
-              <button
-                type="button"
-                className="retry-button"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setActiveWorkspaceId(workspace.id)}
               >
                 Switch
-              </button>
+              </Button>
             )}
           </li>
         ))}
@@ -157,20 +154,20 @@ function WorkspacesSection() {
           void handleCreate();
         }}
       >
-        <span>New workspace name</span>
-        <input
-          type="text"
+        <TextInput
+          label="New workspace name"
           value={newWorkspaceName}
           onChange={(event) => setNewWorkspaceName(event.target.value)}
           placeholder="e.g. Personal Research"
         />
-        <button
+        <Button
           type="submit"
-          className="primary-button settings-inline-action"
-          disabled={isCreating || !newWorkspaceName.trim()}
+          className="settings-inline-action"
+          busy={isCreating}
+          disabled={!newWorkspaceName.trim()}
         >
           {isCreating ? "Creating…" : "Create workspace"}
-        </button>
+        </Button>
       </form>
     </div>
   );
@@ -303,12 +300,11 @@ function DiagnosticsSection() {
       </dl>
 
       {connection.error ? (
-        <div
-          className="banner"
-          data-tone={connection.status === "degraded" ? "warn" : "bad"}
+        <Alert
+          tone={connection.status === "degraded" ? "warn" : "bad"}
         >
           {connection.error}
-        </div>
+        </Alert>
       ) : null}
 
       <ul className="component-list">
@@ -329,14 +325,13 @@ function DiagnosticsSection() {
         ) : null}
       </ul>
 
-      <button
-        type="button"
-        className="retry-button"
+      <Button
+        variant="secondary"
         onClick={() => void refreshConnection()}
-        disabled={isRefreshing}
+        busy={isRefreshing}
       >
         {isRefreshing ? "Refreshing…" : "Recheck now"}
-      </button>
+      </Button>
     </div>
   );
 }

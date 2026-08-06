@@ -1,5 +1,6 @@
 import type { ConnectionStatus } from "../api/health";
 import { useAppState } from "../state/AppStateContext";
+import { Button } from "./ui/Button";
 
 function toneForStatus(status: ConnectionStatus): "ok" | "warn" | "bad" | "idle" {
   switch (status) {
@@ -63,14 +64,14 @@ export function StatusBar() {
 
       <div className="status-cluster">
         <span className="status-pill">Checked {checkedLabel}</span>
-        <button
-          type="button"
-          className="retry-button"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => void refreshConnection()}
-          disabled={isRefreshing}
+          busy={isRefreshing}
         >
           {isRefreshing ? "Refreshing…" : "Retry"}
-        </button>
+        </Button>
       </div>
     </footer>
   );
