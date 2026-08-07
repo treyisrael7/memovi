@@ -90,7 +90,7 @@ Each connector authenticates with its external system, discovers available conte
 
 Connectors are responsible only for acquisition. They should not interpret or enrich knowledge.
 
-See [`connector-framework.md`](connector-framework.md).
+See [`CONNECTOR_FRAMEWORK.md`](CONNECTOR_FRAMEWORK.md).
 
 # Stage 2 - Normalization
 
@@ -333,7 +333,7 @@ Durable storage always precedes enrichment.
 # Related Documents
 
 * [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
-* [`connector-framework.md`](connector-framework.md)
+* [`CONNECTOR_FRAMEWORK.md`](CONNECTOR_FRAMEWORK.md)
 * [`event-architecture.md`](event-architecture.md)
 * [`storage-architecture.md`](storage-architecture.md)
 * [`search-architecture.md`](search-architecture.md)

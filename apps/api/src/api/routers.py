@@ -52,6 +52,7 @@ from api.auth_context import (
 )
 from api.authorization import RequestScopedMembershipEnroller
 from api.capability_framework import configure_capability_execution
+from api.connector_framework import configure_connector_framework
 from api.database import database_session
 from api.documents_session import build_documents_database_session
 from api.health import router as health_router
@@ -113,6 +114,7 @@ def _execution_caller_identity(
 
 def register_routers(app: FastAPI) -> None:
     configure_capability_execution(app)
+    configure_connector_framework(app)
     app.dependency_overrides[get_auth_database_session] = database_session
     app.dependency_overrides[get_auth_register_user] = _register_user
     app.dependency_overrides[get_documents_database_session] = build_documents_database_session(

@@ -142,7 +142,7 @@ They should authenticate with their external system, discover available content,
 
 Future connectors should not introduce provider-specific downstream workflows.
 
-See [`connector-framework.md`](connector-framework.md).
+See [`CONNECTOR_FRAMEWORK.md`](CONNECTOR_FRAMEWORK.md).
 
 # Scaling Constraints
 
@@ -174,5 +174,5 @@ Scaling should not violate these constraints:
 * [`event-architecture.md`](event-architecture.md)
 * [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md)
 * [`storage-architecture.md`](storage-architecture.md)
-* [`connector-framework.md`](connector-framework.md)
+* [`CONNECTOR_FRAMEWORK.md`](CONNECTOR_FRAMEWORK.md)
 * [`deployment.md`](deployment.md)

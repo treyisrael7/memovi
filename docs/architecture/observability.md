@@ -151,7 +151,7 @@ Useful signals include:
 * Retry counts
 * Authorization failures
 
-See [`connector-framework.md`](connector-framework.md).
+See [`CONNECTOR_FRAMEWORK.md`](CONNECTOR_FRAMEWORK.md).
 
 # As-Built Foundation
 
@@ -187,5 +187,5 @@ The existing in-process pipeline event bus remains the source of truth for domai
 * [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md)
 * [`search-architecture.md`](search-architecture.md)
 * [`intelligence-architecture.md`](intelligence-architecture.md)
-* [`connector-framework.md`](connector-framework.md)
+* [`CONNECTOR_FRAMEWORK.md`](CONNECTOR_FRAMEWORK.md)
 * [`deployment.md`](deployment.md)

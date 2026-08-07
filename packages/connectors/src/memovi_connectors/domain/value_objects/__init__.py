@@ -1,15 +1,12 @@
-from memovi_connectors.domain.events import (
-    ConnectorAuthorized,
-    ConnectorSynchronized,
-    ImportCompleted,
+from memovi_connectors.domain.value_objects.connector_configuration import (
+    AuthCredentialRef,
+    ConnectorConfiguration,
 )
-from memovi_connectors.domain.exceptions import (
-    ConnectorSyncError,
-    ConnectorsDomainError,
-    InvalidConnectorError,
-    UnknownConnectorError,
+from memovi_connectors.domain.value_objects.connector_execution_context import (
+    ConnectorExecutionContext,
 )
-from memovi_connectors.domain.value_objects import (
+from memovi_connectors.domain.value_objects.connector_health import ConnectorHealth
+from memovi_connectors.domain.value_objects.connector_metadata import (
     CONNECTOR_CLOUD_STORAGE,
     CONNECTOR_FAKE,
     CONNECTOR_FILESYSTEM,
@@ -19,12 +16,10 @@ from memovi_connectors.domain.value_objects import (
     CONNECTOR_NOTION,
     CONNECTOR_OBSIDIAN,
     CONNECTOR_SLACK,
-    AuthCredentialRef,
-    ConnectorConfiguration,
-    ConnectorExecutionContext,
-    ConnectorHealth,
     ConnectorMetadata,
-    ConnectorResult,
+)
+from memovi_connectors.domain.value_objects.connector_result import ConnectorResult
+from memovi_connectors.domain.value_objects.normalized_import import (
     NormalizedImportItem,
     NormalizedSourceMetadata,
 )
@@ -40,18 +35,11 @@ __all__ = [
     "CONNECTOR_OBSIDIAN",
     "CONNECTOR_SLACK",
     "AuthCredentialRef",
-    "ConnectorAuthorized",
     "ConnectorConfiguration",
     "ConnectorExecutionContext",
     "ConnectorHealth",
     "ConnectorMetadata",
     "ConnectorResult",
-    "ConnectorSyncError",
-    "ConnectorSynchronized",
-    "ConnectorsDomainError",
-    "ImportCompleted",
-    "InvalidConnectorError",
     "NormalizedImportItem",
     "NormalizedSourceMetadata",
-    "UnknownConnectorError",
 ]

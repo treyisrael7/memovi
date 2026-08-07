@@ -1,0 +1,81 @@
+"""Memovi Connector Framework.
+
+Provider-neutral connector abstractions for registration, configuration,
+authentication references, synchronization, normalization into Documents,
+health, and a scheduler foundation. Concrete provider adapters are out of
+scope for this foundation.
+"""
+
+from memovi_connectors.application import (
+    Connector,
+    ConnectorRegistry,
+    ConnectorScheduler,
+    ConnectorScheduleSpec,
+    DocumentImportPort,
+)
+from memovi_connectors.domain import (
+    CONNECTOR_CLOUD_STORAGE,
+    CONNECTOR_FAKE,
+    CONNECTOR_FILESYSTEM,
+    CONNECTOR_GITHUB,
+    CONNECTOR_GMAIL,
+    CONNECTOR_GOOGLE_DRIVE,
+    CONNECTOR_NOTION,
+    CONNECTOR_OBSIDIAN,
+    CONNECTOR_SLACK,
+    AuthCredentialRef,
+    ConnectorAuthorized,
+    ConnectorConfiguration,
+    ConnectorExecutionContext,
+    ConnectorHealth,
+    ConnectorMetadata,
+    ConnectorResult,
+    ConnectorSyncError,
+    ConnectorSynchronized,
+    ConnectorsDomainError,
+    ImportCompleted,
+    InvalidConnectorError,
+    NormalizedImportItem,
+    NormalizedSourceMetadata,
+    UnknownConnectorError,
+)
+from memovi_connectors.infrastructure import (
+    FakeConnector,
+    InMemoryDocumentImportPort,
+    register_fake_connector,
+)
+
+__all__ = [
+    "CONNECTOR_CLOUD_STORAGE",
+    "CONNECTOR_FAKE",
+    "CONNECTOR_FILESYSTEM",
+    "CONNECTOR_GITHUB",
+    "CONNECTOR_GMAIL",
+    "CONNECTOR_GOOGLE_DRIVE",
+    "CONNECTOR_NOTION",
+    "CONNECTOR_OBSIDIAN",
+    "CONNECTOR_SLACK",
+    "AuthCredentialRef",
+    "Connector",
+    "ConnectorAuthorized",
+    "ConnectorConfiguration",
+    "ConnectorExecutionContext",
+    "ConnectorHealth",
+    "ConnectorMetadata",
+    "ConnectorRegistry",
+    "ConnectorResult",
+    "ConnectorScheduleSpec",
+    "ConnectorScheduler",
+    "ConnectorSyncError",
+    "ConnectorSynchronized",
+    "ConnectorsDomainError",
+    "DocumentImportPort",
+    "FakeConnector",
+    "ImportCompleted",
+    "InMemoryDocumentImportPort",
+    "InvalidConnectorError",
+    "NormalizedImportItem",
+    "NormalizedSourceMetadata",
+    "UnknownConnectorError",
+    "register_fake_connector",
+]

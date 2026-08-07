@@ -1,4 +1,4 @@
-from memovi_connectors.domain.events import (
+from memovi_connectors.domain.events.connector_events import (
     ConnectorAuthorized,
     ConnectorSynchronized,
     ImportCompleted,

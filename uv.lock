@@ -734,6 +734,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "memovi-auth" },
     { name = "memovi-automation" },
+    { name = "memovi-connectors" },
     { name = "memovi-documents" },
     { name = "memovi-intelligence" },
     { name = "memovi-memory" },
@@ -752,6 +753,7 @@ requires-dist = [
     { name = "fastapi" },
     { name = "memovi-auth", editable = "packages/auth" },
     { name = "memovi-automation", editable = "packages/automation" },
+    { name = "memovi-connectors", editable = "packages/connectors" },
     { name = "memovi-documents", editable = "packages/documents" },
     { name = "memovi-intelligence", editable = "packages/intelligence" },
     { name = "memovi-memory", editable = "packages/memory" },
@@ -807,6 +809,12 @@ source = { editable = "packages/config" }
 name = "memovi-connectors"
 version = "0.1.0"
 source = { editable = "packages/connectors" }
+dependencies = [
+    { name = "memovi-shared" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "memovi-shared", editable = "packages/shared" }]
 
 [[package]]
 name = "memovi-contracts"

@@ -34,7 +34,8 @@ document that matches the concern being changed or reviewed.
 | [`storage-architecture.md`](storage-architecture.md) | PostgreSQL, pgvector, MinIO, Redis, data ownership, backup, and versioning |
 | [`search-architecture.md`](search-architecture.md) | Search responsibility, retrieval strategies, indexes, ranking, and boundaries |
 | [`intelligence-architecture.md`](intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |
-| [`connector-framework.md`](connector-framework.md) | Connector responsibilities, external sync, acquisition, and normalization |
+| [`CONNECTOR_FRAMEWORK.md`](CONNECTOR_FRAMEWORK.md) | Connector framework: registry, sync, normalization into Documents |
+| [`connector-framework.md`](connector-framework.md) | Redirect to `CONNECTOR_FRAMEWORK.md` |
 | [`AUTHORIZATION.md`](AUTHORIZATION.md) | Authentication, membership, capability security, and trust boundaries |
 | [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
 | [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md) | Execution engine lifecycle, server-owned policies, audit, Intelligence bridge |

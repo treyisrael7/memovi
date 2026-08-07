@@ -565,7 +565,7 @@ The following documents expand this blueprint without redefining it.
 | [`architecture/storage-architecture.md`](architecture/storage-architecture.md) | PostgreSQL, pgvector, Redis, MinIO, data ownership, backup, and versioning |
 | [`architecture/search-architecture.md`](architecture/search-architecture.md) | Search responsibility, retrieval strategies, indexes, ranking, and boundaries |
 | [`architecture/intelligence-architecture.md`](architecture/intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |
-| [`architecture/connector-framework.md`](architecture/connector-framework.md) | Connector responsibilities, acquisition, synchronization, and normalization |
+| [`architecture/CONNECTOR_FRAMEWORK.md`](architecture/CONNECTOR_FRAMEWORK.md) | Connector framework: registry, sync, normalization into Documents |
 | [`architecture/AUTHORIZATION.md`](architecture/AUTHORIZATION.md) | Authentication, membership, capability security, and trust boundaries |
 | [`architecture/CAPABILITY_FRAMEWORK.md`](architecture/CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
 | [`architecture/CAPABILITY_EXECUTION.md`](architecture/CAPABILITY_EXECUTION.md) | Execution engine pipeline, approval, and audit |

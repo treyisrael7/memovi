@@ -216,7 +216,8 @@ Each connector translates external data into a normalized representation underst
 
 Connectors import knowledge. They do not interpret it.
 
-See [`connector-framework.md`](connector-framework.md).
+See [`connector-framework.md`](connector-framework.md) →
+[`CONNECTOR_FRAMEWORK.md`](CONNECTOR_FRAMEWORK.md).
 
 ## Intelligence
 
@@ -369,4 +370,4 @@ New domains should never exist simply to separate implementation details. They s
 * [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md)
 * [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md)
 * [`MODEL_PROVIDER_FRAMEWORK.md`](MODEL_PROVIDER_FRAMEWORK.md)
-* [`connector-framework.md`](connector-framework.md)
+* [`CONNECTOR_FRAMEWORK.md`](CONNECTOR_FRAMEWORK.md)

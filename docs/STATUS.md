@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-05 (Milestone 31).
+system on a reusable backend platform. Last reviewed: 2026-08-05 (Milestone 32).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -114,7 +114,9 @@ APIs. Capability authorization and durable audit are covered by Milestone 28.
 
 **Overall Status:** In progress
 
-Upload-to-processing pipeline is operational locally. OCR and richer connector intake remain open.
+Upload-to-processing pipeline is operational locally. OCR remains open. The
+Connector Framework foundation (Milestone 32) now provides registration, sync
+contracts, and Documents handoff without concrete provider adapters yet.
 
 **Completed**
 
@@ -124,16 +126,19 @@ Upload-to-processing pipeline is operational locally. OCR and richer connector i
 * Processing queue and background worker
 * Chunk generation via Memory materialization on `ProcessingCompleted`
 * Event-driven handoff into Memory
+* Connector Framework foundation (`memovi-connectors`: registry, sync, normalize,
+  health, scheduler foundation, `DocumentImportPort`)
 
 **In Progress**
 
-* Local file intake (upload path exists; connector framework not built)
+* Local file intake (upload path exists; provider connectors not yet implemented)
 * Metadata extraction beyond ingest/process basics
 * Document versioning (initial version on upload; no re-version workflow)
 
 **Remaining**
 
 * OCR pipeline
+* Concrete connector providers (GitHub, Drive, Slack, …)
 
 **Known Risks**
 
@@ -141,6 +146,7 @@ Upload-to-processing pipeline is operational locally. OCR and richer connector i
 
 **Next Recommended Work**
 
+* Implement the first concrete connector on the framework (e.g. filesystem or GitHub)
 * Harden processing status visibility and expand supported ingest formats as needed
 
 ---
@@ -755,6 +761,46 @@ and page consistency without changing backend behavior.
 **Next Recommended Work**
 
 * Keep new desktop UI on design-system primitives; avoid page-specific controls
+
+---
+
+# Milestone 32 — Connector Framework
+
+**Overall Status:** Complete (foundation)
+
+Implemented the Connector Framework so external systems can import into the
+existing Documents pipeline through a shared registry and normalization
+contract. No concrete provider adapters or scheduled sync runners yet.
+
+**Completed**
+
+* `memovi-connectors` core types: `Connector`, `ConnectorRegistry`,
+  `ConnectorConfiguration`, `ConnectorExecutionContext`, `ConnectorResult`,
+  `ConnectorMetadata`, `ConnectorHealth`, `ConnectorScheduler` foundation
+* `AuthCredentialRef` credential isolation (env/secret refs, no embedded secrets)
+* `NormalizedSourceMetadata` / `NormalizedImportItem` + `DocumentImportPort`
+* Domain events: `ConnectorAuthorized`, `ConnectorSynchronized`, `ImportCompleted`
+* `FakeConnector` + unit tests
+* Composition-root wiring (`configure_connector_framework`)
+* `docs/architecture/CONNECTOR_FRAMEWORK.md`
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Concrete provider connectors
+* Production `DocumentImportPort` adapter over Documents ingest
+* Scheduled synchronization runner
+
+**Known Risks**
+
+* Provider work must keep feeding Documents — never invent parallel stores
+
+**Next Recommended Work**
+
+* Ship the first real connector (filesystem or GitHub) on this framework
 
 ---
 
