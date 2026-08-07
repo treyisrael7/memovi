@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-05 (Milestone 32).
+system on a reusable backend platform. Last reviewed: 2026-08-07 (Milestone 33).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -155,21 +155,23 @@ contracts, and Documents handoff without concrete provider adapters yet.
 
 **Overall Status:** In progress
 
-Memory materialization and chunk persistence work. Organization features and public Memory APIs remain.
+Memory materialization, chunk persistence, explorer APIs, and Collections
+organization work. Tags and deeper metadata management remain.
 
 **Completed**
 
 * Memory domain core for chunk materialization and persistence from processing events
+* Knowledge Collections organization (Milestone 33): create/rename/delete, memberships,
+  summaries, search filter, desktop management
 
 **In Progress**
 
 * Memory domain ownership of knowledge items (HTTP `/memory` read surface exposed for explorer)
 * Processing status as a knowledge concern (job statuses exist in documents; no public Memory status API)
-* Knowledge independence from AI providers (memory/search do not depend on Intelligence; organization incomplete)
+* Knowledge independence from AI providers (memory/search do not depend on Intelligence; tags incomplete)
 
 **Remaining**
 
-* Collections
 * Tags
 * Version history
 * Knowledge relationships beyond provenance edges
@@ -177,11 +179,12 @@ Memory materialization and chunk persistence work. Organization features and pub
 
 **Known Risks**
 
-* Knowledge organization may lag behind ingestion and search capability
+* Knowledge organization may lag behind ingestion and search capability without tags
 
 **Next Recommended Work**
 
 * Add semantic entity/topic extraction while keeping explorer contracts stable
+* Introduce Tags without coupling them to Collections hierarchies
 
 ---
 
@@ -690,11 +693,12 @@ shared UI primitives.
 * `apps/desktop` Tauri + React shell foundation
 * Sidebar / top bar / main content / status bar layout
 * Backend connection detection, reconnect polling, and friendly errors
-* Navigation registry for Home, Chat, Knowledge, Workflows, Documents, Search,
+* Navigation registry for Home, Chat, Knowledge, Collections, Workflows, Documents, Search,
   Activity, and Settings
 * Chat conversation experience (list/create/rename/delete, history, SSE streaming,
   markdown/code copy, stop/retry, workspace + model selectors)
 * Knowledge Explorer (overview, search, concepts, entities, relationships, sources)
+* Collections page (create/rename/delete, memberships, statistics, activity, search filter)
 * Workflows page (library, run, progress, history) over `/workflows`
 * Documents, Search, Activity, and Settings product pages
 * Design system: tokens (light/dark), reusable `components/ui/` library, UX
@@ -702,6 +706,7 @@ shared UI primitives.
   `docs/design/DESIGN_SYSTEM.md`
 * `docs/architecture/DESKTOP_CLIENT.md`
 * `docs/architecture/KNOWLEDGE_EXPLORER.md`
+* `docs/architecture/COLLECTIONS.md`
 
 **In Progress**
 
@@ -709,7 +714,6 @@ shared UI primitives.
 
 **Remaining**
 
-* Collections
 * Model management product depth beyond Settings selectors
 * Workspace management product depth beyond Settings
 * Indexing status surface
@@ -801,6 +805,46 @@ contract. No concrete provider adapters or scheduled sync runners yet.
 **Next Recommended Work**
 
 * Ship the first real connector (filesystem or GitHub) on this framework
+
+---
+
+# Milestone 33 — Knowledge Collections & Organization
+
+**Overall Status:** Complete (V1)
+
+Introduced first-class Knowledge Collections so users can organize Documents,
+Knowledge, Conversations, and Workflows into flat, workspace-scoped groups
+without changing the ingestion pipeline.
+
+**Completed**
+
+* Memory domain: `Collection`, `CollectionMembership`, `CollectionMetadata`,
+  `CollectionSummary`, `CollectionRepository`, `CollectionService`
+* Membership kinds: document, knowledge, conversation, workflow (with reason)
+* Persistence: `memory_collections`, `memory_collection_memberships`,
+  `memory_collection_activity` (+ Alembic `20260807_0012`)
+* HTTP API `/collections` (CRUD, members, summary)
+* Search integration: `collection_id` filter via membership resolution
+* Desktop Collections page + Search collection filter
+* Unit tests for collection service behavior
+* `docs/architecture/COLLECTIONS.md`
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Tags (separate from Collections)
+* Deeper cross-linking UX from collection members into conversations/workflows
+
+**Known Risks**
+
+* Nested folders must stay out of V1 — flat + search is the intended model
+
+**Next Recommended Work**
+
+* Add Tags as a complementary organization primitive
 
 ---
 

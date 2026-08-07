@@ -161,7 +161,7 @@ Examples include:
 
 * Searchable passages
 * Relationships
-* Collections
+* Collections (organizational memberships; see [`COLLECTIONS.md`](COLLECTIONS.md))
 * Tags
 * Entities
 * Version history

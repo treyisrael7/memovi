@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Protocol
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from memovi_observability import DiagnosticEventEmitter, DiagnosticEventName, timed_operation
 from memovi_shared import WorkspaceId
 from pydantic import AfterValidator
@@ -34,6 +34,23 @@ SearchMode = Literal["keyword", "semantic", "hybrid"]
 
 router = APIRouter(prefix="/search", tags=["search"])
 _DIAGNOSTICS = DiagnosticEventEmitter()
+
+
+class CollectionSearchMembershipResolver(Protocol):
+    """Resolves collection membership into search set filters."""
+
+    def resolve_search_member_ids(
+        self,
+        collection_id: str,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> tuple[frozenset[str], frozenset[str]]:
+        """Return (document_ids, knowledge_item_ids)."""
+
+
+def get_collection_search_membership_resolver() -> CollectionSearchMembershipResolver | None:
+    """Optional; composition root may override with Memory CollectionService."""
+    return None
 
 
 def _to_response(*, query: str, results: list[SearchResultDto]) -> SearchResponse:
@@ -80,6 +97,10 @@ def search(
     ],
     use_case: Annotated[RetrieveKnowledge, Depends(get_retrieve_knowledge)],
     workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+    collection_resolver: Annotated[
+        CollectionSearchMembershipResolver | None,
+        Depends(get_collection_search_membership_resolver),
+    ],
     mode: Annotated[
         SearchMode,
         Query(
@@ -89,6 +110,10 @@ def search(
     document_id: Annotated[
         str | None,
         Query(description="Restrict results to a single document ID."),
+    ] = None,
+    collection_id: Annotated[
+        str | None,
+        Query(description="Restrict results to members of a knowledge collection."),
     ] = None,
     source_type: Annotated[
         str | None,
@@ -122,6 +147,27 @@ def search(
         ),
     ] = 0,
 ) -> SearchResponse:
+    document_ids: frozenset[str] | None = None
+    knowledge_item_ids: frozenset[str] | None = None
+    if collection_id is not None:
+        if collection_resolver is None:
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Collection search filtering is not configured.",
+            )
+        try:
+            document_ids, knowledge_item_ids = collection_resolver.resolve_search_member_ids(
+                collection_id,
+                workspace_id=workspace_id,
+            )
+        except Exception as exc:
+            if exc.__class__.__name__ == "CollectionNotFoundError":
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=str(exc),
+                ) from exc
+            raise
+
     with timed_operation(
         "search.execute",
         metric_name="memovi.search.latency",
@@ -141,6 +187,8 @@ def search(
                     mime_type=mime_type,
                     created_after=created_after,
                     created_before=created_before,
+                    document_ids=document_ids,
+                    knowledge_item_ids=knowledge_item_ids,
                 ),
             )
         )

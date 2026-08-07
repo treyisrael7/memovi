@@ -224,7 +224,7 @@ Turn processed artifacts into durable, organized knowledge.
 
 * Memory domain ownership of knowledge items
 * Metadata and versioning foundations
-* Collections and tags
+* Collections (delivered; see Milestone 33) and tags
 * Processing status as a knowledge concern
 * Knowledge independent of AI providers
 
@@ -324,7 +324,7 @@ Ship the flagship desktop knowledge OS on the V1 platform API.
 * Design system / UX foundation (tokens, shared components, interaction standards)
 * Conversation UI
 * Knowledge Explorer (read-only inspection of memory)
-* Collections
+* Collections (delivered; see Milestone 33)
 * Settings
 * Model management
 * Workspace management

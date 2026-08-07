@@ -130,4 +130,13 @@ def _matches_filters(
         return False
     if filters.created_after is not None and document.created_at < filters.created_after:
         return False
-    return not (filters.created_before is not None and document.created_at > filters.created_before)
+    if filters.created_before is not None and document.created_at > filters.created_before:
+        return False
+    if filters.document_ids is not None or filters.knowledge_item_ids is not None:
+        document_ids = filters.document_ids or frozenset()
+        knowledge_item_ids = filters.knowledge_item_ids or frozenset()
+        in_documents = document.document_id in document_ids
+        in_knowledge = document.knowledge_item_id in knowledge_item_ids
+        if not (in_documents or in_knowledge):
+            return False
+    return True

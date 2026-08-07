@@ -36,6 +36,7 @@ document that matches the concern being changed or reviewed.
 | [`intelligence-architecture.md`](intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |
 | [`CONNECTOR_FRAMEWORK.md`](CONNECTOR_FRAMEWORK.md) | Connector framework: registry, sync, normalization into Documents |
 | [`connector-framework.md`](connector-framework.md) | Redirect to `CONNECTOR_FRAMEWORK.md` |
+| [`COLLECTIONS.md`](COLLECTIONS.md) | Knowledge collections: flat organization, membership, search filter |
 | [`AUTHORIZATION.md`](AUTHORIZATION.md) | Authentication, membership, capability security, and trust boundaries |
 | [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
 | [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md) | Execution engine lifecycle, server-owned policies, audit, Intelligence bridge |

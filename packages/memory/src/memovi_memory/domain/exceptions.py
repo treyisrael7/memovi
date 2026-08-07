@@ -32,3 +32,27 @@ class InvalidChunkGeneratorError(MemoryDomainError):
 
 class InvalidKnowledgeMaterializationError(MemoryDomainError):
     """Raised when knowledge materialization input violates domain constraints."""
+
+
+class InvalidCollectionIdError(MemoryDomainError):
+    """Raised when a collection identifier is malformed."""
+
+
+class InvalidCollectionError(MemoryDomainError):
+    """Raised when a collection violates its invariants."""
+
+
+class InvalidCollectionMembershipError(MemoryDomainError):
+    """Raised when a collection membership violates its invariants."""
+
+
+class CollectionNotFoundError(MemoryDomainError):
+    """Raised when a collection cannot be found in the active workspace."""
+
+
+class CollectionMembershipNotFoundError(MemoryDomainError):
+    """Raised when a collection membership cannot be found."""
+
+
+class DuplicateCollectionMembershipError(MemoryDomainError):
+    """Raised when adding a membership that already exists."""

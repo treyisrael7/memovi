@@ -7,6 +7,7 @@ export interface SearchKnowledgeParams {
   q: string;
   mode?: SearchMode;
   documentId?: string;
+  collectionId?: string;
   sourceType?: string;
   mimeType?: string;
   limit?: number;
@@ -22,6 +23,7 @@ export async function searchKnowledge(
     mode: params.mode ?? "hybrid",
   });
   if (params.documentId) qs.set("document_id", params.documentId);
+  if (params.collectionId) qs.set("collection_id", params.collectionId);
   if (params.sourceType) qs.set("source_type", params.sourceType);
   if (params.mimeType) qs.set("mime_type", params.mimeType);
   if (params.limit != null) qs.set("limit", String(params.limit));

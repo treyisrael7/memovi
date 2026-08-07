@@ -15,3 +15,6 @@ class SearchFilters:
     mime_type: str | None = None
     created_after: datetime | None = None
     created_before: datetime | None = None
+    # Set-based filters used for collection membership (resolved at API boundary).
+    document_ids: frozenset[str] | None = None
+    knowledge_item_ids: frozenset[str] | None = None

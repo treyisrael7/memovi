@@ -12,8 +12,10 @@ from memovi_memory.application.queries import (
     ListKnowledge,
     ListRelationships,
 )
+from memovi_memory.application.services import CollectionService
 from memovi_memory.infrastructure.repositories import (
     SqlAlchemyChunkRepository,
+    SqlAlchemyCollectionRepository,
     SqlAlchemyKnowledgeRepository,
 )
 
@@ -70,3 +72,7 @@ def get_knowledge_dashboard(
         list_concepts=list_concepts,
         list_relationships=list_relationships,
     )
+
+
+def get_collection_service(session: DatabaseSession) -> CollectionService:
+    return CollectionService(repository=SqlAlchemyCollectionRepository(session))

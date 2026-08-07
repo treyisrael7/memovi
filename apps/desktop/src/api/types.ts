@@ -229,6 +229,65 @@ export interface KnowledgeDashboard {
   mime_type_counts: Record<string, number>;
 }
 
+export interface CollectionListItem {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  item_count: number;
+  counts_by_kind: Record<string, number>;
+}
+
+export interface CollectionListResponse {
+  items: CollectionListItem[];
+  count: number;
+}
+
+export interface CollectionResponse {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CollectionActivityEntry {
+  activity_type: string;
+  occurred_at: string;
+  member_kind: string | null;
+  member_id: string | null;
+  detail: string;
+}
+
+export interface CollectionSummaryResponse {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  item_count: number;
+  counts_by_kind: Record<string, number>;
+  recent_activity: CollectionActivityEntry[];
+}
+
+export interface CollectionMembershipResponse {
+  id: string;
+  collection_id: string;
+  member_kind: string;
+  member_id: string;
+  reason: string;
+  added_at: string;
+}
+
+export interface CollectionMembershipListResponse {
+  items: CollectionMembershipResponse[];
+  count: number;
+}
+
 export type CapabilityExecutionStatus =
   | "pending_approval"
   | "executing"

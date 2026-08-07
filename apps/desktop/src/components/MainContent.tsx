@@ -3,6 +3,7 @@ import { getPage } from "../navigation/pages";
 import { useAppState } from "../state/AppStateContext";
 import { ActivityPage } from "./ActivityPage";
 import { ChatPage } from "./ChatPage";
+import { CollectionsPage } from "./CollectionsPage";
 import { DocumentsPage } from "./DocumentsPage";
 import { KnowledgeExplorerPage } from "./KnowledgeExplorerPage";
 import { SearchPage } from "./SearchPage";
@@ -92,6 +93,9 @@ export function MainContent() {
       break;
     case "knowledge":
       body = <KnowledgeExplorerPage />;
+      break;
+    case "collections":
+      body = <CollectionsPage />;
       break;
     case "workflows":
       body = <WorkflowsPage />;

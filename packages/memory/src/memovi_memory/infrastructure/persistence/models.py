@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -52,4 +52,69 @@ class ChunkRecord(Base):
             "chunk_index",
             name="uq_memory_chunks_document_version_index",
         ),
+    )
+
+
+class CollectionRecord(Base):
+    """Persistence model for workspace-scoped knowledge collections."""
+
+    __tablename__ = "memory_collections"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class CollectionMembershipRecord(Base):
+    """Persistence model for collection membership references."""
+
+    __tablename__ = "memory_collection_memberships"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    collection_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("memory_collections.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    workspace_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    member_kind: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    member_id: Mapped[str] = mapped_column(String(256), index=True, nullable=False)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False)
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "collection_id",
+            "member_kind",
+            "member_id",
+            name="uq_memory_collection_memberships_item",
+        ),
+    )
+
+
+class CollectionActivityRecord(Base):
+    """Persistence model for collection organizational activity."""
+
+    __tablename__ = "memory_collection_activity"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    collection_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("memory_collections.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    workspace_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    activity_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    member_kind: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    member_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    detail: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
     )

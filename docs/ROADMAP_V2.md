@@ -295,7 +295,7 @@ Turn processed artifacts into durable, organized knowledge.
 
 * Memory ownership of knowledge
 * Metadata and versioning foundations
-* Collections and tags
+* Collections (delivered; see Milestone 33) and tags
 * Knowledge usable without AI
 
 **Success Criteria**
@@ -389,7 +389,7 @@ Ship the flagship native desktop knowledge OS.
 
 * Native desktop application
 * Conversation UI
-* Collections
+* Collections (delivered; see Milestone 33)
 * Settings
 * Model management
 * Workspace management

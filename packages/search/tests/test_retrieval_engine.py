@@ -147,3 +147,36 @@ def test_retrieval_engine_applies_metadata_filters_and_pagination() -> None:
     )
     assert len(results) == 1
     assert results[0].search_document.mime_type == "text/plain"
+
+
+def test_retrieval_engine_filters_by_collection_member_ids() -> None:
+    included = _document(
+        knowledge_item_id="a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        text="included",
+    )
+    excluded = _document(
+        knowledge_item_id="b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        text="excluded",
+    )
+    keyword = FakeRetriever(
+        [
+            SearchResult(search_document=included, score=0.9),
+            SearchResult(search_document=excluded, score=0.8),
+        ]
+    )
+    engine = RetrievalEngine(keyword_retriever=keyword, semantic_retriever=FakeRetriever([]))
+    results = engine.retrieve(
+        RetrievalEngineRequest(
+            query="doc",
+            mode=RetrievalMode.KEYWORD,
+            limit=10,
+            offset=0,
+            filters=SearchFilters(
+                knowledge_item_ids=frozenset({included.knowledge_item_id}),
+            ),
+            workspace_id=WorkspaceId.default(),
+        )
+    )
+    assert len(results) == 1
+    assert results[0].search_document.knowledge_item_id == included.knowledge_item_id
+

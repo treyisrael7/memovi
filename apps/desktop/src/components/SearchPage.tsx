@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { ApiRequestError } from "../api/client";
+import { listCollections } from "../api/collections";
 import { createConversation } from "../api/conversations";
 import { listDocuments } from "../api/documents";
 import { searchKnowledge, type SearchMode } from "../api/search";
-import type { DocumentSummary, SearchResultItem } from "../api/types";
+import type {
+  CollectionListItem,
+  DocumentSummary,
+  SearchResultItem,
+} from "../api/types";
 import { useAppState } from "../state/AppStateContext";
 import { Alert } from "./ui/Alert";
 import { Button } from "./ui/Button";
@@ -73,7 +78,9 @@ export function SearchPage() {
   const [scope, setScope] = useState<SearchScope>("all");
   const [query, setQuery] = useState("");
   const [documentId, setDocumentId] = useState("");
+  const [collectionId, setCollectionId] = useState("");
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
+  const [collections, setCollections] = useState<CollectionListItem[]>([]);
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,6 +110,11 @@ export function SearchPage() {
         if (!cancelled) setDocuments(payload.items);
       })
       .catch(() => undefined);
+    void listCollections(workspaceId)
+      .then((payload) => {
+        if (!cancelled) setCollections(payload.items);
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -128,6 +140,7 @@ export function SearchPage() {
         q: trimmed,
         mode: activeScope.mode,
         documentId: scope === "document" ? documentId || undefined : undefined,
+        collectionId: collectionId || undefined,
       })
         .then((payload) => {
           if (cancelled) return;
@@ -149,7 +162,7 @@ export function SearchPage() {
       cancelled = true;
       window.clearTimeout(handle);
     };
-  }, [workspaceId, canUseBackend, query, scope, documentId]);
+  }, [workspaceId, canUseBackend, query, scope, documentId, collectionId]);
 
   function recordRecentSearch(term: string) {
     if (!workspaceId || !term.trim()) return;
@@ -230,6 +243,16 @@ export function SearchPage() {
               }))}
             />
           ) : null}
+          <Dropdown
+            aria-label="Collection"
+            value={collectionId}
+            onChange={(event) => setCollectionId(event.target.value)}
+            placeholder="Any collection"
+            options={collections.map((collection) => ({
+              value: collection.id,
+              label: collection.name,
+            }))}
+          />
         </div>
 
         {!query.trim() && recentSearches.length > 0 ? (

@@ -9,6 +9,7 @@ export type PageId =
   | "chat"
   | "documents"
   | "knowledge"
+  | "collections"
   | "search"
   | "workflows"
   | "activity"
@@ -40,6 +41,11 @@ export const PAGES: readonly PageDefinition[] = [
     id: "knowledge",
     label: "Knowledge",
     description: "Explore what Memovi knows, its provenance, and connections.",
+  },
+  {
+    id: "collections",
+    label: "Collections",
+    description: "Organize knowledge into flat, searchable groups.",
   },
   {
     id: "search",
