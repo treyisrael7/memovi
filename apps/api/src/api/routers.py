@@ -49,11 +49,17 @@ from memovi_memory.api.collections_router import router as collections_router
 from memovi_memory.api.dependencies import get_active_workspace_id as get_memory_workspace_id
 from memovi_memory.api.dependencies import get_collection_service as get_memory_collection_service
 from memovi_memory.api.dependencies import get_database_session as get_memory_database_session
+from memovi_memory.api.dependencies import get_tag_service as get_memory_tag_service
+from memovi_memory.api.resource_metadata_router import router as resource_metadata_router
 from memovi_memory.api.router import router as memory_router
+from memovi_memory.api.tags_router import router as tags_router
 from memovi_search.api.dependencies import get_active_workspace_id as get_search_workspace_id
 from memovi_search.api.dependencies import get_database_session as get_search_database_session
 from memovi_search.api.router import (
     get_collection_search_membership_resolver as get_search_collection_resolver,
+)
+from memovi_search.api.router import (
+    get_tag_search_membership_resolver as get_search_tag_resolver,
 )
 from memovi_search.api.router import router as search_router
 from memovi_shared import WorkspaceId
@@ -174,12 +180,15 @@ def register_routers(app: FastAPI) -> None:
     app.dependency_overrides[get_conversation_repository] = get_sqlalchemy_conversation_repository
     app.dependency_overrides[get_knowledge_retriever] = get_search_knowledge_retriever
     app.dependency_overrides[get_search_collection_resolver] = get_memory_collection_service
+    app.dependency_overrides[get_search_tag_resolver] = get_memory_tag_service
     app.include_router(auth_router)
     app.include_router(workspace_router)
     app.include_router(documents_router)
     app.include_router(connectors_router)
     app.include_router(memory_router)
     app.include_router(collections_router)
+    app.include_router(tags_router)
+    app.include_router(resource_metadata_router)
     app.include_router(capabilities_router)
     app.include_router(workflows_router)
     app.include_router(conversations_router)

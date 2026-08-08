@@ -6,14 +6,18 @@ This document defines Memovi's Knowledge Organization system: flat,
 workspace-scoped Collections that group Documents, Knowledge, Conversations,
 and Workflows for navigation and discoverability.
 
+It also describes how **Tags** and **resource metadata** complement Collections
+without replacing them.
+
 # Scope
 
 It covers collection philosophy, ownership, the organization model,
 membership, metadata, activity, search integration, and the desktop
-management surface.
+management surface — plus how Tags and lightweight resource metadata relate
+to Collections.
 
-It does **not** describe nested folders, tags (separate concern), AI-assisted
-organization, or changes to the Documents ingestion pipeline.
+It does **not** describe nested folders, AI-assisted organization, or changes
+to the Documents ingestion pipeline.
 
 # Relationship to ARCHITECTURE.md
 
@@ -36,6 +40,35 @@ Collections organize knowledge. They do not own it.
 * Collections never duplicate Documents, Memory, Search, or Intelligence
   ownership
 
+## Tag philosophy
+
+Tags complement Collections. They do not nest under Collections and do not
+replace them.
+
+* **Collections** are intentional groups (for example Work, Projects, Finance)
+* **Tags** are lightweight, cross-cutting labels (for example AI, Meeting,
+  Research) that can span many collections
+* A resource may belong to many Collections and many Tags
+* Favor simplicity over hierarchy — no tag trees in V1
+* Deleting a tag removes assignments only; underlying content is unchanged
+
+Tags live in Memory alongside Collections (`Tag`, `TagAssignment`), with the
+same polymorphic member kinds (`document`, `knowledge`, `conversation`,
+`workflow`).
+
+## Metadata model
+
+Lightweight **resource metadata** is Memory-owned and keyed by the same
+polymorphic target identity as Collections/Tags:
+
+* Title
+* Description
+* User notes
+
+This avoids duplicating metadata columns across Documents, Intelligence, and
+Automation. Collection-level name/description remain on the Collection itself;
+per-resource title/description/notes use `/resource-metadata`.
+
 # Ownership
 
 Memory owns:
@@ -45,6 +78,8 @@ Memory owns:
 * Collection metadata and summaries
 * Recent organizational activity
 * Collection HTTP API (`/collections`)
+* Tags, tag assignments, tag suggestions/counts (`/tags`)
+* Resource metadata (`/resource-metadata`)
 
 Documents continue owning:
 
@@ -59,9 +94,9 @@ Memory continues owning:
 Search continues owning:
 
 * Retrieval and ranking
-* Optional collection membership filters
+* Optional collection and tag membership filters
 
-Collections should never become an alternate knowledge store or bypass
+Collections and Tags should never become an alternate knowledge store or bypass
 ingestion.
 
 # Pipeline Independence
@@ -69,11 +104,11 @@ ingestion.
 ```text
 Connectors → Documents → Memory (knowledge) → Search → Intelligence
                               ↑
-                     Collections (organization)
+              Collections + Tags (organization)
 ```
 
-Collections attach organizational memberships to existing resources. Creating,
-renaming, or deleting a collection does not ingest, process, re-chunk, or
+Collections and Tags attach organizational references to existing resources.
+Creating, renaming, or deleting either does not ingest, process, re-chunk, or
 re-index content.
 
 # Core Concepts
@@ -86,18 +121,22 @@ re-index content.
 | `CollectionSummary` | Item counts and recent activity |
 | `CollectionRepository` | Persistence for collections, memberships, activity |
 | `CollectionService` | Application use cases for management |
+| `Tag` | Workspace-scoped cross-cutting label (unique name) |
+| `TagAssignment` | Polymorphic assignment of a tag to a resource |
+| `ResourceMetadata` | Title, description, and notes for a target resource |
+| `TagService` | Tag CRUD, assign/unassign, suggest, search resolution |
 
 # Member Kinds
 
-A collection may include:
+A collection or tag may include:
 
 * `document` — Documents domain ID
 * `knowledge` — Memory knowledge item ID
 * `conversation` — Intelligence conversation ID
 * `workflow` — Automation workflow definition ID
 
-Memberships are polymorphic references. The referenced resource remains owned
-by its domain.
+Memberships and assignments are polymorphic references. The referenced resource
+remains owned by its domain.
 
 # Organization Model
 
@@ -105,8 +144,12 @@ by its domain.
 * An item may belong to one or more collections
 * Memberships store `reason` (default: “Added by user”)
 * Activity entries record create, rename, description updates, add, and remove
+* Tags belong to a Workspace; names are unique within a workspace
+  (case-insensitive)
+* Tags may optionally carry a color and description
+* Tag assignments do not store a reason (labels are intentionally lightweight)
 
-# Metadata
+# Collections metadata
 
 Collections expose:
 
@@ -117,17 +160,35 @@ Collections expose:
 * Item counts (total and by kind)
 * Recent activity
 
-# Search Integration
+# Interaction with Search
 
-Search continues to own retrieval. Collections integrate as an optional filter:
+Search continues to own retrieval. Organization integrates as optional filters:
 
 * `GET /search?collection_id=…` resolves document and knowledge memberships
+* `GET /search?tag_id=…` (repeatable) resolves tag assignments; **multiple tags
+  use AND** (intersect document sets and knowledge sets)
+* Collection and tag filters may be combined (intersection)
 * Results are post-filtered to those member IDs
 * Workspace, document type (`source_type` / `mime_type`), and existing filters
   remain available
+* Tag suggestions and assignment counts live on `/tags` (not a separate search
+  product)
 
-Conversation and workflow memberships do not appear in document/knowledge
-search results; they are organizational only for V1 search.
+Conversation and workflow memberships/assignments do not appear in
+document/knowledge search results; they are organizational only for V1 search.
+
+# Interaction with Collections
+
+| Concern | Collections | Tags |
+| --- | --- | --- |
+| Purpose | Intentional groups | Cross-cutting labels |
+| Hierarchy | Flat only | Flat only |
+| Search | `collection_id` | repeated `tag_id` (AND) |
+| Delete | Removes memberships | Removes assignments |
+| Content | Unchanged | Unchanged |
+
+Do not nest tags inside collections. Do not invent a third organization
+framework.
 
 # Desktop Experience
 
@@ -139,16 +200,23 @@ The desktop Collections page supports:
 * Statistics and recent activity
 * Search page collection filter over the existing Search API
 
+The desktop Tags page supports:
+
+* Tag management (create / edit / delete)
+* Assignments and inline-style chips
+* Resource metadata editing (title, description, notes)
+* Search page multi-tag filter chips
+
 # Out of Scope (V1)
 
 * Nested folders or collection hierarchies
-* Tags as a first-class system (planned separately)
-* Automatic membership from connectors or AI
-* Changing document or knowledge ownership through collections
+* Tag hierarchies or automatic AI tagging
+* Automatic membership from connectors
+* Changing document or knowledge ownership through collections or tags
 
 # Related Documents
 
-* [`domains.md`](domains.md) — Memory owns Collections
+* [`domains.md`](domains.md) — Memory owns Collections, Tags, Metadata
 * [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md)
 * [`search-architecture.md`](search-architecture.md)
 * [`DESKTOP_CLIENT.md`](DESKTOP_CLIENT.md)

@@ -11,6 +11,7 @@ export type PageId =
   | "connectors"
   | "knowledge"
   | "collections"
+  | "tags"
   | "search"
   | "workflows"
   | "activity"
@@ -52,6 +53,11 @@ export const PAGES: readonly PageDefinition[] = [
     id: "collections",
     label: "Collections",
     description: "Organize knowledge into flat, searchable groups.",
+  },
+  {
+    id: "tags",
+    label: "Tags",
+    description: "Label knowledge with reusable tags and resource metadata.",
   },
   {
     id: "search",

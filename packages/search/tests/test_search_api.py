@@ -169,6 +169,47 @@ def test_search_accepts_mode_parameter(
     assert fake_search.last_query.mode is RetrievalMode.KEYWORD
 
 
+def test_search_applies_tag_id_filters(
+    search_results: list[SearchResultDto],
+) -> None:
+    from memovi_search.api.router import get_tag_search_membership_resolver
+
+    class FakeTagResolver:
+        def resolve_search_member_ids(
+            self,
+            tag_ids: list[str],
+            *,
+            workspace_id: WorkspaceId,
+        ) -> tuple[frozenset[str], frozenset[str]]:
+            assert tag_ids == ["tag-a", "tag-b"]
+            assert workspace_id == WorkspaceId.default()
+            return frozenset({DOCUMENT_ID}), frozenset({KNOWLEDGE_ITEM_ID})
+
+    fake_search = FakeRetrieveKnowledge(results=search_results)
+    app, engine = _build_authenticated_app(
+        {
+            get_retrieve_knowledge: lambda: fake_search,
+            get_tag_search_membership_resolver: lambda: FakeTagResolver(),
+        },
+    )
+    client = TestClient(app, base_url="https://testserver")
+    try:
+        _register(client, email="search-tags@example.com")
+        response = client.get(
+            "/search",
+            params=[("q", "Memovi"), ("tag_id", "tag-a"), ("tag_id", "tag-b")],
+        )
+    finally:
+        client.close()
+        engine.dispose()
+
+    assert response.status_code == 200
+    assert fake_search.last_query is not None
+    assert fake_search.last_query.filters is not None
+    assert fake_search.last_query.filters.document_ids == frozenset({DOCUMENT_ID})
+    assert fake_search.last_query.filters.knowledge_item_ids == frozenset({KNOWLEDGE_ITEM_ID})
+
+
 def test_search_returns_empty_results_when_nothing_matches() -> None:
     fake_search = FakeRetrieveKnowledge(results=[])
     app, engine = _build_authenticated_app(

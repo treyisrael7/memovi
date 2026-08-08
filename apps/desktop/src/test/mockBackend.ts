@@ -66,6 +66,36 @@ export function createMockBackend(): MockBackend {
   const calls: string[] = [];
   const documents = [SMOKE_DOCUMENT];
   let conversationId = "conv-smoke-1";
+  const tags: Array<{
+    id: string;
+    workspace_id: string;
+    name: string;
+    color: string | null;
+    description: string;
+    created_at: string;
+    updated_at: string;
+    assignment_count: number;
+    counts_by_kind: Record<string, number>;
+  }> = [];
+  const tagAssignments: Array<{
+    id: string;
+    tag_id: string;
+    member_kind: string;
+    member_id: string;
+    assigned_at: string;
+  }> = [];
+  const resourceMetadata = new Map<
+    string,
+    {
+      workspace_id: string;
+      member_kind: string;
+      member_id: string;
+      title: string | null;
+      description: string | null;
+      notes: string | null;
+      updated_at: string;
+    }
+  >();
   const originalFetch = globalThis.fetch;
   let xhrPatched = false;
   const OriginalXHR = globalThis.XMLHttpRequest;
@@ -292,6 +322,182 @@ export function createMockBackend(): MockBackend {
     }
     if (path === "/collections" || path.startsWith("/collections?")) {
       return { status: 200, body: { items: [], count: 0 } };
+    }
+    if (path === "/tags" || path.startsWith("/tags?")) {
+      if (method === "GET") {
+        return { status: 200, body: { items: tags, count: tags.length } };
+      }
+      if (method === "POST") {
+        const payload = bodyText ? (JSON.parse(bodyText) as Record<string, unknown>) : {};
+        const now = "2026-01-01T00:00:00.000Z";
+        const created = {
+          id: `tag-${tags.length + 1}`,
+          workspace_id: DEFAULT_WORKSPACE_ID,
+          name: typeof payload.name === "string" ? payload.name : "tag",
+          color: typeof payload.color === "string" ? payload.color : null,
+          description:
+            typeof payload.description === "string" ? payload.description : "",
+          created_at: now,
+          updated_at: now,
+          assignment_count: 0,
+          counts_by_kind: {},
+        };
+        tags.push(created);
+        const { assignment_count: _ac, counts_by_kind: _ck, ...response } =
+          created;
+        void _ac;
+        void _ck;
+        return { status: 201, body: response };
+      }
+    }
+    if (path === "/tags/suggest" || path.startsWith("/tags/suggest?")) {
+      return {
+        status: 200,
+        body: {
+          items: tags.map(
+            ({ assignment_count: _a, counts_by_kind: _c, ...tag }) => {
+              void _a;
+              void _c;
+              return tag;
+            },
+          ),
+          count: tags.length,
+        },
+      };
+    }
+    if (path === "/tags/for-target" || path.startsWith("/tags/for-target?")) {
+      return { status: 200, body: { items: [], count: 0 } };
+    }
+    if (path.startsWith("/tags/")) {
+      const parts = path.split("/").filter(Boolean);
+      const tagId = parts[1];
+      const tag = tags.find((item) => item.id === tagId);
+      if (parts.length === 2) {
+        if (method === "GET") {
+          if (!tag) return { status: 404, body: { detail: "Tag not found" } };
+          const { assignment_count: _a, counts_by_kind: _c, ...response } = tag;
+          void _a;
+          void _c;
+          return { status: 200, body: response };
+        }
+        if (method === "PATCH") {
+          if (!tag) return { status: 404, body: { detail: "Tag not found" } };
+          const payload = bodyText
+            ? (JSON.parse(bodyText) as Record<string, unknown>)
+            : {};
+          if (typeof payload.name === "string") tag.name = payload.name;
+          if ("color" in payload) {
+            tag.color =
+              typeof payload.color === "string" ? payload.color : null;
+          }
+          if (typeof payload.description === "string") {
+            tag.description = payload.description;
+          }
+          tag.updated_at = "2026-01-01T00:00:00.000Z";
+          const { assignment_count: _a, counts_by_kind: _c, ...response } = tag;
+          void _a;
+          void _c;
+          return { status: 200, body: response };
+        }
+        if (method === "DELETE") {
+          if (!tag) return { status: 404, body: { detail: "Tag not found" } };
+          const index = tags.findIndex((item) => item.id === tagId);
+          if (index >= 0) tags.splice(index, 1);
+          for (let i = tagAssignments.length - 1; i >= 0; i -= 1) {
+            if (tagAssignments[i]?.tag_id === tagId) {
+              tagAssignments.splice(i, 1);
+            }
+          }
+          return { status: 204, body: null };
+        }
+      }
+      if (parts[2] === "assignments") {
+        if (method === "GET") {
+          if (!tag) return { status: 404, body: { detail: "Tag not found" } };
+          const items = tagAssignments.filter((item) => item.tag_id === tagId);
+          return { status: 200, body: { items, count: items.length } };
+        }
+        if (method === "POST" && parts.length === 3) {
+          if (!tag) return { status: 404, body: { detail: "Tag not found" } };
+          const payload = bodyText
+            ? (JSON.parse(bodyText) as Record<string, unknown>)
+            : {};
+          const assignment = {
+            id: `ta-${tagAssignments.length + 1}`,
+            tag_id: tagId,
+            member_kind:
+              typeof payload.member_kind === "string"
+                ? payload.member_kind
+                : "document",
+            member_id:
+              typeof payload.member_id === "string"
+                ? payload.member_id
+                : "unknown",
+            assigned_at: "2026-01-01T00:00:00.000Z",
+          };
+          tagAssignments.push(assignment);
+          tag.assignment_count += 1;
+          tag.counts_by_kind[assignment.member_kind] =
+            (tag.counts_by_kind[assignment.member_kind] ?? 0) + 1;
+          return { status: 201, body: assignment };
+        }
+        if (method === "DELETE" && parts.length === 5) {
+          const memberKind = decodeURIComponent(parts[3] ?? "");
+          const memberId = decodeURIComponent(parts[4] ?? "");
+          const index = tagAssignments.findIndex(
+            (item) =>
+              item.tag_id === tagId &&
+              item.member_kind === memberKind &&
+              item.member_id === memberId,
+          );
+          if (index < 0) {
+            return { status: 404, body: { detail: "Assignment not found" } };
+          }
+          const removed = tagAssignments.splice(index, 1)[0];
+          if (tag && removed) {
+            tag.assignment_count = Math.max(0, tag.assignment_count - 1);
+            const kindCount = tag.counts_by_kind[removed.member_kind] ?? 0;
+            if (kindCount <= 1) {
+              delete tag.counts_by_kind[removed.member_kind];
+            } else {
+              tag.counts_by_kind[removed.member_kind] = kindCount - 1;
+            }
+          }
+          return { status: 204, body: null };
+        }
+      }
+    }
+    if (path.startsWith("/resource-metadata/")) {
+      const parts = path.split("/").filter(Boolean);
+      const memberKind = decodeURIComponent(parts[1] ?? "");
+      const memberId = decodeURIComponent(parts[2] ?? "");
+      const key = `${memberKind}:${memberId}`;
+      if (method === "GET") {
+        const existing = resourceMetadata.get(key);
+        if (!existing) {
+          return { status: 404, body: { detail: "Metadata not found" } };
+        }
+        return { status: 200, body: existing };
+      }
+      if (method === "PUT") {
+        const payload = bodyText
+          ? (JSON.parse(bodyText) as Record<string, unknown>)
+          : {};
+        const saved = {
+          workspace_id: DEFAULT_WORKSPACE_ID,
+          member_kind: memberKind,
+          member_id: memberId,
+          title: typeof payload.title === "string" ? payload.title : null,
+          description:
+            typeof payload.description === "string"
+              ? payload.description
+              : null,
+          notes: typeof payload.notes === "string" ? payload.notes : null,
+          updated_at: "2026-01-01T00:00:00.000Z",
+        };
+        resourceMetadata.set(key, saved);
+        return { status: 200, body: saved };
+      }
     }
     if (path.startsWith("/documents/") && method === "GET") {
       const id = path.split("/")[2];

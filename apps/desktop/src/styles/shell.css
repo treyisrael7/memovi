@@ -1817,6 +1817,84 @@ button.linkish {
   flex-wrap: wrap;
 }
 
+.search-tag-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Tags */
+
+.tags-page {
+  display: grid;
+  gap: 1rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.tag-chip {
+  --tag-chip-color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--tag-chip-color) 45%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tag-chip-color) 12%, var(--bg-panel));
+  color: var(--text);
+  padding: 0.2rem 0.65rem;
+  font-size: 0.82rem;
+  line-height: 1.2;
+}
+
+.tag-chip--sm {
+  padding: 0.12rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.tag-chip__swatch {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--tag-chip-color);
+  flex-shrink: 0;
+}
+
+.tag-chip--interactive {
+  cursor: pointer;
+  font: inherit;
+}
+
+.tag-chip--interactive:hover,
+.tag-chip--selected {
+  border-color: var(--tag-chip-color);
+  background: color-mix(in srgb, var(--tag-chip-color) 22%, var(--bg-panel));
+}
+
+.tag-list-chip,
+.tag-detail-chip {
+  margin-top: 0.15rem;
+}
+
+.tag-metadata-panel {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 36rem;
+}
+
+.collection-member-row[data-active="true"] {
+  outline: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
 /* Activity */
 
 .activity-page {

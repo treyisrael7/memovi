@@ -118,3 +118,67 @@ class CollectionActivityRecord(Base):
         nullable=False,
         index=True,
     )
+
+
+class TagRecord(Base):
+    """Persistence model for workspace-scoped knowledge tags."""
+
+    __tablename__ = "memory_tags"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    name_key: Mapped[str] = mapped_column(String(256), nullable=False)
+    color: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id",
+            "name_key",
+            name="uq_memory_tags_workspace_name_key",
+        ),
+    )
+
+
+class TagAssignmentRecord(Base):
+    """Persistence model for tag assignment references."""
+
+    __tablename__ = "memory_tag_assignments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    tag_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("memory_tags.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    workspace_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    member_kind: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    member_id: Mapped[str] = mapped_column(String(256), index=True, nullable=False)
+    assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "tag_id",
+            "member_kind",
+            "member_id",
+            name="uq_memory_tag_assignments_item",
+        ),
+    )
+
+
+class ResourceMetadataRecord(Base):
+    """Persistence model for polymorphic resource metadata."""
+
+    __tablename__ = "memory_resource_metadata"
+
+    workspace_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    member_kind: Mapped[str] = mapped_column(String(32), primary_key=True)
+    member_id: Mapped[str] = mapped_column(String(256), primary_key=True)
+    title: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

@@ -40,6 +40,7 @@ export {
 } from "./StatusBadge";
 export { Table, type TableColumn, type TableProps } from "./Table";
 export { TabPanel, Tabs, type TabItem, type TabPanelProps, type TabsProps } from "./Tabs";
+export { TagChips, type TagChipItem, type TagChipsProps } from "./TagChips";
 export { TextArea, type TextAreaProps } from "./TextArea";
 export { TextInput, type TextInputProps } from "./TextInput";
 export {

@@ -8,6 +8,13 @@ from memovi_memory.domain.events.collection_events import (
 )
 from memovi_memory.domain.events.knowledge_constructed import KnowledgeConstructed
 from memovi_memory.domain.events.knowledge_materialized import KnowledgeMaterialized
+from memovi_memory.domain.events.tag_events import (
+    TagAssigned,
+    TagCreated,
+    TagDeleted,
+    TagUnassigned,
+    TagUpdated,
+)
 
 __all__ = [
     "ChunksGenerated",
@@ -18,4 +25,9 @@ __all__ = [
     "CollectionUpdated",
     "KnowledgeConstructed",
     "KnowledgeMaterialized",
+    "TagAssigned",
+    "TagCreated",
+    "TagDeleted",
+    "TagUnassigned",
+    "TagUpdated",
 ]

@@ -12,11 +12,17 @@ from memovi_memory.application.queries import (
     ListKnowledge,
     ListRelationships,
 )
-from memovi_memory.application.services import CollectionService
+from memovi_memory.application.services import (
+    CollectionService,
+    ResourceMetadataService,
+    TagService,
+)
 from memovi_memory.infrastructure.repositories import (
     SqlAlchemyChunkRepository,
     SqlAlchemyCollectionRepository,
     SqlAlchemyKnowledgeRepository,
+    SqlAlchemyResourceMetadataRepository,
+    SqlAlchemyTagRepository,
 )
 
 
@@ -76,3 +82,11 @@ def get_knowledge_dashboard(
 
 def get_collection_service(session: DatabaseSession) -> CollectionService:
     return CollectionService(repository=SqlAlchemyCollectionRepository(session))
+
+
+def get_tag_service(session: DatabaseSession) -> TagService:
+    return TagService(repository=SqlAlchemyTagRepository(session))
+
+
+def get_resource_metadata_service(session: DatabaseSession) -> ResourceMetadataService:
+    return ResourceMetadataService(repository=SqlAlchemyResourceMetadataRepository(session))

@@ -8,6 +8,7 @@ export interface SearchKnowledgeParams {
   mode?: SearchMode;
   documentId?: string;
   collectionId?: string;
+  tagIds?: string[];
   sourceType?: string;
   mimeType?: string;
   limit?: number;
@@ -28,6 +29,9 @@ export async function searchKnowledge(
   if (params.mimeType) qs.set("mime_type", params.mimeType);
   if (params.limit != null) qs.set("limit", String(params.limit));
   if (params.offset != null) qs.set("offset", String(params.offset));
+  for (const tagId of params.tagIds ?? []) {
+    qs.append("tag_id", tagId);
+  }
 
   return apiFetch<SearchResponse>(`/search?${qs.toString()}`, { workspaceId });
 }

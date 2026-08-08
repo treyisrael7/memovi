@@ -362,6 +362,61 @@ export interface CollectionMembershipListResponse {
   count: number;
 }
 
+export interface TagResponse {
+  id: string;
+  workspace_id: string;
+  name: string;
+  color: string | null;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TagListItem {
+  id: string;
+  workspace_id: string;
+  name: string;
+  color: string | null;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  assignment_count: number;
+  counts_by_kind: Record<string, number>;
+}
+
+export interface TagListResponse {
+  items: TagListItem[];
+  count: number;
+}
+
+export interface TagSuggestResponse {
+  items: TagResponse[];
+  count: number;
+}
+
+export interface TagAssignmentResponse {
+  id: string;
+  tag_id: string;
+  member_kind: string;
+  member_id: string;
+  assigned_at: string;
+}
+
+export interface TagAssignmentListResponse {
+  items: TagAssignmentResponse[];
+  count: number;
+}
+
+export interface ResourceMetadataResponse {
+  workspace_id: string;
+  member_kind: string;
+  member_id: string;
+  title: string | null;
+  description: string | null;
+  notes: string | null;
+  updated_at: string;
+}
+
 export type CapabilityExecutionStatus =
   | "pending_approval"
   | "executing"

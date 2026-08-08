@@ -9,6 +9,7 @@ import { DocumentsPage } from "./DocumentsPage";
 import { KnowledgeExplorerPage } from "./KnowledgeExplorerPage";
 import { SearchPage } from "./SearchPage";
 import { SettingsPage } from "./SettingsPage";
+import { TagsPage } from "./TagsPage";
 import { WorkflowsPage } from "./WorkflowsPage";
 import { Alert } from "./ui/Alert";
 import { Button } from "./ui/Button";
@@ -97,6 +98,9 @@ export function MainContent() {
       break;
     case "collections":
       body = <CollectionsPage />;
+      break;
+    case "tags":
+      body = <TagsPage />;
       break;
     case "workflows":
       body = <WorkflowsPage />;

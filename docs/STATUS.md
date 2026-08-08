@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 44).
+system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 45).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -153,36 +153,36 @@ import local folders through Documents.
 
 **Overall Status:** In progress
 
-Memory materialization, chunk persistence, explorer APIs, and Collections
-organization work. Tags and deeper metadata management remain.
+Memory materialization, chunk persistence, explorer APIs, Collections, and Tags
+organization work. Deeper metadata UX and relationships remain.
 
 **Completed**
 
 * Memory domain core for chunk materialization and persistence from processing events
 * Knowledge Collections organization (Milestone 33): create/rename/delete, memberships,
   summaries, search filter, desktop management
+* Tags + resource metadata V1 (Milestone 45): first-class tags complementary to Collections,
+  assignment API, search member-id resolution with AND semantics, polymorphic metadata upsert
 
 **In Progress**
 
 * Memory domain ownership of knowledge items (HTTP `/memory` read surface exposed for explorer)
 * Processing status as a knowledge concern (job statuses exist in documents; no public Memory status API)
-* Knowledge independence from AI providers (memory/search do not depend on Intelligence; tags incomplete)
+* Knowledge independence from AI providers (memory/search do not depend on Intelligence)
 
 **Remaining**
 
-* Tags
 * Version history
 * Knowledge relationships beyond provenance edges
-* Metadata management as a first-class platform concern
+* Deeper metadata management UX beyond the V1 upsert API
 
 **Known Risks**
 
-* Knowledge organization may lag behind ingestion and search capability without tags
+* None specific for Tags V1 beyond case-insensitive name uniqueness
 
 **Next Recommended Work**
 
 * Add semantic entity/topic extraction while keeping explorer contracts stable
-* Introduce Tags without coupling them to Collections hierarchies
 
 ---
 
@@ -833,7 +833,6 @@ without changing the ingestion pipeline.
 
 **Remaining**
 
-* Tags (separate from Collections)
 * Deeper cross-linking UX from collection members into conversations/workflows
 
 **Known Risks**
@@ -842,7 +841,7 @@ without changing the ingestion pipeline.
 
 **Next Recommended Work**
 
-* Add Tags as a complementary organization primitive
+* Deeper cross-linking UX from collection members into conversations/workflows
 
 ---
 
@@ -1304,6 +1303,47 @@ folders import and sync through Documents — without a second ingestion pipelin
 **Next Recommended Work**
 
 * Implement the next provider on the same framework (e.g. GitHub)
+
+---
+
+# Milestone 45 — Tags & Metadata V1
+
+**Overall Status:** Complete
+
+Shipped first-class Tags in Memory as a complementary organization primitive to
+Collections, search tag filters on the existing Search API, desktop Tags UX, and
+lightweight polymorphic resource metadata.
+
+**Completed**
+
+* Domain: `Tag`, `TagAssignment`, `TagId`, events, repository protocol
+* `TagService` with create/update/delete, assign/unassign, suggest, list-for-target,
+  assignment counts, and `resolve_search_member_ids` (AND intersection across tags)
+* Resource metadata V1: `ResourceMetadata` + `ResourceMetadataService` upsert API
+* Persistence: `memory_tags` (`name` display + `name_key` uniqueness),
+  `memory_tag_assignments`, `memory_resource_metadata` (+ Alembic `20260808_0019`)
+* HTTP API `/tags` and `/resource-metadata`
+* Search: repeatable `tag_id` query params; intersects with `collection_id` when both set
+* Desktop Tags page (CRUD, assignments, chips, metadata editing) + Search multi-tag filter
+* Unit tests for tag uniqueness, assignments, delete semantics, suggest, AND search
+  resolution, and metadata upsert
+* `docs/architecture/COLLECTIONS.md` updated for tag philosophy, metadata, and search
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Automatic / AI-assisted tagging (out of scope for V1)
+
+**Known Risks**
+
+* Case-insensitive uniqueness relies on `name_key`; display names preserve user casing
+
+**Next Recommended Work**
+
+* Keep Collections and Tags complementary in UX copy; avoid nesting tags under collections
 
 ---
 

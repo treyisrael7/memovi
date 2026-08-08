@@ -6,10 +6,12 @@ import { createConversation } from "../api/conversations";
 import { listDocuments } from "../api/documents";
 import { listKnowledge } from "../api/memory";
 import { searchKnowledge, type SearchMode } from "../api/search";
+import { listTags } from "../api/tags";
 import type {
   CollectionListItem,
   DocumentSummary,
   SearchResultItem,
+  TagListItem,
 } from "../api/types";
 import {
   isProcessingInFlight,
@@ -26,6 +28,7 @@ import { SearchInput } from "./ui/SearchInput";
 import { SectionHeader } from "./ui/SectionHeader";
 import { StatusBadge } from "./ui/StatusBadge";
 import { Tabs } from "./ui/Tabs";
+import { TagChips } from "./ui/TagChips";
 import { useToast } from "./ui/ToastContext";
 
 type SearchScope = "all" | "document" | "knowledge";
@@ -92,6 +95,8 @@ export function SearchPage() {
     () => new Set(),
   );
   const [collections, setCollections] = useState<CollectionListItem[]>([]);
+  const [tags, setTags] = useState<TagListItem[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -151,14 +156,16 @@ export function SearchPage() {
       listDocuments(workspaceId),
       listKnowledge(workspaceId).catch(() => ({ items: [], count: 0 })),
       listCollections(workspaceId),
+      listTags(workspaceId).catch(() => ({ items: [], count: 0 })),
     ])
-      .then(([docsPayload, knowledgePayload, collectionsPayload]) => {
+      .then(([docsPayload, knowledgePayload, collectionsPayload, tagsPayload]) => {
         if (cancelled) return;
         setDocuments(docsPayload.items);
         setKnowledgeDocumentIds(
           new Set(knowledgePayload.items.map((item) => item.document_id)),
         );
         setCollections(collectionsPayload.items);
+        setTags(tagsPayload.items);
       })
       .catch(() => undefined);
     return () => {
@@ -187,6 +194,7 @@ export function SearchPage() {
         mode: activeScope.mode,
         documentId: scope === "document" ? documentId || undefined : undefined,
         collectionId: collectionId || undefined,
+        tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
       })
         .then((payload) => {
           if (cancelled) return;
@@ -208,7 +216,15 @@ export function SearchPage() {
       cancelled = true;
       window.clearTimeout(handle);
     };
-  }, [workspaceId, canUseBackend, query, scope, documentId, collectionId]);
+  }, [
+    workspaceId,
+    canUseBackend,
+    query,
+    scope,
+    documentId,
+    collectionId,
+    selectedTagIds,
+  ]);
 
   function recordRecentSearch(term: string) {
     if (!workspaceId || !term.trim()) return;
@@ -328,6 +344,24 @@ export function SearchPage() {
             }))}
           />
         </div>
+
+        {tags.length > 0 ? (
+          <div className="search-tag-filters">
+            <span className="muted">Tags:</span>
+            <TagChips
+              tags={tags}
+              selectedIds={selectedTagIds}
+              size="sm"
+              onToggle={(tagId) => {
+                setSelectedTagIds((current) =>
+                  current.includes(tagId)
+                    ? current.filter((id) => id !== tagId)
+                    : [...current, tagId],
+                );
+              }}
+            />
+          </div>
+        ) : null}
 
         {!query.trim() && recentSearches.length > 0 ? (
           <div className="recent-searches">

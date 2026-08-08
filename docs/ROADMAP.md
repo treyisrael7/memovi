@@ -224,7 +224,7 @@ Turn processed artifacts into durable, organized knowledge.
 
 * Memory domain ownership of knowledge items
 * Metadata and versioning foundations
-* Collections (delivered; see Milestone 33) and tags
+* Collections (delivered; see Milestone 33) and tags (delivered; see Milestone 45)
 * Processing status as a knowledge concern
 * Knowledge independent of AI providers
 

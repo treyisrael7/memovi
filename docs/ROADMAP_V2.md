@@ -295,7 +295,7 @@ Turn processed artifacts into durable, organized knowledge.
 
 * Memory ownership of knowledge
 * Metadata and versioning foundations
-* Collections (delivered; see Milestone 33) and tags
+* Collections (delivered; see Milestone 33) and tags (delivered; see Milestone 45)
 * Knowledge usable without AI
 
 **Success Criteria**

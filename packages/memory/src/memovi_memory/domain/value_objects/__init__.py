@@ -11,6 +11,7 @@ from memovi_memory.domain.value_objects.collection_summary import (
     CollectionSummary,
 )
 from memovi_memory.domain.value_objects.knowledge_item_id import KnowledgeItemId
+from memovi_memory.domain.value_objects.tag_id import TagId
 
 __all__ = [
     "ChunkId",
@@ -21,5 +22,6 @@ __all__ = [
     "CollectionMetadata",
     "CollectionSummary",
     "KnowledgeItemId",
+    "TagId",
     "parse_member_kind",
 ]

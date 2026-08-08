@@ -256,8 +256,11 @@ Pages are registered in `src/navigation/pages.ts`. Every entry is implemented:
 * **Collections** — flat knowledge organization: create/rename/delete, add/remove
   members with reasons, statistics, and recent activity (see
   [`COLLECTIONS.md`](COLLECTIONS.md))
-* **Search** — global, per-document, knowledge, and collection-filtered search
-  with recent searches (see below)
+* **Tags** — complementary cross-cutting labels: create/edit/delete, assign to
+  documents/knowledge/conversations/workflows, resource metadata
+  (title/description/notes), and Search multi-tag filters
+* **Search** — global, per-document, knowledge, collection-, and tag-filtered
+  search with recent searches (see below)
 * **Workflows** — library, run, progress, history
 * **Activity** — a cross-domain timeline of what happened in the workspace
   (see below)
@@ -269,7 +272,8 @@ Each page consumes existing platform APIs only; none owns business logic:
 * Documents → Documents API (`/documents`)
 * Knowledge → Memory + Documents + Search APIs (see [`KNOWLEDGE_EXPLORER.md`](KNOWLEDGE_EXPLORER.md))
 * Collections → Collections API (`/collections`) owned by Memory
-* Search → Search API (`/search`), optional `collection_id` filter
+* Tags → Tags + resource-metadata APIs (`/tags`, `/resource-metadata`) owned by Memory
+* Search → Search API (`/search`), optional `collection_id` and `tag_id` filters
 * Workflows → `/workflows` API (library, execute, history); approvals still via
   Capability Execution Engine
 * Activity → composes `/documents`, `/memory`, `/workflows/history`, and
