@@ -33,6 +33,9 @@ def move_to_trash(path: Path) -> dict[str, object]:
 
 
 def _trash_windows(path: Path) -> dict[str, object]:
+    if sys.platform != "win32":  # pragma: no cover - caller already gates platform
+        raise RuntimeError("Windows Recycle Bin trash is only available on win32")
+
     import ctypes
     from ctypes import wintypes
 
