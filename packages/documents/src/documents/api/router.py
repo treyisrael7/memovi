@@ -19,7 +19,6 @@ from documents.api.schemas import (
     ReprocessDocumentResponse,
 )
 from documents.application.commands.delete_document import DeleteDocument, DeleteDocumentCommand
-from documents.application.dto import DocumentDto
 from documents.application.commands.ingest_local_document import (
     IngestLocalDocument,
     IngestLocalDocumentCommand,
@@ -28,6 +27,7 @@ from documents.application.commands.reprocess_document import (
     ReprocessDocument,
     ReprocessDocumentCommand,
 )
+from documents.application.dto import DocumentDto
 from documents.application.exceptions import (
     DocumentNotFoundError,
     DocumentVersionNotFoundError,

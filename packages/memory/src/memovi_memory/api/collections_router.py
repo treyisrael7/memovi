@@ -6,12 +6,12 @@ from memovi_shared import WorkspaceId
 
 from memovi_memory.api.collection_schemas import (
     AddCollectionMemberRequest,
+    CollectionActivityResponse,
     CollectionListItemResponse,
     CollectionListResponse,
     CollectionMembershipListResponse,
     CollectionMembershipResponse,
     CollectionResponse,
-    CollectionActivityResponse,
     CollectionSummaryResponse,
     CreateCollectionRequest,
     RenameCollectionRequest,

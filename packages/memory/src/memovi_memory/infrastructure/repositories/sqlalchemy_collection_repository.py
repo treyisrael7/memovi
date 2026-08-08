@@ -71,7 +71,10 @@ class SqlAlchemyCollectionRepository:
             records = (
                 self._session.query(CollectionRecord)
                 .filter(CollectionRecord.workspace_id == workspace_id.value)
-                .order_by(func.lower(CollectionRecord.name).asc(), CollectionRecord.created_at.asc())
+                .order_by(
+                    func.lower(CollectionRecord.name).asc(),
+                    CollectionRecord.created_at.asc(),
+                )
                 .all()
             )
             return [self._to_collection(record) for record in records]

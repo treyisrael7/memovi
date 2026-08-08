@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from memovi_shared import WorkspaceId
-
 from memovi_memory.domain.entities import Collection, CollectionActivity, CollectionMembership
 from memovi_memory.domain.value_objects import CollectionId, CollectionMemberKind
+from memovi_shared import WorkspaceId
 
 
 class InMemoryCollectionRepository:

@@ -1,6 +1,6 @@
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Mapping, Sequence
 
 from memovi_memory.domain.entities import Collection, CollectionMembership
 from memovi_memory.domain.value_objects import (

@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import pytest
-from memovi_shared import WorkspaceId
-
 from memovi_connectors import (
     AuthCredentialRef,
     ConnectorConfiguration,
@@ -23,6 +21,7 @@ from memovi_connectors import (
     UnknownConnectorError,
     register_fake_connector,
 )
+from memovi_shared import WorkspaceId
 
 
 def test_registry_register_list_and_lookup() -> None:

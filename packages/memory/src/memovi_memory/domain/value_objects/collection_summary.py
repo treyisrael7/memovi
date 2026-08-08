@@ -1,12 +1,12 @@
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Mapping, Sequence
 
 from memovi_shared import WorkspaceId
 
 from memovi_memory.domain.value_objects.collection_id import CollectionId
-from memovi_memory.domain.value_objects.collection_metadata import CollectionMetadata
 from memovi_memory.domain.value_objects.collection_member_kind import CollectionMemberKind
+from memovi_memory.domain.value_objects.collection_metadata import CollectionMetadata
 
 
 @dataclass(frozen=True, slots=True)

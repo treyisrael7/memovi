@@ -1,28 +1,91 @@
+"""Alembic environment.
+
+Loads SQLAlchemy DeclarativeBase modules without importing package root
+``__init__`` modules. Those package inits eagerly load application/domain
+code and break under Python < 3.14 (forward-reference annotations).
+Migrations only need table metadata.
+"""
+
+from __future__ import annotations
+
+import importlib.util
 import os
 import sys
+import types
 from logging.config import fileConfig
 from pathlib import Path
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+from sqlalchemy.orm import DeclarativeBase
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT_DIR / "packages" / "auth" / "src"))
-sys.path.insert(0, str(ROOT_DIR / "packages" / "automation" / "src"))
-sys.path.insert(0, str(ROOT_DIR / "packages" / "documents" / "src"))
-sys.path.insert(0, str(ROOT_DIR / "packages" / "intelligence" / "src"))
-sys.path.insert(0, str(ROOT_DIR / "packages" / "memory" / "src"))
-sys.path.insert(0, str(ROOT_DIR / "packages" / "search" / "src"))
-sys.path.insert(0, str(ROOT_DIR / "packages" / "workspace" / "src"))
-sys.path.insert(0, str(ROOT_DIR / "packages" / "shared" / "src"))
 
-from auth.infrastructure.persistence import Base as AuthBase  # noqa: E402
-from documents.infrastructure.persistence import Base as DocumentsBase  # noqa: E402
-from memovi_automation.infrastructure.persistence import Base as AutomationBase  # noqa: E402
-from memovi_intelligence.infrastructure.persistence import Base as IntelligenceBase  # noqa: E402
-from memovi_memory.infrastructure.persistence import Base as MemoryBase  # noqa: E402
-from memovi_search.infrastructure.persistence import Base as SearchBase  # noqa: E402
-from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase  # noqa: E402
+
+def _ensure_package(name: str, path: Path) -> None:
+    """Register a package stub so submodule loads skip heavy package __init__."""
+    if name in sys.modules:
+        return
+    module = types.ModuleType(name)
+    module.__path__ = [str(path)]  # type: ignore[attr-defined]
+    sys.modules[name] = module
+
+
+def _load_declarative_base(*, src_root: Path, import_root: str) -> type[DeclarativeBase]:
+    """Import ``…infrastructure.persistence.models.Base`` without package side effects."""
+    parts = import_root.split(".")
+    for index in range(len(parts)):
+        package_name = ".".join(parts[: index + 1])
+        package_path = src_root.joinpath(*parts[: index + 1])
+        _ensure_package(package_name, package_path)
+
+    for suffix in ("infrastructure", "infrastructure.persistence"):
+        package_name = f"{import_root}.{suffix}"
+        package_path = src_root.joinpath(*parts, *suffix.split("."))
+        _ensure_package(package_name, package_path)
+
+    models_path = src_root.joinpath(*parts, "infrastructure", "persistence", "models.py")
+    module_name = f"{import_root}.infrastructure.persistence.models"
+    if module_name in sys.modules:
+        return sys.modules[module_name].Base  # type: ignore[no-any-return]
+
+    spec = importlib.util.spec_from_file_location(module_name, models_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Unable to load migration models from {models_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module.Base  # type: ignore[no-any-return]
+
+
+AuthBase = _load_declarative_base(
+    src_root=ROOT_DIR / "packages" / "auth" / "src",
+    import_root="auth",
+)
+AutomationBase = _load_declarative_base(
+    src_root=ROOT_DIR / "packages" / "automation" / "src",
+    import_root="memovi_automation",
+)
+DocumentsBase = _load_declarative_base(
+    src_root=ROOT_DIR / "packages" / "documents" / "src",
+    import_root="documents",
+)
+IntelligenceBase = _load_declarative_base(
+    src_root=ROOT_DIR / "packages" / "intelligence" / "src",
+    import_root="memovi_intelligence",
+)
+MemoryBase = _load_declarative_base(
+    src_root=ROOT_DIR / "packages" / "memory" / "src",
+    import_root="memovi_memory",
+)
+SearchBase = _load_declarative_base(
+    src_root=ROOT_DIR / "packages" / "search" / "src",
+    import_root="memovi_search",
+)
+WorkspaceBase = _load_declarative_base(
+    src_root=ROOT_DIR / "packages" / "workspace" / "src",
+    import_root="memovi_workspace",
+)
 
 config = context.config
 
