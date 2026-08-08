@@ -31,6 +31,9 @@ from memovi_automation.application.services.capability_authorization_service imp
 from memovi_automation.infrastructure.sqlalchemy_execution_audit_store import (
     SqlAlchemyExecutionAuditStore,
 )
+from memovi_automation.infrastructure.sqlalchemy_execution_state_store import (
+    SqlAlchemyExecutionStateStore,
+)
 from memovi_automation.infrastructure.sqlalchemy_permission_policy_store import (
     SqlAlchemyPermissionPolicyStore,
 )
@@ -122,9 +125,15 @@ def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
         invoker=invoker,
         permission_policies=permission_store,
         audit_store=SqlAlchemyExecutionAuditStore(db_factory),  # type: ignore[arg-type]
+        execution_store=SqlAlchemyExecutionStateStore(db_factory),  # type: ignore[arg-type]
         authorization=authorization,
         default_permission_mode=PermissionMode.ASK_EVERY_TIME,
     )
+    try:
+        engine.recover_interrupted_executions()
+    except Exception:
+        # Local/unit app construction may run before migrations/tables exist.
+        pass
     planner = CapabilityPlanner(registry=registry)
     plan_execution = PlanExecutionService(engine=engine, planner=planner)
     workflow_history_store = InMemoryWorkflowHistoryStore()

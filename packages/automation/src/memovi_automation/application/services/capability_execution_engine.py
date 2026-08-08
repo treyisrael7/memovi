@@ -11,6 +11,7 @@ from memovi_shared import WorkspaceId
 from memovi_automation.application.ports_authorization import AuthorizationService
 from memovi_automation.application.ports_execution import (
     ExecutionAuditStore,
+    ExecutionStateStore,
     PermissionPolicyStore,
 )
 from memovi_automation.application.services.capability_authorization_service import (
@@ -48,6 +49,7 @@ from memovi_automation.domain.value_objects.execution_audit_entry import (
     redact_arguments,
 )
 from memovi_automation.domain.value_objects.permission_mode import PermissionMode
+from memovi_observability import get_metrics_recorder
 
 
 class _AllowAllMembership:
@@ -72,11 +74,21 @@ class CapabilityExecutionEngine:
         audit_store: ExecutionAuditStore,
         authorization: AuthorizationService | None = None,
         default_permission_mode: PermissionMode = PermissionMode.ASK_EVERY_TIME,
+        execution_store: ExecutionStateStore | None = None,
+        recover_on_start: bool = False,
     ) -> None:
         self._registry = registry
         self._invoker = invoker
         self._permission_policies = permission_policies
         self._audit_store = audit_store
+        if execution_store is None:
+            # Default process-local store for unit tests; production wires SQLAlchemy.
+            from memovi_automation.infrastructure.in_memory_execution_state_store import (
+                InMemoryExecutionStateStore,
+            )
+
+            execution_store = InMemoryExecutionStateStore()
+        self._execution_store = execution_store
         self._default_permission_mode = default_permission_mode
         self._authorization = authorization or CapabilityAuthorizationService(
             membership=_AllowAllMembership(),
@@ -84,11 +96,10 @@ class CapabilityExecutionEngine:
             registry=registry,
             default_permission_mode=default_permission_mode,
         )
-        self._executions: dict[str, CapabilityExecutionResult] = {}
-        self._pending_requests: dict[str, CapabilityExecutionRequest] = {}
-        self._pending_auth: dict[str, AuthenticatedExecutionContext] = {}
         self._cancellations: dict[str, CancellationToken] = {}
         self._lock = Lock()
+        if recover_on_start:
+            self.recover_interrupted_executions()
 
     @property
     def registry(self) -> CapabilityRegistry:
@@ -190,10 +201,9 @@ class CapabilityExecutionEngine:
                 },
             )
             with self._lock:
-                self._pending_requests[request.id] = request
-                self._pending_auth[request.id] = auth_context
                 self._cancellations[request.id] = auth_context.cancellation
-                self._executions[request.id] = result
+            self._store_result(result)
+            self._execution_store.save_pending(request, auth_context)
             self._audit(request, result, auth_context=auth_context)
             return result
 
@@ -212,15 +222,15 @@ class CapabilityExecutionEngine:
             workspace_id=workspace_id,
         )
         with self._lock:
-            pending = self._pending_requests.get(execution_id)
-            current = self._executions.get(execution_id)
             cancellation = self._cancellations.get(execution_id)
-            pending_auth = self._pending_auth.get(execution_id)
+        pending_pair = self._execution_store.get_pending(execution_id)
+        current = self._execution_store.get_result(execution_id)
 
-        if pending is None or current is None:
+        if pending_pair is None or current is None:
             raise CapabilityExecutionNotFoundError(
                 f"Unknown capability execution '{execution_id}'.",
             )
+        pending, pending_auth = pending_pair
         if pending.workspace_id != workspace_id:
             raise CapabilityExecutionNotFoundError(
                 f"Unknown capability execution '{execution_id}'.",
@@ -237,11 +247,7 @@ class CapabilityExecutionEngine:
             workspace_id=workspace_id,
             session_id=context.session_id,
             request_id=context.request_id,
-            effective_permissions=(
-                pending_auth.effective_permissions
-                if pending_auth is not None
-                else context.effective_permissions
-            ),
+            effective_permissions=pending_auth.effective_permissions,
             cancellation=token,
             conversation_id=pending.conversation_id,
             correlation_id=pending.correlation_id,
@@ -283,9 +289,10 @@ class CapabilityExecutionEngine:
             workspace_id=workspace_id,
         )
         with self._lock:
-            current = self._executions.get(execution_id)
-            pending = self._pending_requests.get(execution_id)
             cancellation = self._cancellations.get(execution_id)
+        current = self._execution_store.get_result(execution_id)
+        pending_pair = self._execution_store.get_pending(execution_id)
+        pending = None if pending_pair is None else pending_pair[0]
 
         if current is None:
             raise CapabilityExecutionNotFoundError(
@@ -324,10 +331,10 @@ class CapabilityExecutionEngine:
             updated_at=now,
             metadata={**dict(current.metadata), "user_id": context.user_id},
         )
+        self._store_result(result)
+        self._execution_store.clear_pending(execution_id)
         with self._lock:
-            self._executions[execution_id] = result
-            self._pending_requests.pop(execution_id, None)
-            self._pending_auth.pop(execution_id, None)
+            self._cancellations.pop(execution_id, None)
 
         request = pending or CapabilityExecutionRequest.create(
             capability_id=current.capability_id,
@@ -345,8 +352,7 @@ class CapabilityExecutionEngine:
         *,
         workspace_id: WorkspaceId,
     ) -> CapabilityExecutionResult:
-        with self._lock:
-            result = self._executions.get(execution_id)
+        result = self._execution_store.get_result(execution_id)
         if result is None or result.workspace_id != workspace_id.value:
             raise CapabilityExecutionNotFoundError(
                 f"Unknown capability execution '{execution_id}'.",
@@ -360,17 +366,35 @@ class CapabilityExecutionEngine:
         status: CapabilityExecutionStatus | None = None,
         conversation_id: str | None = None,
     ) -> tuple[CapabilityExecutionResult, ...]:
-        with self._lock:
-            values = list(self._executions.values())
-        filtered = [
-            item
-            for item in values
-            if item.workspace_id == workspace_id.value
-            and (status is None or item.status is status)
-            and (conversation_id is None or item.conversation_id == conversation_id)
-        ]
-        filtered.sort(key=lambda item: item.updated_at)
-        return tuple(filtered)
+        return self._execution_store.list_results(
+            workspace_id=workspace_id,
+            status=status,
+            conversation_id=conversation_id,
+        )
+
+    def recover_interrupted_executions(self) -> tuple[CapabilityExecutionResult, ...]:
+        """Mark in-flight executions failed after process restart (no duplicate resume)."""
+        recovered = self._execution_store.fail_interrupted_executions(
+            reason="Capability execution was interrupted by process restart.",
+        )
+        for result in recovered:
+            request = CapabilityExecutionRequest.create(
+                capability_id=result.capability_id,
+                workspace_id=WorkspaceId(result.workspace_id),
+                request_id=result.execution_id,
+                conversation_id=result.conversation_id,
+                correlation_id=result.correlation_id,
+                source=str(result.metadata.get("source") or "api"),
+                metadata=dict(result.metadata),
+            )
+            self._audit(request, result)
+        if recovered:
+            get_metrics_recorder().increment(
+                "memovi.capabilities.execution.resume_skipped",
+                value=float(len(recovered)),
+                tags={"reason": "interrupted_by_restart"},
+            )
+        return recovered
 
     def set_permission_mode(
         self,
@@ -433,13 +457,11 @@ class CapabilityExecutionEngine:
             },
         )
         with self._lock:
-            self._executions[request.id] = executing
-            self._pending_requests.pop(request.id, None)
-            self._pending_auth.pop(request.id, None)
             self._cancellations[request.id] = auth_context.cancellation
+        self._store_result(executing)
+        self._execution_store.clear_pending(request.id)
 
         self._audit(request, executing, auth_context=auth_context)
-
         started = perf_counter()
         try:
             metadata = self._registry.metadata(request.capability_id)
@@ -557,6 +579,12 @@ class CapabilityExecutionEngine:
         )
         self._store_result(result)
         self._audit(request, result, auth_context=auth_context)
+        if result.duration:
+            get_metrics_recorder().timing(
+                "memovi.capabilities.execution.duration_ms",
+                result.duration * 1000.0,
+                tags={"status": result.status.value, "capability": result.capability_id},
+            )
         return result
 
     def _failed_result(
@@ -591,18 +619,17 @@ class CapabilityExecutionEngine:
         )
 
     def _store_result(self, result: CapabilityExecutionResult) -> None:
-        with self._lock:
-            self._executions[result.execution_id] = result
+        self._execution_store.save_result(result)
 
     def _publish_progress(self, execution_id: str, output: object) -> None:
         """Publish best-effort streaming output while an execution is still running."""
-        with self._lock:
-            current = self._executions.get(execution_id)
-            if current is None:
-                return
-            if current.status is not CapabilityExecutionStatus.EXECUTING:
-                return
-            self._executions[execution_id] = CapabilityExecutionResult(
+        current = self._execution_store.get_result(execution_id)
+        if current is None:
+            return
+        if current.status is not CapabilityExecutionStatus.EXECUTING:
+            return
+        self._store_result(
+            CapabilityExecutionResult(
                 execution_id=current.execution_id,
                 capability_id=current.capability_id,
                 workspace_id=current.workspace_id,
@@ -617,6 +644,7 @@ class CapabilityExecutionEngine:
                 updated_at=datetime.now(UTC),
                 metadata=dict(current.metadata),
             )
+        )
 
     def _audit(
         self,

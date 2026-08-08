@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 37).
+system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 38).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -1004,6 +1004,49 @@ unchanged; only the queue implementation and job metadata were extended.
 **Next Recommended Work**
 
 * Run `task db:migrate` locally to apply `20260808_0014`
+* Architecture boundary tests
+
+---
+
+# Milestone 38 — Durable Capability Executions
+
+**Overall Status:** Complete
+
+Live capability execution state (including pending approvals) is durable in
+Postgres. The Capability Execution Engine API and capability implementations are
+unchanged; only the state backend moved off process-local dicts.
+
+**Completed**
+
+* `ExecutionStateStore` port with `InMemoryExecutionStateStore` and
+  `SqlAlchemyExecutionStateStore`
+* Table `automation_capability_executions` (`20260808_0015`) for results +
+  pending request/auth payloads
+* Engine wired to persist results, pending approvals, progress, and terminal state
+* Startup recovery: interrupted `executing` → `failed` (`interrupted_by_restart`);
+  `pending_approval` survives for post-restart approve
+* Existing execution/list/approve/cancel APIs unchanged for desktop
+* Observability metrics for duration, failures, cancellations, recovery
+* `docs/architecture/CAPABILITY_EXECUTION.md` updated
+* Durable approval/history/recovery tests
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Optional lease renewal / progress heartbeats for very long terminal runs
+* Workflow history durability (still in-memory)
+
+**Known Risks**
+
+* Mid-flight `executing` work is not auto-resumed (by design, to avoid duplicates)
+* Pending approval payloads store arguments needed to resume (audit still redacts)
+
+**Next Recommended Work**
+
+* Run `task db:migrate` for `20260808_0014` and `20260808_0015`
 * Architecture boundary tests
 
 ---

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, Float, String
+from sqlalchemy import JSON, DateTime, Float, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -40,3 +40,36 @@ class ExecutionAuditRecord(Base):
     conversation_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     correlation_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     source: Mapped[str] = mapped_column(String(64), nullable=False, default="api")
+
+
+class CapabilityExecutionRecord(Base):
+    """Durable live capability execution state (including pending approvals)."""
+
+    __tablename__ = "automation_capability_executions"
+
+    execution_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    user_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    session_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    capability_id: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    permission_mode: Mapped[str] = mapped_column(String(32), nullable=False)
+    conversation_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    source: Mapped[str] = mapped_column(String(64), nullable=False, default="api")
+    duration: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    output: Mapped[Any] = mapped_column(JSON, nullable=True)
+    error: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(
+        "metadata",
+        JSON,
+        nullable=False,
+        default=dict,
+    )
+    pending_request: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    pending_auth: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failure_details: Mapped[str | None] = mapped_column(Text, nullable=True)

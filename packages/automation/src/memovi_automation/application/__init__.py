@@ -1,6 +1,7 @@
 from memovi_automation.application.ports import Capability
 from memovi_automation.application.ports_execution import (
     ExecutionAuditStore,
+    ExecutionStateStore,
     PermissionPolicyStore,
 )
 from memovi_automation.application.ports_workflow import (
@@ -29,6 +30,7 @@ __all__ = [
     "CapabilityRegistry",
     "ExecutionAuditStore",
     "ExecutionPlanValidator",
+    "ExecutionStateStore",
     "PermissionPolicyStore",
     "PlanExecutionService",
     "WorkflowEngine",

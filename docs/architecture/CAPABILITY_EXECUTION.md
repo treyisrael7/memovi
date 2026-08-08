@@ -59,13 +59,69 @@ Conversation / Intelligence / API
 
 Statuses:
 
-| Status | Meaning |
+| Status | Queue / UX label | Meaning |
+| --- | --- | --- |
+| `pending_approval` | Awaiting approval | Waiting for explicit user approval |
+| `executing` | Running | Invoker is running the capability |
+| `completed` | Completed | Structured success output available |
+| `failed` | Failed | Normalized error (deny, unknown, invalid args, capability failure, restart interrupt) |
+| `cancelled` | Cancelled | User or host cancelled before/during run |
+
+There is no separate pre-authorization `pending` status: `submit` either returns
+`pending_approval`, runs immediately (`executing` → terminal), or fails.
+
+# Persistence Model
+
+Live execution state is durable in `automation_capability_executions`
+(`SqlAlchemyExecutionStateStore`). The engine API is unchanged; only the state
+backend moved off process-local dicts.
+
+| Concern | Store | Survives restart |
+| --- | --- | --- |
+| Live results (`get` / `list`) | `ExecutionStateStore` | Yes |
+| Pending approval request + auth snapshot | `ExecutionStateStore` | Yes |
+| Audit trail | `ExecutionAuditStore` | Yes |
+| Permission policies | `PermissionPolicyStore` | Yes |
+| Cancellation tokens | Process-local | No (recreated on approve) |
+
+Persisted execution fields include execution id, workspace/user/session ids,
+capability, status, permission mode, progress output, timestamps, failure
+details, redacted-safe metadata, and (for `pending_approval`) the request
+arguments needed to resume after approve. Audit entries continue to redact
+secrets/content independently.
+
+# Restart Recovery
+
+On API startup the composition root calls
+`CapabilityExecutionEngine.recover_interrupted_executions()`:
+
+1. Rows in `executing` are marked `failed` with
+   `interrupted_by_restart` (mid-flight work is not auto-resumed — avoids
+   duplicate side effects).
+2. Rows in `pending_approval` remain pending with stored request/auth payloads.
+3. Completed / failed / cancelled history is preserved and listable.
+
+# Approval Recovery
+
+If the process restarts while an execution is `pending_approval`:
+
+1. Desktop/`GET /capabilities/executions?status=pending_approval` still lists it.
+2. `POST .../approve` reloads the pending request from durable state.
+3. Policy is re-evaluated at approval time; then the invoker runs normally.
+
+# Observability
+
+Metrics via existing `memovi_observability`:
+
+| Metric | Meaning |
 | --- | --- |
-| `pending_approval` | Waiting for explicit user approval |
-| `executing` | Invoker is running the capability |
-| `completed` | Structured success output available |
-| `failed` | Normalized error (deny, unknown, invalid args, capability failure) |
-| `cancelled` | User or host cancelled before/during run |
+| `memovi.capabilities.execution.duration_ms` | Invoke duration |
+| `memovi.capabilities.execution.completed` | Completions |
+| `memovi.capabilities.execution.failed` | Failures |
+| `memovi.capabilities.execution.cancelled` | Cancellations |
+| `memovi.capabilities.execution.pending_approval` | New pending approvals |
+| `memovi.capabilities.execution.recovered` | Interrupted rows recovered |
+| `memovi.capabilities.execution.resume_skipped` | Interrupted executions not resumed |
 
 # Permission Enforcement
 
@@ -101,6 +157,7 @@ invoker/capability check.
 | `CapabilityExecutionResult` | Status, output, duration, errors, metadata |
 | `CapabilityExecutionPolicy` | Timeout and cancellability (not client authz) |
 | `ExecutionAuditEntry` | Durable audit record with user, operation, redacted args |
+| `ExecutionStateStore` | Live execution + pending approval persistence |
 
 `CapabilityInvoker` remains the single-invocation executor. The engine sits
 **above** the invoker and is the only supported path for Intelligence.
@@ -121,9 +178,8 @@ Every status transition appends a durable `ExecutionAuditEntry` capturing:
 * Source (`intelligence`, `api`, …)
 
 Audit history survives process restarts and is listed via
-`GET /capabilities/executions/audit` for future
-Activity views and debugging. The default store is in-memory; durable storage
-can replace the port later without changing the engine contract.
+`GET /capabilities/executions/audit` for Activity views and debugging.
+Production uses `SqlAlchemyExecutionAuditStore`.
 
 # Intelligence Bridge
 
@@ -168,7 +224,7 @@ Desktop remains presentation-only.
 * Conditional/loop workflow runners (plan contracts reserve room; see
   [`CAPABILITY_PLANNER.md`](CAPABILITY_PLANNER.md) for deterministic plan/validate)
 * Write operations beyond existing capability support
-* Durable audit database (port exists; in-memory default)
+* Automatic resume of mid-flight `executing` work after crash (marked failed instead)
 
 # Related Documents
 
