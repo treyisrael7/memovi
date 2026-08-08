@@ -15,7 +15,13 @@ import {
   reprocessDocument,
   uploadDocument,
 } from "../api/documents";
+import { listKnowledge } from "../api/memory";
 import type { DocumentSummary } from "../api/types";
+import {
+  presentIndexedState,
+  presentProcessingStatus,
+  shouldPollProcessing,
+} from "../documents/processingPresentation";
 import { useAppState } from "../state/AppStateContext";
 import { Alert } from "./ui/Alert";
 import { Button } from "./ui/Button";
@@ -36,7 +42,7 @@ interface UploadTask {
   error?: string;
 }
 
-const IN_FLIGHT_STATUSES = new Set(["pending", "extracting", "normalizing"]);
+const POLL_INTERVAL_MS = 2500;
 
 function formatTimestamp(value: string | null | undefined): string {
   if (!value) return "—";
@@ -57,6 +63,9 @@ export function DocumentsPage() {
     connection.status === "connected" || connection.status === "degraded";
 
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
+  const [knowledgeDocumentIds, setKnowledgeDocumentIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,23 +82,51 @@ export function DocumentsPage() {
     [documents, selectedId],
   );
 
-  const hasInFlightProcessing = documents.some((doc) =>
-    IN_FLIGHT_STATUSES.has(doc.processing_status ?? ""),
+  const needsPolling = documents.some((doc) =>
+    shouldPollProcessing(
+      doc.processing_status,
+      knowledgeDocumentIds.has(doc.id),
+    ),
   );
+
+  const inFlightCount = documents.filter((doc) =>
+    presentProcessingStatus(doc.processing_status, {
+      hasKnowledge: knowledgeDocumentIds.has(doc.id),
+    }).isInFlight,
+  ).length;
+
+  const failedCount = documents.filter(
+    (doc) => doc.processing_status === "failed",
+  ).length;
+
+  const indexingCount = documents.filter((doc) => {
+    const indexed = presentIndexedState(
+      doc.processing_status,
+      knowledgeDocumentIds.has(doc.id),
+    );
+    return indexed.state === "indexing";
+  }).length;
 
   const refresh = useCallback(async () => {
     if (!workspaceId || !canUseBackend) {
       setDocuments([]);
+      setKnowledgeDocumentIds(new Set());
       return;
     }
     try {
-      const payload = await listDocuments(workspaceId);
-      setDocuments(payload.items);
+      const [docsPayload, knowledgePayload] = await Promise.all([
+        listDocuments(workspaceId),
+        listKnowledge(workspaceId).catch(() => ({ items: [], count: 0 })),
+      ]);
+      setDocuments(docsPayload.items);
+      setKnowledgeDocumentIds(
+        new Set(knowledgePayload.items.map((item) => item.document_id)),
+      );
       setSelectedId((current) => {
-        if (current && payload.items.some((item) => item.id === current)) {
+        if (current && docsPayload.items.some((item) => item.id === current)) {
           return current;
         }
-        return payload.items[0]?.id ?? null;
+        return docsPayload.items[0]?.id ?? null;
       });
     } catch (err) {
       setError(
@@ -103,17 +140,24 @@ export function DocumentsPage() {
   useEffect(() => {
     if (!workspaceId || !canUseBackend) {
       setDocuments([]);
+      setKnowledgeDocumentIds(new Set());
       setSelectedId(null);
       return;
     }
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    void listDocuments(workspaceId)
-      .then((payload) => {
+    void Promise.all([
+      listDocuments(workspaceId),
+      listKnowledge(workspaceId).catch(() => ({ items: [], count: 0 })),
+    ])
+      .then(([docsPayload, knowledgePayload]) => {
         if (cancelled) return;
-        setDocuments(payload.items);
-        setSelectedId(payload.items[0]?.id ?? null);
+        setDocuments(docsPayload.items);
+        setKnowledgeDocumentIds(
+          new Set(knowledgePayload.items.map((item) => item.document_id)),
+        );
+        setSelectedId(docsPayload.items[0]?.id ?? null);
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -133,14 +177,14 @@ export function DocumentsPage() {
   }, [workspaceId, canUseBackend]);
 
   useEffect(() => {
-    if (!hasInFlightProcessing || !workspaceId || !canUseBackend) {
+    if (!needsPolling || !workspaceId || !canUseBackend) {
       return;
     }
     const timer = window.setInterval(() => {
       void refresh();
-    }, 2000);
+    }, POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [hasInFlightProcessing, workspaceId, canUseBackend, refresh]);
+  }, [needsPolling, workspaceId, canUseBackend, refresh]);
 
   const handleFiles = useCallback(
     (files: FileList | File[]) => {
@@ -209,11 +253,20 @@ export function DocumentsPage() {
     setReprocessingId(document.id);
     try {
       await reprocessDocument(workspaceId, document.id);
-      showToast(`Reprocessing ${document.name}…`, "ok");
+      showToast(`Re-index requested for ${document.name}.`, "ok");
+      try {
+        sessionStorage.setItem(
+          `memovi.reprocess.${document.id}`,
+          new Date().toISOString(),
+        );
+      } catch {
+        // Activity uses this hint when present; ignore storage failures.
+      }
       const updated = await getDocument(workspaceId, document.id);
       setDocuments((current) =>
         current.map((item) => (item.id === document.id ? updated : item)),
       );
+      void refresh();
     } catch (err) {
       showToast(
         err instanceof ApiRequestError
@@ -269,11 +322,26 @@ export function DocumentsPage() {
     }
   }
 
+  const selectedHasKnowledge = selectedDocument
+    ? knowledgeDocumentIds.has(selectedDocument.id)
+    : false;
+  const selectedView = selectedDocument
+    ? presentProcessingStatus(selectedDocument.processing_status, {
+        hasKnowledge: selectedHasKnowledge,
+      })
+    : null;
+  const selectedIndexed = selectedDocument
+    ? presentIndexedState(
+        selectedDocument.processing_status,
+        selectedHasKnowledge,
+      )
+    : null;
+
   return (
     <div className="documents-page">
       <SectionHeader
         title="Documents"
-        description="Import documents to turn them into searchable, connected knowledge. Track processing here from upload through extraction."
+        description="Import documents to turn them into searchable, connected knowledge. Track processing here from upload through indexing."
         level={1}
       />
 
@@ -308,10 +376,13 @@ export function DocumentsPage() {
                   {task.status === "uploading"
                     ? `Uploading… ${Math.round(task.progress * 100)}%`
                     : task.status === "done"
-                      ? "Uploaded"
+                      ? "Uploaded — queued for processing"
                       : `Failed: ${task.error}`}
                 </div>
-                <ProgressBar value={Math.round(task.progress * 100)} />
+                <ProgressBar
+                  value={Math.round(task.progress * 100)}
+                  label="Upload"
+                />
               </div>
             </div>
           ))}
@@ -320,18 +391,59 @@ export function DocumentsPage() {
 
       {error ? <Alert tone="bad">{error}</Alert> : null}
 
+      {!error && (inFlightCount > 0 || indexingCount > 0 || failedCount > 0) ? (
+        <div className="documents-status-summary" role="status">
+          {inFlightCount > 0 ? (
+            <span>
+              {inFlightCount === 1
+                ? "1 document processing"
+                : `${inFlightCount} documents processing`}
+            </span>
+          ) : null}
+          {indexingCount > 0 ? (
+            <span>
+              {indexingCount === 1
+                ? "1 document indexing for search"
+                : `${indexingCount} documents indexing for search`}
+            </span>
+          ) : null}
+          {failedCount > 0 ? (
+            <span className="documents-status-summary--attention">
+              {failedCount === 1
+                ? "1 document needs attention — open it and retry"
+                : `${failedCount} documents need attention — open one and retry`}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="documents-split">
         {isLoading ? (
           <LoadingState label="Loading documents…" />
         ) : documents.length === 0 ? (
           <EmptyState
             title="No documents yet"
-            description="Import your first document to start building knowledge."
+            description="Import your first document to start building knowledge. Processing status will appear here as soon as upload finishes."
+            action={
+              canUseBackend ? (
+                <FilePicker
+                  buttonLabel="Import a document"
+                  onFilesSelected={handleFiles}
+                />
+              ) : undefined
+            }
           />
         ) : (
           <ul className="documents-list">
             {documents.map((document) => {
-              const badge = processingStatusBadge(document.processing_status);
+              const hasKnowledge = knowledgeDocumentIds.has(document.id);
+              const badge = processingStatusBadge(document.processing_status, {
+                hasKnowledge,
+              });
+              const indexed = presentIndexedState(
+                document.processing_status,
+                hasKnowledge,
+              );
               return (
                 <li key={document.id}>
                   <button
@@ -346,7 +458,7 @@ export function DocumentsPage() {
                       <StatusBadge {...badge} />
                     </div>
                     <span className="documents-list-meta">
-                      {document.source_type} ·{" "}
+                      {indexed.label} · {document.source_type} ·{" "}
                       {formatTimestamp(document.created_at)}
                     </span>
                   </button>
@@ -357,10 +469,10 @@ export function DocumentsPage() {
         )}
 
         <div className="document-detail panel">
-          {!selectedDocument ? (
+          {!selectedDocument || !selectedView || !selectedIndexed ? (
             <EmptyState
               title="Select a document"
-              description="Choose a document from the list to see its processing status and details."
+              description="Choose a document from the list to see processing progress, indexing status, and recovery actions."
             />
           ) : (
             <>
@@ -372,15 +484,46 @@ export function DocumentsPage() {
                     {selectedDocument.source_type}
                   </p>
                 </div>
-                <StatusBadge
-                  {...processingStatusBadge(selectedDocument.processing_status)}
-                />
+                <div className="document-detail-badges">
+                  <StatusBadge
+                    {...processingStatusBadge(
+                      selectedDocument.processing_status,
+                      { hasKnowledge: selectedHasKnowledge },
+                    )}
+                  />
+                  <StatusBadge
+                    label={selectedIndexed.label}
+                    tone={selectedIndexed.tone}
+                  />
+                </div>
               </div>
 
-              {selectedDocument.processing_status === "failed" &&
-              selectedDocument.processing_failure_reason ? (
+              <div className="document-processing-panel">
+                <p className="document-processing-stage">
+                  {selectedView.estimatedStage}
+                </p>
+                <ProgressBar
+                  value={selectedView.progressPercent}
+                  label="Processing progress"
+                />
+                <p className="muted document-processing-hint">
+                  {selectedIndexed.detail}
+                </p>
+              </div>
+
+              {selectedDocument.processing_status === "failed" ? (
                 <Alert tone="bad" className="document-detail-error">
-                  {selectedDocument.processing_failure_reason}
+                  {selectedDocument.processing_failure_reason?.trim()
+                    ? selectedDocument.processing_failure_reason
+                    : "Processing failed. Retry to re-queue extraction and indexing."}
+                </Alert>
+              ) : null}
+
+              {selectedDocument.processing_status === "cancelled" ? (
+                <Alert tone="warn" className="document-detail-error">
+                  {selectedDocument.processing_failure_reason?.trim()
+                    ? selectedDocument.processing_failure_reason
+                    : "Processing was cancelled (often superseded by a reprocess). Retry to run again."}
                 </Alert>
               ) : null}
 
@@ -390,10 +533,31 @@ export function DocumentsPage() {
                   <dd>{formatTimestamp(selectedDocument.created_at)}</dd>
                 </div>
                 <div className="meta-card">
-                  <dt>Last processed</dt>
+                  <dt>Started</dt>
+                  <dd>
+                    {formatTimestamp(selectedDocument.processing_started_at)}
+                  </dd>
+                </div>
+                <div className="meta-card">
+                  <dt>Completed</dt>
+                  <dd>
+                    {formatTimestamp(
+                      selectedDocument.processing_completed_at ??
+                        (selectedDocument.processing_status === "completed"
+                          ? selectedDocument.processing_updated_at
+                          : null),
+                    )}
+                  </dd>
+                </div>
+                <div className="meta-card">
+                  <dt>Last update</dt>
                   <dd>
                     {formatTimestamp(selectedDocument.processing_updated_at)}
                   </dd>
+                </div>
+                <div className="meta-card">
+                  <dt>Attempt</dt>
+                  <dd>{selectedDocument.processing_attempt ?? "—"}</dd>
                 </div>
                 <div className="meta-card">
                   <dt>Document ID</dt>
@@ -406,25 +570,31 @@ export function DocumentsPage() {
                   onClick={() => void handleAskAbout(selectedDocument)}
                   disabled={
                     !canUseBackend ||
-                    selectedDocument.processing_status !== "completed"
+                    selectedDocument.processing_status !== "completed" ||
+                    !selectedHasKnowledge
                   }
                   title={
-                    selectedDocument.processing_status !== "completed"
-                      ? "Available once processing completes"
+                    selectedDocument.processing_status !== "completed" ||
+                    !selectedHasKnowledge
+                      ? "Available once processing and indexing complete"
                       : undefined
                   }
                 >
                   Ask about this document
                 </Button>
                 <Button
-                  variant="secondary"
+                  variant={
+                    selectedView.requiresAttention ? "primary" : "secondary"
+                  }
                   onClick={() => void handleReprocess(selectedDocument)}
                   busy={reprocessingId === selectedDocument.id}
                   disabled={!canUseBackend}
                 >
                   {reprocessingId === selectedDocument.id
                     ? "Queuing…"
-                    : "Reprocess"}
+                    : selectedView.requiresAttention
+                      ? "Retry processing"
+                      : "Reprocess"}
                 </Button>
                 <Button
                   variant="danger"

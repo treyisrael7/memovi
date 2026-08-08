@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 41).
+system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 42).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -1178,6 +1178,50 @@ without product redesign or new desktop features.
 
 * Keep Desktop CI green on every PR into public V1
 * Expand packaging matrix when shipping multi-OS installers
+
+---
+
+# Milestone 42 — Knowledge Indexing & Processing Experience
+
+**Overall Status:** Complete
+
+Desktop exposes the existing Documents processing lifecycle clearly: stage,
+progress, failure reasons, retry, and indexed readiness — without redesigning
+ingestion or inventing a parallel job system.
+
+**Completed**
+
+* Shared presentation map over backend statuses (`pending` → `cancelled`) plus
+  derived Indexed / Indexing / Not yet indexed from Memory knowledge presence
+* Documents detail: progress, estimated stage, attempt/timing fields, failure
+  alerts, Retry processing, summary strip for in-flight / failed / indexing
+* Activity: upload started, in-progress, completed, failed/cancelled, re-index
+  requested; Processing filter; light poll while work is in flight
+* Search: indexing banner, document picker status labels, actionable empty
+  states when content is still processing or failed
+* `docs/architecture/DOCUMENT_PIPELINE.md` user-visible + indexing lifecycle
+* Unit tests for presentation helpers; smoke assertions updated
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Optional push/SSE status updates (polling remains bounded and conditional)
+* Multi-platform packaging unrelated to this milestone
+
+**Known Risks**
+
+* "Indexing" after Documents `completed` depends on Memory list lag; brief
+  windows may show Indexing until knowledge appears
+* Presentation labels (Chunking / Indexing) are UX estimates over the existing
+  Documents + Memory APIs, not new backend enums
+
+**Next Recommended Work**
+
+* Keep processing visibility covered by Desktop smoke / release checklist
+* Architecture boundary tests
 
 ---
 

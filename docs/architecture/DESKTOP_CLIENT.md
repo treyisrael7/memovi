@@ -280,36 +280,43 @@ Each page consumes existing platform APIs only; none owns business logic:
 # Documents
 
 Documents is the primary ingestion surface: drag-and-drop or file-picker
-upload, live processing status, reprocessing, and deletion.
+upload, live processing status, reprocessing, and deletion. User-visible
+status labels and indexed readiness are documented in
+[`DOCUMENT_PIPELINE.md`](DOCUMENT_PIPELINE.md).
 
 ```text
 Desktop Documents
   │
   ├─ GET    /documents                     list + processing status
   ├─ GET    /documents/{id}                detail
+  ├─ GET    /memory                        knowledge presence → Indexed badge
   ├─ POST   /documents                     upload (multipart, progress via XHR)
-  ├─ POST   /documents/{id}/reprocess      re-queue ingestion
+  ├─ POST   /documents/{id}/reprocess      re-queue ingestion / retry
   └─ DELETE /documents/{id}                remove document + artifact + knowledge
 ```
 
 Each document reports `processing_status` (`pending` → `extracting` /
-`normalizing` → `completed` or `failed`) and, on failure, a
-`processing_failure_reason`. While any document is still processing, the page
-polls the list on a short interval so status advances without a manual
-refresh. Deletion is confirmed through the shared `ConfirmDialog` before the
-API call runs. "Ask about this document" opens a grounded conversation, gated
-on the document having finished processing.
+`normalizing` → `completed` / `failed` / `cancelled`) plus optional attempt and
+timing fields. Failure reasons surface in the detail pane with a primary
+**Retry processing** action. While any document is in flight — or Documents
+`completed` but Memory has not listed knowledge yet — the page polls on a short
+interval so status advances without a manual refresh. Deletion is confirmed
+through the shared `ConfirmDialog` before the API call runs. "Ask about this
+document" opens a grounded conversation, gated on processing and indexing
+having finished.
 
 # Search
 
 Search is a dedicated experience over the same knowledge index used by
 Knowledge and Chat citations — it does not introduce a second search
-implementation.
+implementation. Documents that are still processing or failed are called out
+explicitly so empty results are not mistaken for "no knowledge."
 
 ```text
 Desktop Search
   │
-  ├─ GET /documents                                     document picker
+  ├─ GET /documents                                     document picker + status
+  ├─ GET /memory                                        indexed readiness
   └─ GET /search?q&mode&document_id                     hybrid/keyword/semantic
 ```
 
@@ -348,13 +355,14 @@ materialization, or ownership logic.
 # Activity
 
 Activity is a read-only timeline explaining what has happened in the active
-workspace: documents uploaded, processing completed/failed, knowledge
-extracted, workflows executed, and capabilities executed. It is composed
-entirely from existing durable records — document processing state, memory
-records, workflow history, and the Capability Execution Engine's audit log
-(`/capabilities/executions/audit`) — merged and sorted client-side. Desktop
-does not introduce a new audit store; it presents the platform's existing
-observability and audit data in product terms.
+workspace: upload started, processing in progress / completed / failed, re-index
+requested, knowledge extracted, workflows executed, and capabilities executed.
+It is composed entirely from existing durable records — document processing
+state, memory records, workflow history, and the Capability Execution Engine's
+audit log (`/capabilities/executions/audit`) — merged and sorted client-side.
+While documents are still processing (or indexing is catching up), Activity
+refreshes on a short poll. Desktop does not introduce a new audit store; it
+presents the platform's existing observability and audit data in product terms.
 
 # Settings
 

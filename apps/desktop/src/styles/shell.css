@@ -1603,10 +1603,52 @@ button.linkish {
   flex-wrap: wrap;
 }
 
+.document-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+.documents-status-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-panel));
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.documents-status-summary--attention {
+  color: var(--danger, #b42318);
+  font-weight: 560;
+}
+
+.document-processing-panel {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.85rem 0 0.5rem;
+}
+
+.document-processing-stage {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 560;
+}
+
+.document-processing-hint {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
 .document-detail-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+  margin-top: 1rem;
 }
 
 .document-detail-error {
@@ -1740,8 +1782,27 @@ button.linkish {
   font-family: inherit;
 }
 
+.search-result-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  text-align: left;
+}
+
 .search-result-header:hover {
   color: var(--accent);
+}
+
+.search-indexing-banner .link-button,
+.link-button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
 }
 
 .search-result-snippet {

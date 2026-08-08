@@ -68,8 +68,9 @@ describe("desktop critical path smoke", () => {
       await screen.findByRole("heading", { name: "notes.txt" }),
     ).toBeInTheDocument();
     expect(
-      (await screen.findAllByText(/Knowledge ready/i)).length,
+      (await screen.findAllByText(/Completed/i)).length,
     ).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/Indexed/i)).length).toBeGreaterThan(0);
 
     // Document upload
     const fileInput = document.querySelector(
@@ -80,11 +81,13 @@ describe("desktop critical path smoke", () => {
       type: "text/plain",
     });
     await user.upload(fileInput, file);
-    expect(await screen.findByText("Uploaded")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Uploaded — queued for processing/i),
+    ).toBeInTheDocument();
     expect((await screen.findAllByText("uploaded.txt")).length).toBeGreaterThan(
       0,
     );
-    expect(await screen.findByText(/Queued/i)).toBeInTheDocument();
+    expect(await screen.findByText(/^Queued$/i)).toBeInTheDocument();
 
     // Search
     await user.click(screen.getByRole("button", { name: /^Search$/i }));

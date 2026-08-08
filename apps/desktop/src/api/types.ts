@@ -125,7 +125,13 @@ export interface SearchResponse {
 }
 
 export type ProcessingStatus =
-  "pending" | "extracting" | "normalizing" | "completed" | "failed" | string;
+  | "pending"
+  | "extracting"
+  | "normalizing"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | string;
 
 export interface DocumentSummary {
   id: string;
@@ -136,6 +142,9 @@ export interface DocumentSummary {
   processing_status?: ProcessingStatus | null;
   processing_failure_reason?: string | null;
   processing_updated_at?: string | null;
+  processing_attempt?: number | null;
+  processing_started_at?: string | null;
+  processing_completed_at?: string | null;
 }
 
 export interface DocumentListResponse {

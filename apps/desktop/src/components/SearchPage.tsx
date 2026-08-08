@@ -4,12 +4,18 @@ import { ApiRequestError } from "../api/client";
 import { listCollections } from "../api/collections";
 import { createConversation } from "../api/conversations";
 import { listDocuments } from "../api/documents";
+import { listKnowledge } from "../api/memory";
 import { searchKnowledge, type SearchMode } from "../api/search";
 import type {
   CollectionListItem,
   DocumentSummary,
   SearchResultItem,
 } from "../api/types";
+import {
+  isProcessingInFlight,
+  presentIndexedState,
+  presentProcessingStatus,
+} from "../documents/processingPresentation";
 import { useAppState } from "../state/AppStateContext";
 import { Alert } from "./ui/Alert";
 import { Button } from "./ui/Button";
@@ -18,6 +24,7 @@ import { EmptyState } from "./ui/EmptyState";
 import { LoadingState } from "./ui/LoadingState";
 import { SearchInput } from "./ui/SearchInput";
 import { SectionHeader } from "./ui/SectionHeader";
+import { StatusBadge } from "./ui/StatusBadge";
 import { Tabs } from "./ui/Tabs";
 import { useToast } from "./ui/ToastContext";
 
@@ -69,6 +76,7 @@ export function SearchPage() {
     connection,
     openKnowledgeItem,
     startConversationAbout,
+    setActivePage,
   } = useAppState();
   const { showToast } = useToast();
   const workspaceId = activeWorkspace?.id ?? null;
@@ -80,6 +88,9 @@ export function SearchPage() {
   const [documentId, setDocumentId] = useState("");
   const [collectionId, setCollectionId] = useState("");
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
+  const [knowledgeDocumentIds, setKnowledgeDocumentIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [collections, setCollections] = useState<CollectionListItem[]>([]);
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -94,25 +105,60 @@ export function SearchPage() {
     return map;
   }, [documents]);
 
+  const processingDocs = useMemo(
+    () =>
+      documents.filter((doc) => isProcessingInFlight(doc.processing_status)),
+    [documents],
+  );
+  const failedDocs = useMemo(
+    () => documents.filter((doc) => doc.processing_status === "failed"),
+    [documents],
+  );
+  const notIndexedDocs = useMemo(
+    () =>
+      documents.filter((doc) => {
+        const state = presentIndexedState(
+          doc.processing_status,
+          knowledgeDocumentIds.has(doc.id),
+        );
+        return state.state === "not_indexed" || state.state === "indexing";
+      }),
+    [documents, knowledgeDocumentIds],
+  );
+
+  const selectedDocument = documentId ? sourceById.get(documentId) : null;
+  const selectedIndexed = selectedDocument
+    ? presentIndexedState(
+        selectedDocument.processing_status,
+        knowledgeDocumentIds.has(selectedDocument.id),
+      )
+    : null;
+
   useEffect(() => {
     if (!workspaceId) {
       setDocuments([]);
+      setKnowledgeDocumentIds(new Set());
       return;
     }
     setRecentSearches(loadRecentSearches(workspaceId));
     if (!canUseBackend) {
       setDocuments([]);
+      setKnowledgeDocumentIds(new Set());
       return;
     }
     let cancelled = false;
-    void listDocuments(workspaceId)
-      .then((payload) => {
-        if (!cancelled) setDocuments(payload.items);
-      })
-      .catch(() => undefined);
-    void listCollections(workspaceId)
-      .then((payload) => {
-        if (!cancelled) setCollections(payload.items);
+    void Promise.all([
+      listDocuments(workspaceId),
+      listKnowledge(workspaceId).catch(() => ({ items: [], count: 0 })),
+      listCollections(workspaceId),
+    ])
+      .then(([docsPayload, knowledgePayload, collectionsPayload]) => {
+        if (cancelled) return;
+        setDocuments(docsPayload.items);
+        setKnowledgeDocumentIds(
+          new Set(knowledgePayload.items.map((item) => item.document_id)),
+        );
+        setCollections(collectionsPayload.items);
       })
       .catch(() => undefined);
     return () => {
@@ -200,6 +246,24 @@ export function SearchPage() {
     }
   }
 
+  const emptyDescription = (() => {
+    if (
+      scope === "document" &&
+      selectedDocument &&
+      selectedIndexed &&
+      selectedIndexed.state !== "indexed"
+    ) {
+      return `${selectedDocument.name} is ${selectedIndexed.label.toLowerCase()}. ${selectedIndexed.detail} Open Documents to track progress or retry.`;
+    }
+    if (processingDocs.length > 0) {
+      return `${processingDocs.length} document${processingDocs.length === 1 ? " is" : "s are"} still processing and will not appear in search until indexing completes.`;
+    }
+    if (failedDocs.length > 0) {
+      return `${failedDocs.length} document${failedDocs.length === 1 ? " failed" : "s failed"} processing. Open Documents to retry, then search again.`;
+    }
+    return "Try a different query or scope. Documents that are still processing are excluded from search until they are indexed.";
+  })();
+
   return (
     <div className="search-page">
       <div className="search-header">
@@ -237,10 +301,20 @@ export function SearchPage() {
               value={documentId}
               onChange={(event) => setDocumentId(event.target.value)}
               placeholder="Choose a document…"
-              options={documents.map((document) => ({
-                value: document.id,
-                label: document.name,
-              }))}
+              options={documents.map((document) => {
+                const indexed = presentIndexedState(
+                  document.processing_status,
+                  knowledgeDocumentIds.has(document.id),
+                );
+                const processing = presentProcessingStatus(
+                  document.processing_status,
+                  { hasKnowledge: knowledgeDocumentIds.has(document.id) },
+                );
+                return {
+                  value: document.id,
+                  label: `${document.name} · ${processing.label} · ${indexed.label}`,
+                };
+              })}
             />
           ) : null}
           <Dropdown
@@ -274,51 +348,100 @@ export function SearchPage() {
 
       {error ? <Alert tone="bad">{error}</Alert> : null}
 
+      {canUseBackend && notIndexedDocs.length > 0 ? (
+        <Alert tone="warn" className="search-indexing-banner">
+          {notIndexedDocs.length === 1
+            ? "1 document is not fully indexed yet and may be missing from results."
+            : `${notIndexedDocs.length} documents are not fully indexed yet and may be missing from results.`}{" "}
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => setActivePage("documents")}
+          >
+            View Documents
+          </button>
+        </Alert>
+      ) : null}
+
       {!canUseBackend ? (
         <EmptyState
-          title="Backend unavailable"
-          description="Connect to the Memovi backend to search your knowledge."
+          title="Search unavailable"
+          description="Connect to the Memovi backend to search indexed knowledge. Offline or disconnected sessions cannot query the index."
         />
       ) : !query.trim() ? (
         <EmptyState
           title="Search your knowledge"
-          description="Find documents and extracted knowledge across your workspace."
+          description={
+            documents.length === 0
+              ? "Import documents first. Search only includes content that has finished processing and indexing."
+              : "Find documents and extracted knowledge across your workspace. Content still processing will not appear until it is indexed."
+          }
+          action={
+            documents.length === 0 ? (
+              <Button
+                variant="secondary"
+                onClick={() => setActivePage("documents")}
+              >
+                Go to Documents
+              </Button>
+            ) : undefined
+          }
         />
       ) : isSearching ? (
         <LoadingState label="Searching…" />
       ) : results.length === 0 ? (
         <EmptyState
           title="No matches"
-          description="Try a different query or scope."
+          description={emptyDescription}
+          action={
+            processingDocs.length > 0 || failedDocs.length > 0 ? (
+              <Button
+                variant="secondary"
+                onClick={() => setActivePage("documents")}
+              >
+                Open Documents
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
         <div className="search-results">
-          {results.map((result) => (
-            <div
-              key={`${result.search_document_id}:${result.knowledge_item_id}`}
-              className="search-result-card"
-            >
-              <button
-                type="button"
-                className="search-result-header"
-                onClick={() => openKnowledgeItem(result.knowledge_item_id)}
+          {results.map((result) => {
+            const source = sourceById.get(result.document_id);
+            const indexed = presentIndexedState(
+              source?.processing_status,
+              knowledgeDocumentIds.has(result.document_id),
+            );
+            return (
+              <div
+                key={`${result.search_document_id}:${result.knowledge_item_id}`}
+                className="search-result-card"
               >
-                <span>
-                  {sourceById.get(result.document_id)?.name ?? "Unknown source"}
-                </span>
-                <span>score {result.score.toFixed(3)}</span>
-              </button>
-              <p className="search-result-snippet">{result.text}</p>
-              <div className="search-result-actions">
-                <Button
-                  variant="secondary"
-                  onClick={() => void handleAskAbout(result)}
+                <button
+                  type="button"
+                  className="search-result-header"
+                  onClick={() => openKnowledgeItem(result.knowledge_item_id)}
                 >
-                  Ask about this
-                </Button>
+                  <span className="search-result-source">
+                    <span>
+                      {source?.name ?? "Unknown source"}
+                    </span>
+                    <StatusBadge label={indexed.label} tone={indexed.tone} />
+                  </span>
+                  <span>score {result.score.toFixed(3)}</span>
+                </button>
+                <p className="search-result-snippet">{result.text}</p>
+                <div className="search-result-actions">
+                  <Button
+                    variant="secondary"
+                    onClick={() => void handleAskAbout(result)}
+                  >
+                    Ask about this
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

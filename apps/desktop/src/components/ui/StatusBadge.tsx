@@ -1,6 +1,10 @@
 import { Badge, type BadgeTone } from "./Badge";
+import {
+  presentProcessingStatus,
+  type ProcessingTone,
+} from "../../documents/processingPresentation";
 
-export type StatusTone = "ok" | "warn" | "bad" | "idle";
+export type StatusTone = ProcessingTone;
 
 interface StatusBadgeProps {
   label: string;
@@ -12,33 +16,13 @@ export function StatusBadge({ label, tone }: StatusBadgeProps) {
   return <Badge label={label} tone={tone as BadgeTone} />;
 }
 
-const PROCESSING_TONE: Record<string, StatusTone> = {
-  pending: "idle",
-  extracting: "warn",
-  normalizing: "warn",
-  completed: "ok",
-  failed: "bad",
-};
-
-const PROCESSING_LABEL: Record<string, string> = {
-  pending: "Queued",
-  extracting: "Extracting",
-  normalizing: "Normalizing",
-  completed: "Knowledge ready",
-  failed: "Processing failed",
-};
-
 /** Maps a document processing status to a shared badge presentation. */
 export function processingStatusBadge(
   status: string | null | undefined,
+  options?: { hasKnowledge?: boolean },
 ): StatusBadgeProps {
-  if (!status) {
-    return { label: "Unknown", tone: "idle" };
-  }
-  return {
-    label: PROCESSING_LABEL[status] ?? status,
-    tone: PROCESSING_TONE[status] ?? "idle",
-  };
+  const view = presentProcessingStatus(status, options);
+  return { label: view.label, tone: view.tone };
 }
 
 const EXECUTION_TONE: Record<string, StatusTone> = {

@@ -143,6 +143,69 @@ Desktop and other clients continue to use existing document endpoints:
 
 No parallel processing-status API is introduced.
 
+# User-visible processing lifecycle
+
+Desktop maps the Documents job statuses above into product language. It does
+**not** invent a second backend status model.
+
+| Backend `processing_status` | User-visible label | Estimated stage (UI copy) |
+| --- | --- | --- |
+| *(client upload in progress)* | Uploaded | Upload progress |
+| `pending` | Queued | Waiting for a worker |
+| `extracting` | Processing | Extracting text |
+| `normalizing` | Chunking | Normalizing and preparing knowledge |
+| `completed` (knowledge not yet present) | Indexing | Indexing for search |
+| `completed` (knowledge present) | Completed | Knowledge ready and indexed |
+| `failed` | Failed | Processing failed — retry available |
+| `cancelled` | Cancelled | Superseded or stopped — retry available |
+
+## Indexed status (presentation)
+
+Indexed readiness is derived from the existing Documents job plus Memory
+knowledge for that `document_id` (same APIs the desktop already calls):
+
+| Condition | Indexed badge |
+| --- | --- |
+| Job in flight (`pending` / `extracting` / `normalizing`) | Not yet indexed |
+| `completed` and no knowledge item yet | Indexing |
+| `completed` and knowledge exists | Indexed |
+| `failed` | Failed indexing |
+| `cancelled` | Not indexed |
+
+Search uses these cues so documents still processing are not silently ignored:
+empty results and banners explain that unindexed documents are excluded until
+processing finishes.
+
+## Retry behavior (user-facing)
+
+| Action | Behavior |
+| --- | --- |
+| Automatic retry | Worker retries transient I/O up to `max_retries` (see Retries) |
+| Manual retry / reprocess | `POST /documents/{id}/reprocess` cancels any non-terminal job and enqueues a new `pending` job |
+| Desktop | Failed / cancelled surfaces emphasize **Retry processing**; other states keep **Reprocess** |
+
+# Indexing lifecycle (downstream, unchanged)
+
+Documents completion is not the end of the knowledge path. Existing event
+handlers continue to run after `ProcessingCompleted`:
+
+```text
+Documents COMPLETED
+        │
+        ▼
+Memory materializes knowledge (chunks)
+        │
+        ▼
+Search indexes the knowledge item
+        │
+        ▼
+Embeddings enrich search documents (async)
+```
+
+Desktop presents the Memory catch-up window as **Indexing** when the Documents
+job is `completed` but knowledge for that document is not listed yet. Embedding
+generation remains a Search concern and is not a separate Documents status.
+
 # Observability
 
 Metrics recorded through `memovi_observability` (existing recorder):
@@ -164,6 +227,8 @@ on the queued job.
 # Related documents
 
 - [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md)
+- [`DESKTOP_CLIENT.md`](DESKTOP_CLIENT.md)
+- [`../testing/DESKTOP_TESTING.md`](../testing/DESKTOP_TESTING.md)
 - [`storage-architecture.md`](storage-architecture.md)
 - [`event-architecture.md`](event-architecture.md)
 - [`observability.md`](observability.md)

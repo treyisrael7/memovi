@@ -204,6 +204,32 @@ export function createMockBackend(): MockBackend {
         },
       };
     }
+    if (path === "/memory" || path.startsWith("/memory?")) {
+      return {
+        status: 200,
+        body: {
+          items: [
+            {
+              id: "ki-smoke-1",
+              workspace_id: DEFAULT_WORKSPACE_ID,
+              document_id: SMOKE_DOCUMENT.id,
+              document_version_id: "ver-smoke-1",
+              source_type: "upload",
+              mime_type: "text/plain",
+              created_at: "2026-01-01T00:00:00.000Z",
+              updated_at: "2026-01-01T00:00:00.000Z",
+              chunk_count: 1,
+              summary: "Smoke knowledge",
+              confidence: 1,
+            },
+          ],
+          count: 1,
+        },
+      };
+    }
+    if (path === "/collections" || path.startsWith("/collections?")) {
+      return { status: 200, body: { items: [], count: 0 } };
+    }
     if (path.startsWith("/documents/") && method === "GET") {
       const id = path.split("/")[2];
       const doc = documents.find((item) => item.id === id) ?? SMOKE_DOCUMENT;
