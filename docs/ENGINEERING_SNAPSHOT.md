@@ -357,7 +357,8 @@ Search document projections, full-text search, embeddings, keyword/semantic/hybr
 * Infra: `SqlAlchemySearchRepository`, `SqlAlchemyEmbeddingRepository`
 * Ports: `EventPublisher`, `KnowledgeReader`
 * Provider protocol: `EmbeddingProvider`
-* Providers: `FakeEmbeddingProvider` (used in composition), `OpenAIEmbeddingProvider`, `OllamaEmbeddingProvider`, `SentenceTransformerEmbeddingProvider` (latter three raise `NotImplementedError` on embed)
+* Providers: `FakeEmbeddingProvider` (explicit local/tests), `OpenAIEmbeddingProvider`,
+  `OllamaEmbeddingProvider`, `SentenceTransformerEmbeddingProvider` (config-selected in composition)
 
 ### Domain events
 
@@ -544,7 +545,7 @@ Document upload
           → SearchIndexed
                 ↓
           SearchIndexedEmbeddingHandler
-            → GenerateEmbedding (FakeEmbeddingProvider in composition)
+            → GenerateEmbedding (configured EmbeddingProvider)
             → EmbeddingGenerated (no subscribers)
 ```
 
@@ -695,7 +696,7 @@ Alembic `script_location = database/migrations`.
 * Extension created in migration `0007`
 * Compose/CI image: `pgvector/pgvector:pg18`
 * Similarity via `cosine_distance` in `SqlAlchemyEmbeddingRepository.similarity_search` (PostgreSQL)
-* Current embedding dimension constant is **4** (compatible with `FakeEmbeddingProvider`)
+* Current embedding dimension constant is **384** (pgvector schema; providers must match)
 
 ---
 
@@ -744,7 +745,9 @@ Pipeline order:
 
 `GET /search` → `RetrieveKnowledge` → `RetrievalEngine.retrieve` → `SearchResponse`
 
-Composition (`apps/api/src/api/search_integration.py`) wires Keyword + Semantic + RankFusion + ScoreNormalizer. Embedding provider in event/API composition defaults to `FakeEmbeddingProvider`.
+Composition (`apps/api`) wires Keyword + Semantic + RankFusion + ScoreNormalizer.
+Embedding provider selection uses `SearchEmbeddingConfig` / `build_embedding_provider`
+(Fake only when `SEARCH_EMBEDDING_PROVIDER=fake`).
 
 ---
 
@@ -1009,7 +1012,7 @@ Scaffold packages have no meaningful test suites beyond empty/test placeholders 
 
 * Ownership enforcement on knowledge APIs (feature absent)
 * Tool framework integration into Reason path (feature absent)
-* Real embedding providers (stubs raise `NotImplementedError`)
+* Real embedding providers wired through configuration (`openai`, `ollama`, `sentence_transformer`)
 * Memory HTTP API (no routes)
 * Desktop client / optional web product UI (web shell only today)
 * Architecture boundary tests
@@ -1068,7 +1071,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 ## Known compromises
 
 * Embedding dimension hard-coded to **4** for fake/local vector path
-* Production embedding providers are stubs (`NotImplementedError`)
+* Production embedding providers are config-selected at the API composition root
 * Document processing queue is in-memory (lost on process restart)
 * Event bus is in-process only
 * Auth events defined but unused
@@ -1079,7 +1082,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 
 ## Temporary implementations
 
-* `FakeEmbeddingProvider` in API composition for search events/retrieval wiring
+* Explicit `FakeEmbeddingProvider` / `SEARCH_EMBEDDING_PROVIDER=fake` for local and tests
 * `FakeKnowledgeRetriever` / `FakeReasoningProvider` for isolated intelligence tests
 * `NoOpEventPublisher` / collecting publishers in documents package tests
 * Placeholder reasoning/knowledge retrievers that raise `NotImplementedError`
@@ -1089,7 +1092,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 * Ownership context on knowledge APIs
 * Typed `memovi_config` wiring
 * Memory HTTP surface
-* Real embedding providers
+* Live smoke coverage against hosted OpenAI / Ollama outside default CI
 * Tool loop integration into Reason (framework exists; path does not)
 
 ## Missing production features
@@ -1148,7 +1151,7 @@ Not implemented:
 * Connectors, OCR, collections/tags
 * Desktop client product UX / streaming
 * Typed shared config package
-* Real embedding provider integrations
+* Optional live embedding provider smoke jobs
 * Architecture boundary tests
 
 The knowledge pipeline from upload through hybrid search is operational for local development. Conversation reasoning is closed-loop with Search-backed retrieval and durable SQLAlchemy conversation persistence at the composition root. The flagship desktop shell in `apps/desktop` consumes that API; Chat, Documents, and Settings pages are the next client work.

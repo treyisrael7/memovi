@@ -17,6 +17,7 @@ from memovi_memory.infrastructure.repositories import (
     SqlAlchemyChunkRepository,
     SqlAlchemyKnowledgeRepository,
 )
+from memovi_search.domain.providers import EmbeddingProvider
 from sqlalchemy.orm import Session as OrmSession
 
 from api.events import InProcessEventDispatcher
@@ -101,9 +102,14 @@ def register_memory_event_handlers(
 def configure_event_dispatch(
     *,
     session_factory: Callable[[], OrmSession],
+    embedding_provider: EmbeddingProvider,
 ) -> InProcessEventDispatcher:
     dispatcher = InProcessEventDispatcher()
     register_memory_event_handlers(dispatcher, session_factory=session_factory)
-    register_search_event_handlers(dispatcher, session_factory=session_factory)
+    register_search_event_handlers(
+        dispatcher,
+        session_factory=session_factory,
+        embedding_provider=embedding_provider,
+    )
     register_observability_event_bridge(dispatcher)
     return dispatcher

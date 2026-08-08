@@ -7,6 +7,7 @@ from api.document_processing import configure_document_processing
 from api.documents_session import build_documents_database_session
 from api.events import InProcessEventDispatcher
 from api.search_integration import build_retrieve_knowledge
+from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from auth.api.dependencies import get_database_session as get_auth_database_session
 from auth.infrastructure.persistence import Base as AuthBase
 from documents.api.dependencies import get_database_session as get_documents_database_session
@@ -152,7 +153,10 @@ def test_upload_process_and_search_returns_memovi_document(
     _wait_for_job_status(engine, payload["processing_job_id"], ProcessingStatus.COMPLETED)
     _wait_for_search_documents(engine)
     with Session(engine) as session:
-        search = build_retrieve_knowledge(session)
+        search = build_retrieve_knowledge(
+            session,
+            embedding_provider=FakeEmbeddingProvider(),
+        )
         results = search.execute(
             RetrieveKnowledgeQuery(
                 query="Memovi",

@@ -14,6 +14,7 @@ from api.document_processing import (
     start_document_processing_worker,
     stop_document_processing_worker,
 )
+from api.embedding_composition import configure_embedding_provider
 
 
 def _startup_object_storage() -> ObjectStorage:
@@ -32,6 +33,8 @@ def _startup_object_storage() -> ObjectStorage:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     initialize_logging()
     validate_configuration()
+    if not hasattr(app.state, "embedding_provider"):
+        configure_embedding_provider(app)
 
     logger = logging.getLogger(LOGGER_NAME)
     if not hasattr(app.state, "document_processing_worker"):

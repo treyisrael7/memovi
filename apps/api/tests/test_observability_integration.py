@@ -12,6 +12,7 @@ import pytest
 from api.database import database_session as api_database_session
 from api.events import InProcessEventDispatcher
 from api.health import _check_embedding_provider
+from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from api.middleware import CORRELATION_ID_HEADER, REQUEST_ID_HEADER
 from api.observability_bridge import register_observability_event_bridge
 from api.workspace_context import (
@@ -253,4 +254,4 @@ def test_ready_endpoint_reports_components() -> None:
 
 
 def test_embedding_provider_readiness_is_up() -> None:
-    assert _check_embedding_provider().status == "up"
+    assert _check_embedding_provider(FakeEmbeddingProvider()).status == "up"

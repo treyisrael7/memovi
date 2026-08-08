@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from sqlalchemy.orm import Session as OrmSession
 
 from api.bootstrap import LOGGER_NAME
+from api.embedding_composition import configure_embedding_provider
 from api.events import InProcessEventDispatcher, TransactionScopedEventPublisher
 from api.memory_integration import configure_event_dispatch
 
@@ -36,7 +37,13 @@ def configure_document_processing(
     if event_publisher is None:
         dispatcher = event_dispatcher or getattr(app.state, "event_dispatcher", None)
         if dispatcher is None:
-            dispatcher = configure_event_dispatch(session_factory=session_factory)
+            embedding_provider = getattr(app.state, "embedding_provider", None)
+            if embedding_provider is None:
+                embedding_provider = configure_embedding_provider(app)
+            dispatcher = configure_event_dispatch(
+                session_factory=session_factory,
+                embedding_provider=embedding_provider,
+            )
             app.state.event_dispatcher = dispatcher
         event_publisher = TransactionScopedEventPublisher(dispatcher)
 

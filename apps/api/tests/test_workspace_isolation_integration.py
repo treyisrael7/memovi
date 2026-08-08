@@ -12,6 +12,7 @@ from api.database import database_session as api_database_session
 from api.document_processing import configure_document_processing
 from api.documents_session import build_documents_database_session
 from api.search_integration import build_retrieve_knowledge
+from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from auth.api.dependencies import get_database_session as get_auth_database_session
 from auth.infrastructure.persistence import Base as AuthBase
 from documents.api.dependencies import get_database_session as get_documents_database_session
@@ -354,7 +355,10 @@ def test_search_and_conversations_are_isolated_by_workspace(
     _wait_for_search_documents(engine, workspace_id=workspace_b)
 
     with Session(engine) as session:
-        search = build_retrieve_knowledge(session)
+        search = build_retrieve_knowledge(
+            session,
+            embedding_provider=FakeEmbeddingProvider(),
+        )
         alpha_results = search.execute(
             RetrieveKnowledgeQuery(
                 query="alphatokensecret",

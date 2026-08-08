@@ -887,6 +887,43 @@ cookie architecture. No JWT or alternate session mechanism was introduced.
 
 ---
 
+# Milestone 35 — Production Embedding Providers
+
+**Overall Status:** Complete
+
+Production embedding providers are implemented on the existing Search
+`EmbeddingProvider` protocol and wired through the API composition root.
+`FakeEmbeddingProvider` remains available only when explicitly selected.
+
+**Completed**
+
+* OpenAI, Ollama, and Sentence Transformers embedding adapters
+* `SearchEmbeddingConfig.from_env()` + `build_embedding_provider` factory selection
+* Composition-root wiring (indexing, retrieval, readiness, Intelligence)
+* Startup validation and provider probe (fail fast; no silent Fake fallback)
+* pgvector dimension resize to 384 (`20260808_0013`) aligned with MiniLM / OpenAI dims
+* Observability: provider, model, duration, dimensions, failures
+* `docs/architecture/SEARCH.md`
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Optional live smoke jobs against hosted OpenAI / Ollama outside default CI
+
+**Known Risks**
+
+* Changing vector dimensions still requires migration + full re-index
+* Ollama / Sentence Transformers models must match schema dimensions
+
+**Next Recommended Work**
+
+* Document production `.env` presets per deployment topology (cloud vs self-hosted)
+
+---
+
 # Phase 3 — Capability Framework
 
 **Overall Status:** In progress

@@ -564,6 +564,7 @@ The following documents expand this blueprint without redefining it.
 | [`architecture/knowledge-processing-pipeline.md`](architecture/knowledge-processing-pipeline.md) | Ingestion, normalization, storage, processing, indexing, retrieval, and intelligence stages |
 | [`architecture/storage-architecture.md`](architecture/storage-architecture.md) | PostgreSQL, pgvector, Redis, MinIO, data ownership, backup, and versioning |
 | [`architecture/search-architecture.md`](architecture/search-architecture.md) | Search responsibility, retrieval strategies, indexes, ranking, and boundaries |
+| [`architecture/SEARCH.md`](architecture/SEARCH.md) | Embedding provider configuration, production recommendations, testing |
 | [`architecture/intelligence-architecture.md`](architecture/intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |
 | [`architecture/CONNECTOR_FRAMEWORK.md`](architecture/CONNECTOR_FRAMEWORK.md) | Connector framework: registry, sync, normalization into Documents |
 | [`architecture/AUTHORIZATION.md`](architecture/AUTHORIZATION.md) | Authentication, membership, capability security, and trust boundaries |

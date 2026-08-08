@@ -1,3 +1,5 @@
+from memovi_observability import get_metrics_recorder, timed_operation
+
 from memovi_search.application.exceptions import EmbeddingGenerationError
 from memovi_search.domain.providers import EmbeddingProvider
 from memovi_search.domain.value_objects import EmbeddingVector
@@ -18,15 +20,67 @@ class EmbeddingGenerationService:
         return self._provider.model
 
     def generate(self, text: str) -> EmbeddingVector:
-        return self._validate_vector(self._provider.embed(text))
+        with timed_operation(
+            "embedding.provider",
+            metric_name="memovi.embedding.provider",
+            attributes={
+                "operation": "embedding.provider",
+                "provider": self.provider,
+                "model": self.model,
+            },
+        ):
+            try:
+                vector = self._validate_vector(self._provider.embed(text))
+            except Exception:
+                get_metrics_recorder().increment(
+                    "memovi.embedding.provider.failures",
+                    tags={"provider": self.provider, "model": self.model},
+                )
+                raise
+        get_metrics_recorder().increment(
+            "memovi.embedding.provider.success",
+            tags={
+                "provider": self.provider,
+                "model": self.model,
+                "dimensions": str(vector.dimensions),
+            },
+        )
+        return vector
 
     def generate_many(self, texts: list[str]) -> list[EmbeddingVector]:
-        vectors = self._provider.embed_many(texts)
+        with timed_operation(
+            "embedding.provider.batch",
+            metric_name="memovi.embedding.provider.batch",
+            attributes={
+                "operation": "embedding.provider.batch",
+                "provider": self.provider,
+                "model": self.model,
+                "batch_size": len(texts),
+            },
+        ):
+            try:
+                vectors = self._provider.embed_many(texts)
+            except Exception:
+                get_metrics_recorder().increment(
+                    "memovi.embedding.provider.failures",
+                    tags={"provider": self.provider, "model": self.model},
+                )
+                raise
         if len(vectors) != len(texts):
             raise EmbeddingGenerationError(
                 "Embedding provider must return one vector for each input text.",
             )
-        return [self._validate_vector(vector) for vector in vectors]
+        validated = [self._validate_vector(vector) for vector in vectors]
+        if validated:
+            get_metrics_recorder().increment(
+                "memovi.embedding.provider.success",
+                tags={
+                    "provider": self.provider,
+                    "model": self.model,
+                    "dimensions": str(validated[0].dimensions),
+                },
+            )
+        return validated
 
     @staticmethod
     def _validate_vector(vector: EmbeddingVector) -> EmbeddingVector:

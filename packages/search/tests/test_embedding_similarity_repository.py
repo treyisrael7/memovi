@@ -19,10 +19,10 @@ KNOWLEDGE_FAR = "b2c3d4e5-f6a7-8901-bcde-f12345678901"
 SOURCE_TYPE = "upload"
 MIME_TYPE = "text/markdown"
 CREATED_AT = datetime(2026, 7, 13, 12, 0, tzinfo=UTC)
-QUERY_VECTOR = [1.0, 0.0, 0.0, 0.0]
-NEAR_VECTOR = [1.0, 0.0, 0.0, 0.0]
-MID_VECTOR = [0.0, 1.0, 0.0, 0.0]
-FAR_VECTOR = [-1.0, 0.0, 0.0, 0.0]
+QUERY_VECTOR = [1.0] + [0.0] * (EMBEDDING_VECTOR_DIMENSIONS - 1)
+NEAR_VECTOR = [1.0] + [0.0] * (EMBEDDING_VECTOR_DIMENSIONS - 1)
+MID_VECTOR = [0.0, 1.0] + [0.0] * (EMBEDDING_VECTOR_DIMENSIONS - 2)
+FAR_VECTOR = [-1.0] + [0.0] * (EMBEDDING_VECTOR_DIMENSIONS - 1)
 
 
 def _build_search_document(*, knowledge_item_id: str, searchable_text: str) -> SearchDocument:

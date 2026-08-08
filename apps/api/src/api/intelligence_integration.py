@@ -16,9 +16,11 @@ from memovi_intelligence.domain.entities import ReasoningRequest
 from memovi_intelligence.domain.value_objects import RetrievedKnowledge
 from memovi_intelligence.infrastructure import SqlAlchemyConversationRepository
 from memovi_search.api.dependencies import get_database_session as get_search_database_session
+from memovi_search.api.dependencies import get_embedding_provider
 from memovi_search.application.dto import SearchResultDto
 from memovi_search.application.queries import RetrieveKnowledge, RetrieveKnowledgeQuery
 from memovi_search.application.services import RetrievalMode
+from memovi_search.domain.providers import EmbeddingProvider
 from memovi_shared import WorkspaceId
 from sqlalchemy.orm import Session as OrmSession
 
@@ -67,10 +69,14 @@ class SearchKnowledgeRetriever:
 def get_search_knowledge_retriever(
     session: Annotated[OrmSession, Depends(get_search_database_session)],
     workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+    embedding_provider: Annotated[EmbeddingProvider, Depends(get_embedding_provider)],
 ) -> SearchKnowledgeRetriever:
     """Request-scoped Search-backed KnowledgeRetriever for the composition root."""
     return SearchKnowledgeRetriever(
-        retrieve_knowledge=build_retrieve_knowledge(session),
+        retrieve_knowledge=build_retrieve_knowledge(
+            session,
+            embedding_provider=embedding_provider,
+        ),
         workspace_id=workspace_id,
     )
 

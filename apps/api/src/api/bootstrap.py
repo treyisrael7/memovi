@@ -12,8 +12,10 @@ def initialize_logging() -> None:
 
 
 def validate_configuration() -> None:
-    """Reserved startup hook for future required-environment validation."""
-    return None
+    """Fail fast when required environment configuration is invalid."""
+    from memovi_search.config import SearchEmbeddingConfig
+
+    SearchEmbeddingConfig.from_env()
 
 
 def project_metadata() -> dict[str, str]:

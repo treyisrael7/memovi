@@ -95,11 +95,15 @@ See [`storage-architecture.md`](storage-architecture.md).
 Embedding generation is isolated behind an `EmbeddingProvider` protocol owned by Search.
 
 Application code calls `EmbeddingGenerationService`, which remains provider-agnostic.
-Concrete adapters (OpenAI, Ollama, Sentence Transformers, and future providers) live in
-infrastructure and are selected through configuration.
+Concrete adapters (OpenAI, Ollama, Sentence Transformers, and Fake for explicit local
+use) live in infrastructure and are selected through configuration at the API
+composition root.
 
 Provider SDKs must not leak into the domain model. Embedding vectors are validated as
 domain value objects before they participate in indexing or retrieval workflows.
+
+Operational configuration, production recommendations, and testing strategy are
+documented in [`SEARCH.md`](SEARCH.md).
 
 # Search in the Request Lifecycle
 

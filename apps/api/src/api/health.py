@@ -10,8 +10,8 @@ from typing import Any
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from fastapi import APIRouter, Response, status
-from memovi_search.infrastructure.providers import FakeEmbeddingProvider
+from fastapi import APIRouter, Request, Response, status
+from memovi_search.domain.providers import EmbeddingProvider
 from memovi_shared import DEFAULT_WORKSPACE_ID
 from memovi_workspace.infrastructure.repositories import SqlAlchemyWorkspaceRepository
 from sqlalchemy import text
@@ -56,9 +56,14 @@ def _check_vector_search() -> ComponentCheck:
         return ComponentCheck(name="vector_search", status="down", detail=str(exc))
 
 
-def _check_embedding_provider() -> ComponentCheck:
+def _check_embedding_provider(provider: EmbeddingProvider | None) -> ComponentCheck:
     try:
-        provider = FakeEmbeddingProvider()
+        if provider is None:
+            return ComponentCheck(
+                name="embedding_provider",
+                status="down",
+                detail="Embedding provider was not configured.",
+            )
         vector = provider.embed("readiness-probe")
         if vector.dimensions <= 0:
             return ComponentCheck(
@@ -69,7 +74,7 @@ def _check_embedding_provider() -> ComponentCheck:
         return ComponentCheck(
             name="embedding_provider",
             status="up",
-            detail=f"{provider.provider}/{provider.model}",
+            detail=f"{provider.provider}/{provider.model} dims={vector.dimensions}",
         )
     except Exception as exc:
         return ComponentCheck(name="embedding_provider", status="down", detail=str(exc))
@@ -144,7 +149,10 @@ def _check_search_readiness() -> ComponentCheck:
         return ComponentCheck(name="search_readiness", status="down", detail=str(exc))
 
 
-def run_readiness_checks() -> list[ComponentCheck]:
+def run_readiness_checks(
+    *,
+    embedding_provider: EmbeddingProvider | None = None,
+) -> list[ComponentCheck]:
     database = _check_database()
     if database.status == "down":
         # Avoid stacking multiple long connection attempts when Postgres is down.
@@ -152,7 +160,7 @@ def run_readiness_checks() -> list[ComponentCheck]:
         return [
             database,
             ComponentCheck(name="vector_search", status="down", detail=unavailable),
-            _check_embedding_provider(),
+            _check_embedding_provider(embedding_provider),
             ComponentCheck(name="migrations", status="down", detail=unavailable),
             ComponentCheck(name="workspace", status="down", detail=unavailable),
             ComponentCheck(name="search_readiness", status="down", detail=unavailable),
@@ -160,7 +168,7 @@ def run_readiness_checks() -> list[ComponentCheck]:
     return [
         database,
         _check_vector_search(),
-        _check_embedding_provider(),
+        _check_embedding_provider(embedding_provider),
         _check_migrations(),
         _check_workspace(),
         _check_search_readiness(),
@@ -173,8 +181,9 @@ async def health() -> dict[str, str]:
 
 
 @router.get("/ready")
-async def ready(response: Response) -> dict[str, Any]:
-    checks = run_readiness_checks()
+async def ready(request: Request, response: Response) -> dict[str, Any]:
+    embedding_provider = getattr(request.app.state, "embedding_provider", None)
+    checks = run_readiness_checks(embedding_provider=embedding_provider)
     all_up = all(check.status == "up" for check in checks)
     if not all_up:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE

@@ -100,6 +100,10 @@ class GenerateEmbedding:
             )
             get_metrics_recorder().increment(
                 "memovi.embedding.generated",
-                tags={"provider": result.provider, "model": result.model},
+                tags={
+                    "provider": result.provider,
+                    "model": result.model,
+                    "dimensions": str(result.dimensions),
+                },
             )
             return result

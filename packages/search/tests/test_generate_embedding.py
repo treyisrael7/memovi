@@ -8,6 +8,7 @@ from memovi_search.domain.entities import Embedding, RankedSearchDocument, Searc
 from memovi_search.domain.events import EmbeddingGenerated
 from memovi_search.domain.repositories import EmbeddingRepository, SearchRepository
 from memovi_search.domain.value_objects import EmbeddingId, EmbeddingVector, SearchDocumentId
+from memovi_search.infrastructure.persistence.vector import EMBEDDING_VECTOR_DIMENSIONS
 from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from memovi_shared import WorkspaceId
 
@@ -156,14 +157,16 @@ def test_generate_embedding_updates_existing_projection_for_same_provider_model(
         search_document_id=search_document.id,
         provider=provider.provider,
         model=provider.model,
-        vector=[0.0, 0.0, 0.0, 0.0],
+        vector=[0.0] * EMBEDDING_VECTOR_DIMENSIONS,
     )
     embedding_repository.save(existing)
     result = use_case.execute(GenerateEmbeddingCommand(search_document_id=search_document.id.value))
     assert result.embedding_id == existing.id.value
     assert embedding_repository.deleted_ids == []
     assert len(embedding_repository.embeddings) == 1
-    assert embedding_repository.embeddings[existing.id.value].vector != (0.0, 0.0, 0.0, 0.0)
+    assert embedding_repository.embeddings[existing.id.value].vector != tuple(
+        [0.0] * EMBEDDING_VECTOR_DIMENSIONS
+    )
 
 
 def test_generate_embedding_replaces_projection_when_provider_changes() -> None:

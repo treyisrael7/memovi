@@ -1,6 +1,6 @@
+from memovi_search.config import EmbeddingProviderKind
 from memovi_search.infrastructure.providers.factory import (
     EmbeddingProviderConfig,
-    EmbeddingProviderKind,
     build_embedding_provider,
 )
 from memovi_search.infrastructure.providers.fake_embedding_provider import (

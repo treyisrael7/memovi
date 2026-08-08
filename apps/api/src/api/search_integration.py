@@ -23,7 +23,6 @@ from memovi_search.domain.events import SearchIndexed
 from memovi_search.domain.providers import EmbeddingProvider
 from memovi_search.domain.services import SearchMaterializer
 from memovi_search.infrastructure.factories import build_retrieval_engine
-from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from memovi_search.infrastructure.repositories import (
     SqlAlchemyEmbeddingRepository,
     SqlAlchemySearchRepository,
@@ -84,7 +83,7 @@ def build_generate_embedding(
 def build_retrieve_knowledge(
     session: OrmSession,
     *,
-    embedding_provider: EmbeddingProvider | None = None,
+    embedding_provider: EmbeddingProvider,
 ) -> RetrieveKnowledge:
     return RetrieveKnowledge(
         retrieval_engine=build_retrieval_engine(
@@ -97,7 +96,7 @@ def build_retrieve_knowledge(
 def build_search_knowledge(
     session: OrmSession,
     *,
-    embedding_provider: EmbeddingProvider | None = None,
+    embedding_provider: EmbeddingProvider,
 ) -> SearchKnowledge:
     return SearchKnowledge(
         retrieval_engine=build_retrieval_engine(
@@ -110,7 +109,7 @@ def build_search_knowledge(
 def build_semantic_search(
     session: OrmSession,
     *,
-    embedding_provider: EmbeddingProvider | None = None,
+    embedding_provider: EmbeddingProvider,
 ) -> SemanticSearch:
     return SemanticSearch(
         retrieval_engine=build_retrieval_engine(
@@ -124,10 +123,8 @@ def register_search_event_handlers(
     dispatcher: InProcessEventDispatcher,
     *,
     session_factory: Callable[[], OrmSession],
-    embedding_provider: EmbeddingProvider | None = None,
+    embedding_provider: EmbeddingProvider,
 ) -> tuple[SearchKnowledgeMaterializedHandler, SearchIndexedEmbeddingHandler]:
-    provider = embedding_provider or FakeEmbeddingProvider()
-
     materialize_handler = SearchKnowledgeMaterializedHandler(
         knowledge_reader=SqlAlchemyKnowledgeReader(session_factory),
         materialize_search_document_factory=build_materialize_search_document,
@@ -139,7 +136,7 @@ def register_search_event_handlers(
         generate_embedding_factory=lambda session, event_publisher: build_generate_embedding(
             session,
             event_publisher,
-            embedding_provider=provider,
+            embedding_provider=embedding_provider,
         ),
         event_publisher=dispatcher,
         session_factory=session_factory,

@@ -19,11 +19,12 @@ unified retrieval:
 - Application query: `RetrieveKnowledge` (modes: `keyword`, `semantic`, `hybrid`)
 - Provider protocol: `EmbeddingProvider` for interchangeable embedding generators
 - Application service: `EmbeddingGenerationService` for provider-agnostic generation
-- Deterministic `FakeEmbeddingProvider` for local wiring and tests
+- Production adapters: OpenAI, Ollama, Sentence Transformers (config-selected)
+- Deterministic `FakeEmbeddingProvider` for explicit local wiring and tests
 - Repository contracts: `SearchRepository` and `EmbeddingRepository`
 - Public HTTP API: `GET /search` with `mode` (hybrid default); `GET /search/semantic`
   is deprecated and routes through the same engine
-- Embedding vectors stored with PostgreSQL pgvector (`vector(N)` + HNSW cosine index)
+- Embedding vectors stored with PostgreSQL pgvector (`vector(384)` + HNSW cosine index)
 
 Search owns derived retrieval structures. It does not own canonical knowledge.
 Everything in Search must be reproducible from Memory.
@@ -67,7 +68,6 @@ scores for presentation, then paginates.
 
 ## Out of scope
 
-- Live embedding generation against OpenAI, Ollama, or Sentence Transformers
 - AI reasoning, answer generation, or LLM prompts
 - Reranking models beyond RRF
 
