@@ -1,8 +1,20 @@
-from collections.abc import Iterable
-from dataclasses import dataclass
+from __future__ import annotations
+
+import re
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 
-from memovi_automation.domain.exceptions import InvalidCapabilityError
+from memovi_automation.domain.exceptions import (
+    CapabilityExecutionError,
+    InvalidCapabilityError,
+)
+from memovi_automation.terminal.command_policy import (
+    compile_denied_argument_patterns,
+    default_confirmation_required_executables,
+    default_denied_argument_patterns,
+    default_denied_executables,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -11,6 +23,7 @@ class TerminalCapabilityConfig:
 
     Working directories are restricted to ``allowed_roots``. Timeouts and output
     caps bound process execution so callers cannot request unbounded work.
+    Command policy lists are evaluated before any process starts.
     """
 
     allowed_roots: tuple[Path, ...]
@@ -19,6 +32,19 @@ class TerminalCapabilityConfig:
     max_stdout_bytes: int = 1_048_576
     max_stderr_bytes: int = 1_048_576
     default_encoding: str = "utf-8"
+    # None = no allow-list restriction (deny/confirm lists still apply).
+    allowed_executables: frozenset[str] | None = None
+    denied_executables: frozenset[str] = field(
+        default_factory=default_denied_executables,
+    )
+    confirmation_required_executables: frozenset[str] = field(
+        default_factory=default_confirmation_required_executables,
+    )
+    denied_argument_patterns: tuple[str, ...] = field(
+        default_factory=default_denied_argument_patterns,
+    )
+    prefer_argv: bool = True
+    allow_shell: bool = True
 
     def __post_init__(self) -> None:
         if not self.allowed_roots:
@@ -51,6 +77,10 @@ class TerminalCapabilityConfig:
             raise InvalidCapabilityError(
                 "TerminalCapabilityConfig.default_encoding is required.",
             )
+        if not self.prefer_argv and not self.allow_shell:
+            raise InvalidCapabilityError(
+                "TerminalCapabilityConfig requires prefer_argv and/or allow_shell.",
+            )
 
         normalized_roots: list[Path] = []
         for root in self.allowed_roots:
@@ -69,8 +99,40 @@ class TerminalCapabilityConfig:
                 )
             normalized_roots.append(resolved)
 
+        allowed = None
+        if self.allowed_executables is not None:
+            allowed = frozenset(
+                item.strip().lower()
+                for item in self.allowed_executables
+                if str(item).strip()
+            )
+        denied = frozenset(
+            item.strip().lower() for item in self.denied_executables if str(item).strip()
+        )
+        confirm = frozenset(
+            item.strip().lower()
+            for item in self.confirmation_required_executables
+            if str(item).strip()
+        )
+        patterns = tuple(
+            pattern.strip()
+            for pattern in self.denied_argument_patterns
+            if str(pattern).strip()
+        )
+        try:
+            compile_denied_argument_patterns(patterns)
+        except CapabilityExecutionError as exc:
+            raise InvalidCapabilityError(str(exc)) from exc
+
         object.__setattr__(self, "allowed_roots", tuple(normalized_roots))
         object.__setattr__(self, "default_encoding", encoding)
+        object.__setattr__(self, "allowed_executables", allowed)
+        object.__setattr__(self, "denied_executables", denied)
+        object.__setattr__(self, "confirmation_required_executables", confirm)
+        object.__setattr__(self, "denied_argument_patterns", patterns)
+
+    def compiled_denied_argument_patterns(self) -> tuple[re.Pattern[str], ...]:
+        return compile_denied_argument_patterns(self.denied_argument_patterns)
 
     @property
     def default_working_directory(self) -> Path:
@@ -86,6 +148,12 @@ class TerminalCapabilityConfig:
         max_stdout_bytes: int = 1_048_576,
         max_stderr_bytes: int = 1_048_576,
         default_encoding: str = "utf-8",
+        allowed_executables: Iterable[str] | None = None,
+        denied_executables: Iterable[str] | None = None,
+        confirmation_required_executables: Iterable[str] | None = None,
+        denied_argument_patterns: Sequence[str] | None = None,
+        prefer_argv: bool = True,
+        allow_shell: bool = True,
     ) -> TerminalCapabilityConfig:
         return cls(
             allowed_roots=tuple(Path(root) for root in roots),
@@ -94,4 +162,24 @@ class TerminalCapabilityConfig:
             max_stdout_bytes=max_stdout_bytes,
             max_stderr_bytes=max_stderr_bytes,
             default_encoding=default_encoding,
+            allowed_executables=(
+                None if allowed_executables is None else frozenset(allowed_executables)
+            ),
+            denied_executables=(
+                default_denied_executables()
+                if denied_executables is None
+                else frozenset(denied_executables)
+            ),
+            confirmation_required_executables=(
+                default_confirmation_required_executables()
+                if confirmation_required_executables is None
+                else frozenset(confirmation_required_executables)
+            ),
+            denied_argument_patterns=(
+                default_denied_argument_patterns()
+                if denied_argument_patterns is None
+                else tuple(denied_argument_patterns)
+            ),
+            prefer_argv=prefer_argv,
+            allow_shell=allow_shell,
         )

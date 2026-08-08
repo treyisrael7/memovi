@@ -21,6 +21,7 @@ from memovi_automation.application.services.capability_invoker import Capability
 from memovi_automation.application.services.capability_registry import CapabilityRegistry
 from memovi_automation.domain.exceptions import (
     AuthorizationDeniedError,
+    CapabilityExecutionError,
     CapabilityExecutionNotFoundError,
     InvalidCapabilityArgumentsError,
     UnknownCapabilityError,
@@ -177,6 +178,35 @@ class CapabilityExecutionEngine:
             return result
 
         permission_mode = decision.permission_mode
+        command_policy: dict[str, object] | None = None
+        try:
+            capability = self._registry.get(request.capability_id)
+        except UnknownCapabilityError:
+            capability = None
+        evaluate_submit = getattr(capability, "evaluate_submit_policy", None)
+        if callable(evaluate_submit):
+            try:
+                permission_mode, policy_decision = evaluate_submit(
+                    request.arguments,
+                    permission_mode=permission_mode,
+                )
+            except CapabilityExecutionError as exc:
+                error = CapabilityError(
+                    code=exc.code,
+                    message=str(exc),
+                    details=dict(exc.details),
+                )
+                result = self._failed_result(
+                    request,
+                    permission_mode=permission_mode,
+                    error=error,
+                    auth_context=auth_context,
+                )
+                self._store_result(result)
+                self._audit(request, result, auth_context=auth_context)
+                return result
+            if policy_decision is not None and hasattr(policy_decision, "to_audit_dict"):
+                command_policy = policy_decision.to_audit_dict()
 
         if permission_mode is PermissionMode.ASK_EVERY_TIME:
             now = datetime.now(UTC)
@@ -198,6 +228,16 @@ class CapabilityExecutionEngine:
                     "user_id": auth_context.user_id,
                     "session_id": auth_context.session_id,
                     "request_id": auth_context.request_id,
+                    **(
+                        {"command_policy": command_policy}
+                        if command_policy is not None
+                        else {}
+                    ),
+                    **(
+                        {"approval_status": "pending"}
+                        if command_policy is not None
+                        else {}
+                    ),
                 },
             )
             with self._lock:
@@ -273,6 +313,24 @@ class CapabilityExecutionEngine:
                 code="permission_denied",
                 details={"capability_id": pending.capability_id},
             )
+        # Re-check capability-specific command policy (deny lists may have changed).
+        try:
+            capability = self._registry.get(pending.capability_id)
+        except UnknownCapabilityError:
+            capability = None
+        evaluate_submit = getattr(capability, "evaluate_submit_policy", None)
+        if callable(evaluate_submit):
+            try:
+                evaluate_submit(
+                    pending.arguments,
+                    permission_mode=decision.permission_mode,
+                )
+            except CapabilityExecutionError as exc:
+                raise AuthorizationDeniedError(
+                    str(exc),
+                    code=exc.code,
+                    details=dict(exc.details),
+                ) from exc
         auth_context = auth_context.with_effective_permissions(decision.effective_permissions)
         return self._execute(pending, auth_context, decision.permission_mode)
 
@@ -661,6 +719,18 @@ class CapabilityExecutionEngine:
         if result.error is not None:
             summary["error_code"] = result.error.code
             summary["error_message"] = result.error.message
+        if result.status is CapabilityExecutionStatus.PENDING_APPROVAL:
+            summary["approval_status"] = "pending"
+        elif result.status is CapabilityExecutionStatus.COMPLETED:
+            summary["approval_status"] = (
+                "approved"
+                if result.permission_mode is PermissionMode.ASK_EVERY_TIME
+                else "not_required"
+            )
+        elif result.status is CapabilityExecutionStatus.CANCELLED:
+            summary["approval_status"] = "cancelled"
+        if "command_policy" in result.metadata:
+            summary["command_policy"] = result.metadata["command_policy"]
         if result.output is not None:
             summary["has_output"] = True
             if isinstance(result.output, dict):
@@ -670,6 +740,12 @@ class CapabilityExecutionEngine:
                     summary["command_duration_seconds"] = result.output["duration_seconds"]
                 if "working_directory" in result.output:
                     summary["working_directory"] = result.output["working_directory"]
+                if "executable" in result.output:
+                    summary["executable"] = result.output["executable"]
+                if "policy" in result.output:
+                    summary["policy"] = result.output["policy"]
+                if "shell" in result.output:
+                    summary["shell"] = result.output["shell"]
                 if "repository" in result.output:
                     summary["repository"] = result.output["repository"]
                 if "branch" in result.output:
@@ -744,9 +820,20 @@ def _operation_summary(arguments: object) -> dict[str, object]:
         summary["delete_mode"] = delete_mode.strip()
     command = arguments.get("command")
     if isinstance(command, str) and command.strip():
-        summary["command"] = command.strip()
+        from memovi_automation.terminal.command_policy import (
+            parse_command,
+            redact_command_for_audit,
+        )
+
+        redacted = redact_command_for_audit(command.strip())
+        summary["command"] = redacted
         if "target" not in summary:
-            summary["target"] = command.strip()
+            summary["target"] = redacted
+        try:
+            parsed = parse_command(command.strip())
+            summary["executable"] = parsed.executable_basename
+        except Exception:
+            pass
     working_directory = arguments.get("working_directory")
     if isinstance(working_directory, str) and working_directory.strip():
         summary["working_directory"] = working_directory.strip()

@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from types import MappingProxyType
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+import re
 
 from memovi_automation.domain.exceptions import InvalidCapabilityError
 from memovi_automation.domain.value_objects.capability_execution_status import (
@@ -76,11 +77,30 @@ def redact_arguments(arguments: Mapping[str, object]) -> dict[str, object]:
             redacted[key] = "[REDACTED]"
         elif lowered in _URL_KEYS and isinstance(value, str):
             redacted[key] = redact_url_for_audit(value)
+        elif lowered == "command" and isinstance(value, str):
+            redacted[key] = redact_command_secrets(value)
         elif isinstance(value, Mapping):
             # Environment maps are redacted key-by-key so non-sensitive values remain.
             redacted[key] = redact_arguments(value)
         else:
             redacted[key] = value
+    return redacted
+
+
+def redact_command_secrets(command: str) -> str:
+    """Redact likely secrets embedded in terminal command strings."""
+    patterns = (
+        (re.compile(r"(?i)(--password=)\S+"), r"\1[REDACTED]"),
+        (re.compile(r"(?i)(--passwd=)\S+"), r"\1[REDACTED]"),
+        (re.compile(r"(?i)(--token=)\S+"), r"\1[REDACTED]"),
+        (re.compile(r"(?i)(--api[_-]?key=)\S+"), r"\1[REDACTED]"),
+        (re.compile(r"(?i)\b(password=)\S+"), r"\1[REDACTED]"),
+        (re.compile(r"(?i)\b(token=)\S+"), r"\1[REDACTED]"),
+        (re.compile(r"(?i)\b(api[_-]?key=)\S+"), r"\1[REDACTED]"),
+    )
+    redacted = command
+    for pattern, repl in patterns:
+        redacted = pattern.sub(repl, redacted)
     return redacted
 
 

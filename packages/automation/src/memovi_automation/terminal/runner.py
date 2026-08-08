@@ -13,7 +13,7 @@ import subprocess
 import sys
 import threading
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
@@ -42,6 +42,7 @@ class ProcessCapture:
     cancelled: bool
     stdout_truncated: bool
     stderr_truncated: bool
+    shell: bool = True
 
 
 def run_command(
@@ -55,19 +56,32 @@ def run_command(
     encoding: str,
     cancellation: CancellationToken,
     on_progress: ProgressCallback | None = None,
+    argv: Sequence[str] | None = None,
+    prefer_argv: bool = True,
+    allow_shell: bool = True,
+    needs_shell: bool = False,
 ) -> ProcessCapture:
-    """Execute ``command`` via the platform shell and capture structured output."""
+    """Execute a command and capture structured output.
+
+    Prefers argv-based ``shell=False`` execution when practical. Falls back to
+    ``shell=True`` for shell builtins, pipes/redirects, and compatibility when
+    ``allow_shell`` is enabled.
+    """
     process_env = os.environ.copy()
     if env:
         process_env.update(env)
 
     started = perf_counter()
     try:
-        process = _spawn(
+        process, used_shell = _spawn(
             command,
             cwd=working_directory,
             env=process_env,
             encoding=encoding,
+            argv=argv,
+            prefer_argv=prefer_argv,
+            allow_shell=allow_shell,
+            needs_shell=needs_shell,
         )
     except OSError as exc:
         raise CapabilityExecutionError(
@@ -151,6 +165,7 @@ def run_command(
                     "working_directory": str(working_directory),
                     "stdout": stdout_text,
                     "stderr": stderr_text,
+                    "shell": used_shell,
                 },
             )
 
@@ -165,6 +180,7 @@ def run_command(
             cancelled=False,
             stdout_truncated=stdout_truncated,
             stderr_truncated=stderr_truncated,
+            shell=used_shell,
         )
     finally:
         if process.poll() is None:
@@ -179,10 +195,66 @@ def _spawn(
     cwd: Path,
     env: dict[str, str],
     encoding: str,
+    argv: Sequence[str] | None,
+    prefer_argv: bool,
+    allow_shell: bool,
+    needs_shell: bool,
+) -> tuple[subprocess.Popen[str], bool]:
+    """Spawn a process, preferring argv when practical.
+
+    Returns ``(process, used_shell)``.
+    """
+    use_argv = (
+        prefer_argv
+        and argv is not None
+        and len(argv) > 0
+        and not needs_shell
+    )
+    if use_argv:
+        try:
+            return (
+                _popen(
+                    args=list(argv),
+                    shell=False,
+                    cwd=cwd,
+                    env=env,
+                    encoding=encoding,
+                ),
+                False,
+            )
+        except FileNotFoundError:
+            if not allow_shell:
+                raise
+            # Shell builtins (e.g. Windows ``echo``) are not PATH executables.
+    if not allow_shell:
+        raise CapabilityExecutionError(
+            "Command requires shell execution but allow_shell is disabled.",
+            code=PROCESS_FAILED,
+            details={"command": command, "prefer_argv": prefer_argv},
+        )
+    return (
+        _popen(
+            args=command,
+            shell=True,
+            cwd=cwd,
+            env=env,
+            encoding=encoding,
+        ),
+        True,
+    )
+
+
+def _popen(
+    *,
+    args: str | list[str],
+    shell: bool,
+    cwd: Path,
+    env: dict[str, str],
+    encoding: str,
 ) -> subprocess.Popen[str]:
     kwargs: dict[str, object] = {
-        "args": command,
-        "shell": True,
+        "args": args,
+        "shell": shell,
         "cwd": str(cwd),
         "env": env,
         "stdin": subprocess.DEVNULL,

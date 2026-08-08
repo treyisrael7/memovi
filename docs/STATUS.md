@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 39).
+system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 40).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -1090,6 +1090,53 @@ unchanged; only library/history backends and startup recovery were added.
 
 ---
 
+# Milestone 40 — Terminal Command Policy & Sandboxing
+
+**Overall Status:** Complete
+
+The existing Terminal Capability is hardened for public V1 with configurable
+command policies, safer process invocation, centralized config, and clearer
+observability — without redesigning the capability or execution engine.
+
+**Completed**
+
+* Command policy: allow list, deny list, confirmation-required executables,
+  denied argument patterns (evaluated before process start)
+* Safer defaults for destructive/privileged names; no default allow list
+  (workflow-compatible)
+* Working-directory roots, timeouts, and output caps remain enforced and are
+  configurable via `memovi_config`
+* Prefer argv / `shell=False` when practical; `shell=True` retained for
+  builtins/pipes with explicit limitations documented
+* High-risk commands escalate Always Allow → Ask Every Time via
+  `evaluate_submit_policy`
+* Audit/logs/metrics record executable, duration, exit code, policy decision,
+  approval status; secret-like command flags redacted
+* `docs/architecture/TERMINAL_CAPABILITY.md` (+ CONFIGURATION / `.env.example`)
+* Policy unit/engine tests
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Optional OS-level sandboxing beyond cwd roots (future hardening)
+* Desktop settings UI for editing terminal policy lists
+
+**Known Risks**
+
+* Allowed executables can still touch paths outside roots if the OS command can;
+  combine allow lists, confirmation policy, and host controls
+* `shell=True` fallback remains for compatibility (documented)
+
+**Next Recommended Work**
+
+* Desktop settings UI for capability / terminal policies
+* Architecture boundary tests
+
+---
+
 # Phase 3 — Capability Framework
 
 **Overall Status:** In progress
@@ -1107,6 +1154,7 @@ unchanged; only library/history backends and startup recovery were added.
 * Filesystem write operations with overwrite/trash policies and fine-grained create/modify/move/delete permissions
 * Filesystem smoke and write tests: register, read/write, traversal rejection, permission and audit coverage
 * `TerminalCapability` (`terminal`) with root-scoped cwd safety, timeouts, output caps, cancellation, and process termination
+* Terminal command policy / sandboxing (allow/deny/confirm, argv preference) — Milestone 40
 * Terminal unit/engine/smoke tests: execute, cwd, env, timeout, cancel, audit redaction, engine-only production path
 * `GitCapability` (`git`) with structured status/branch/commit/diff/remote ops and `git.read` / `git.write` / `git.network`
 * Git unit/engine/acceptance tests: structured results, permission tiers, approval, audit, engine-only path

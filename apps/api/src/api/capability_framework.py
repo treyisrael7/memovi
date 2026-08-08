@@ -80,7 +80,23 @@ def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
     terminal_roots = _capability_roots(settings.terminal_roots, fallback=roots)
     register_terminal_capability(
         registry,
-        TerminalCapabilityConfig.from_roots(terminal_roots),
+        TerminalCapabilityConfig.from_roots(
+            terminal_roots,
+            default_timeout_seconds=settings.terminal_default_timeout_seconds,
+            max_timeout_seconds=settings.terminal_max_timeout_seconds,
+            max_stdout_bytes=settings.terminal_max_stdout_bytes,
+            max_stderr_bytes=settings.terminal_max_stderr_bytes,
+            allowed_executables=(
+                None
+                if not settings.terminal_allowed_executables
+                else settings.terminal_allowed_executables
+            ),
+            denied_executables=settings.terminal_denied_executables,
+            confirmation_required_executables=settings.terminal_confirm_executables,
+            denied_argument_patterns=settings.terminal_denied_argument_patterns,
+            prefer_argv=settings.terminal_prefer_argv,
+            allow_shell=settings.terminal_allow_shell,
+        ),
     )
     git_roots = _capability_roots(settings.git_roots, fallback=roots)
     register_git_capability(

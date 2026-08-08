@@ -1,6 +1,9 @@
 from collections.abc import Callable, Mapping
 from typing import Final
 
+from memovi_observability import get_logger, get_metrics_recorder
+from memovi_observability.logging.structured import log_operation
+
 from memovi_automation.application.services.capability_registry import CapabilityRegistry
 from memovi_automation.domain.exceptions import CapabilityExecutionError
 from memovi_automation.domain.value_objects import (
@@ -11,9 +14,18 @@ from memovi_automation.domain.value_objects import (
     CapabilityPermission,
     CapabilityRequest,
 )
+from memovi_automation.domain.value_objects.permission_mode import PermissionMode
+from memovi_automation.terminal.command_policy import (
+    CommandPolicyDecision,
+    CommandPolicyEffect,
+    evaluate_command_policy,
+    parse_command,
+    redact_command_for_audit,
+)
 from memovi_automation.terminal.config import TerminalCapabilityConfig
 from memovi_automation.terminal.cwd_safety import resolve_working_directory
 from memovi_automation.terminal.errors import (
+    COMMAND_DENIED,
     EMPTY_COMMAND,
     INVALID_ENVIRONMENT,
     INVALID_TIMEOUT,
@@ -27,6 +39,8 @@ CAPABILITY_ID: Final = "terminal"
 EXECUTE_OPERATION: Final = "execute"
 
 _TERMINAL_PERMISSIONS: Final[tuple[CapabilityPermission, ...]] = (TERMINAL_EXECUTE,)
+
+LOGGER = get_logger("memovi.automation.terminal")
 
 
 class TerminalCapability:
@@ -99,6 +113,49 @@ class TerminalCapability:
             ),
         )
 
+    def evaluate_submit_policy(
+        self,
+        arguments: Mapping[str, object],
+        *,
+        permission_mode: PermissionMode,
+    ) -> tuple[PermissionMode, CommandPolicyDecision | None]:
+        """Evaluate command policy before engine approval / invoke.
+
+        Returns the (possibly escalated) permission mode and the policy decision.
+        Denied commands raise ``CapabilityExecutionError``.
+        """
+        operation = _optional_operation(arguments)
+        if operation != EXECUTE_OPERATION:
+            raise CapabilityExecutionError(
+                f"Unsupported terminal operation '{operation}'.",
+                code=UNSUPPORTED_OPERATION,
+                details={"operation": operation},
+            )
+        command = _require_command(arguments)
+        parsed = parse_command(command)
+        decision = evaluate_command_policy(
+            parsed,
+            allowed_executables=self._config.allowed_executables,
+            denied_executables=self._config.denied_executables,
+            confirmation_required_executables=(
+                self._config.confirmation_required_executables
+            ),
+            denied_argument_patterns=self._config.compiled_denied_argument_patterns(),
+        )
+        if decision.effect is CommandPolicyEffect.DENY:
+            raise CapabilityExecutionError(
+                decision.reason,
+                code=decision.code or COMMAND_DENIED,
+                details=dict(decision.details or {}),
+            )
+        mode = permission_mode
+        if (
+            decision.effect is CommandPolicyEffect.REQUIRE_CONFIRMATION
+            and mode is PermissionMode.ALWAYS_ALLOW
+        ):
+            mode = PermissionMode.ASK_EVERY_TIME
+        return mode, decision
+
     def execute(self, request: CapabilityRequest, context: CapabilityContext) -> object:
         context.check_cancelled()
 
@@ -118,6 +175,23 @@ class TerminalCapability:
             )
 
         command = _require_command(request.arguments)
+        parsed = parse_command(command)
+        policy = evaluate_command_policy(
+            parsed,
+            allowed_executables=self._config.allowed_executables,
+            denied_executables=self._config.denied_executables,
+            confirmation_required_executables=(
+                self._config.confirmation_required_executables
+            ),
+            denied_argument_patterns=self._config.compiled_denied_argument_patterns(),
+        )
+        if policy.effect is CommandPolicyEffect.DENY:
+            raise CapabilityExecutionError(
+                policy.reason,
+                code=policy.code or COMMAND_DENIED,
+                details=dict(policy.details or {}),
+            )
+
         working_directory = resolve_working_directory(
             request.arguments.get("working_directory"),
             allowed_roots=self._config.allowed_roots,
@@ -126,6 +200,16 @@ class TerminalCapability:
         env = _optional_env(request.arguments)
         timeout_seconds = _resolve_timeout(request.arguments, self._config)
         on_progress = _progress_callback(context)
+
+        log_operation(
+            LOGGER,
+            operation="terminal.execute.start",
+            status="started",
+            executable=parsed.executable_basename,
+            policy=policy.effect.value,
+            working_directory=str(working_directory),
+            timeout_seconds=timeout_seconds,
+        )
 
         context.check_cancelled()
         capture = run_command(
@@ -138,13 +222,41 @@ class TerminalCapability:
             encoding=self._config.default_encoding,
             cancellation=context.cancellation,
             on_progress=on_progress,
+            argv=parsed.argv,
+            prefer_argv=self._config.prefer_argv,
+            allow_shell=self._config.allow_shell,
+            needs_shell=parsed.needs_shell,
         )
 
         exit_code = 0 if capture.exit_code is None else capture.exit_code
         success = exit_code == 0
+        metrics = get_metrics_recorder()
+        metrics.timing(
+            "memovi.terminal.execution.duration_ms",
+            capture.duration_seconds * 1000,
+            tags={"executable": parsed.executable_basename},
+        )
+        metrics.increment(
+            "memovi.terminal.execution.completed"
+            if success
+            else "memovi.terminal.execution.nonzero_exit",
+            tags={"executable": parsed.executable_basename},
+        )
+        log_operation(
+            LOGGER,
+            operation="terminal.execute.finish",
+            status="success" if success else "completed",
+            duration_ms=capture.duration_seconds * 1000,
+            executable=parsed.executable_basename,
+            exit_code=exit_code,
+            policy=policy.effect.value,
+            shell=capture.shell,
+        )
+
         return {
             "operation": EXECUTE_OPERATION,
             "command": capture.command,
+            "executable": parsed.executable_basename,
             "working_directory": capture.working_directory,
             "exit_code": exit_code,
             "stdout": capture.stdout,
@@ -155,12 +267,18 @@ class TerminalCapability:
             "timed_out": False,
             "stdout_truncated": capture.stdout_truncated,
             "stderr_truncated": capture.stderr_truncated,
+            "shell": capture.shell,
+            "policy": policy.to_audit_dict(),
             "metadata": {
                 "exit_code": exit_code,
                 "duration_seconds": capture.duration_seconds,
                 "timeout_seconds": timeout_seconds,
                 "stdout_truncated": capture.stdout_truncated,
                 "stderr_truncated": capture.stderr_truncated,
+                "executable": parsed.executable_basename,
+                "shell": capture.shell,
+                "policy": policy.to_audit_dict(),
+                "command_redacted": redact_command_for_audit(capture.command),
             },
         }
 

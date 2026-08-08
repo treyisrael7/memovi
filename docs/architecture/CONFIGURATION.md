@@ -61,7 +61,7 @@ Supported secret sources: **environment variables only** for V1.
 | Embeddings | `EmbeddingsSettings` | Embedding provider selection |
 | Models | `ModelsSettings` | Intelligence / reasoning provider selection |
 | Storage | `StorageSettings` | MinIO / object storage |
-| Capabilities | `CapabilitiesSettings` | Filesystem / terminal / git / browser roots |
+| Capabilities | `CapabilitiesSettings` | Filesystem / terminal / git / browser roots + terminal policy |
 | Connectors | `ConnectorsSettings` | Process-level connector settings (credentials stay env refs) |
 | Observability | `ObservabilitySettings` | Environment label + log level |
 | Desktop | `DesktopSettings` | API base URL for desktop / local tooling |
@@ -142,6 +142,18 @@ roots for terminal/git/browser).
 | `MEMOVI_TERMINAL_ROOTS` | optional | filesystem roots | Terminal cwd roots |
 | `MEMOVI_GIT_ROOTS` | optional | filesystem roots | Git repo roots |
 | `MEMOVI_BROWSER_DOWNLOAD_ROOTS` | optional | filesystem roots | Browser download roots |
+| `MEMOVI_TERMINAL_ALLOWED_EXECUTABLES` | optional | unrestricted | Comma-separated allow list |
+| `MEMOVI_TERMINAL_DENIED_EXECUTABLES` | optional | built-in deny defaults | Comma-separated deny list |
+| `MEMOVI_TERMINAL_CONFIRM_EXECUTABLES` | optional | built-in confirm defaults | Comma-separated confirmation list |
+| `MEMOVI_TERMINAL_DENIED_ARGUMENT_PATTERNS` | optional | built-in patterns | Semicolon-separated regexes |
+| `MEMOVI_TERMINAL_DEFAULT_TIMEOUT_SECONDS` | optional | `30` | Default terminal timeout |
+| `MEMOVI_TERMINAL_MAX_TIMEOUT_SECONDS` | optional | `300` | Terminal timeout ceiling |
+| `MEMOVI_TERMINAL_MAX_STDOUT_BYTES` | optional | `1048576` | Stdout capture cap |
+| `MEMOVI_TERMINAL_MAX_STDERR_BYTES` | optional | `1048576` | Stderr capture cap |
+| `MEMOVI_TERMINAL_PREFER_ARGV` | optional | `true` | Prefer `shell=False` when practical |
+| `MEMOVI_TERMINAL_ALLOW_SHELL` | optional | `true` | Allow `shell=True` fallback |
+
+See [`TERMINAL_CAPABILITY.md`](TERMINAL_CAPABILITY.md) for policy semantics.
 
 ### API / observability / desktop
 

@@ -2,6 +2,8 @@
 
 PERMISSION_DENIED = "permission_denied"
 EMPTY_COMMAND = "empty_command"
+COMMAND_DENIED = "command_denied"
+INVALID_ARGUMENTS = "invalid_arguments"
 INVALID_WORKING_DIRECTORY = "invalid_working_directory"
 INVALID_ENVIRONMENT = "invalid_environment"
 INVALID_TIMEOUT = "invalid_timeout"
