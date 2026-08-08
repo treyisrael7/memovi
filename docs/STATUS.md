@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-07 (Milestone 33).
+system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 36).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -40,9 +40,9 @@ Engineering foundation is in place: workspaces, local infrastructure, CI, toolin
 
 # Milestone 1 — Platform
 
-**Overall Status:** In progress
+**Overall Status:** Complete (typed config delivered in Milestone 36; architecture boundary tests remain)
 
-Backend composition root is operational. Observability foundation (request context, structured logs, diagnostic bridge, metrics, readiness) is in place. Typed config and architecture boundary tests remain.
+Backend composition root is operational. Observability foundation (request context, structured logs, diagnostic bridge, metrics, readiness) is in place. Typed configuration is wired through `memovi_config`. Architecture boundary tests remain.
 
 **Completed**
 
@@ -51,24 +51,23 @@ Backend composition root is operational. Observability foundation (request conte
 * Health liveness (`/health`) and readiness (`/ready`) endpoints
 * Domain packages for auth, documents, search, and intelligence
 * `memovi_observability` RequestContext, structured JSON logging, diagnostic event bridge, metrics recorder, and OpenTelemetry-API spans
+* Typed `memovi_config` settings, env parsing, secrets, and startup validation (Milestone 36)
 
 **In Progress**
 
 * Domain package scaffolding for remaining packages
-* Environment-based configuration (typed `memovi_config` not yet wired)
 
 **Remaining**
 
 * Architecture tests validating package boundaries
-* Typed configuration wiring
 
 **Known Risks**
 
-* Cross-cutting concerns may stay ad hoc without typed config
+* None specific to typed config after Milestone 36
 
 **Next Recommended Work**
 
-* Wire typed configuration and add architecture boundary tests
+* Add architecture boundary tests
 
 ---
 
@@ -921,6 +920,48 @@ Production embedding providers are implemented on the existing Search
 **Next Recommended Work**
 
 * Document production `.env` presets per deployment topology (cloud vs self-hosted)
+
+---
+
+# Milestone 36 — Typed Configuration & Startup Validation
+
+**Overall Status:** Complete
+
+`packages/config` (`memovi_config`) is the authoritative typed configuration
+system. Environment parsing, defaults, validation, secret redaction, and
+startup fail-fast checks live there. Domain `from_env()` helpers delegate to
+`memovi_config` instead of calling `os.getenv` directly.
+
+**Completed**
+
+* Typed settings for API, database, auth, search, embeddings, models, storage,
+  capabilities, connectors, observability, and desktop
+* `Settings` aggregate + `load_settings()` / `validate_configuration()`
+* Secret wrapping (`SecretValue`) that never appears in `str`/`repr`/errors
+* API startup validation through `api.bootstrap.validate_configuration()`
+* Migration of database, MinIO, embeddings, intelligence, capability roots, and
+  readiness environment reads onto `memovi_config`
+* Configuration validation tests (valid, missing required, invalid enums/URLs/numbers)
+* `docs/architecture/CONFIGURATION.md` and `.env.example` updates
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Optional auth cookie/TTL env overrides wired into the auth package
+* Script-only helpers (`scripts/verify_workspace_e2e.py`) may still compose
+  Postgres URLs locally
+
+**Known Risks**
+
+* Capability root env vars now fail startup when set to missing paths (intentional)
+* `INTELLIGENCE_PROVIDER=openai` without `OPENAI_API_KEY` fails full startup validation
+
+**Next Recommended Work**
+
+* Architecture boundary tests (Milestone 1 remaining)
 
 ---
 

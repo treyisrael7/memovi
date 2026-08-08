@@ -11,6 +11,7 @@ from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from fastapi import APIRouter, Request, Response, status
+from memovi_config.settings.api import ApiSettings
 from memovi_search.domain.providers import EmbeddingProvider
 from memovi_shared import DEFAULT_WORKSPACE_ID
 from memovi_workspace.infrastructure.repositories import SqlAlchemyWorkspaceRepository
@@ -190,5 +191,5 @@ async def ready(request: Request, response: Response) -> dict[str, Any]:
     return {
         "status": "ready" if all_up else "not_ready",
         "components": [check.as_dict() for check in checks],
-        "environment": os.getenv("MEMOVI_ENV", "local"),
+        "environment": ApiSettings.from_environ(os.environ).environment,
     }

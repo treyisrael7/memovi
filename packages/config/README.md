@@ -1,5 +1,16 @@
 # Memovi Config
 
-Configuration package for typed settings and environment loading boundaries. Runtime configuration should be centralized here when application code is introduced.
+Typed application configuration for Memovi: environment parsing, defaults,
+validation, secret redaction, and startup fail-fast checks.
 
-This package currently defines structure only. It intentionally contains no application code, business logic, persistence models, API endpoints, or placeholder classes.
+## Usage
+
+```python
+from memovi_config import load_settings, validate_configuration
+
+settings = validate_configuration()
+print(settings.database.safe_url)  # password redacted
+```
+
+See [`docs/architecture/CONFIGURATION.md`](../../docs/architecture/CONFIGURATION.md)
+for the full environment variable contract.

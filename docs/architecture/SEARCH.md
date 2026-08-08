@@ -28,7 +28,9 @@ explicitly so demos and CI remain offline-capable.
 
 # Configuration
 
-Environment variables (loaded by `SearchEmbeddingConfig.from_env()`):
+Environment variables are parsed by `memovi_config.EmbeddingsSettings` and exposed
+to Search via `SearchEmbeddingConfig.from_env()`. See
+[`CONFIGURATION.md`](CONFIGURATION.md) for the platform-wide contract.
 
 | Variable | Required | Default | Purpose |
 | --- | --- | --- | --- |

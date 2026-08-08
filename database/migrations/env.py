@@ -104,16 +104,9 @@ target_metadata = [
 
 
 def database_url() -> str:
-    explicit_url = os.getenv("DATABASE_URL")
-    if explicit_url:
-        return explicit_url
+    from memovi_config.settings.database import DatabaseSettings
 
-    user = os.getenv("POSTGRES_USER", "memovi_app")
-    password = os.getenv("POSTGRES_PASSWORD", "memovi_local_pg_9f4c8e2d7a6b41c3")
-    host = os.getenv("POSTGRES_HOST", "127.0.0.1")
-    port = os.getenv("POSTGRES_PORT", "5432")
-    database = os.getenv("POSTGRES_DB", "memovi")
-    return f"postgresql+psycopg://{user}:{password}@{host}:{port}/{database}"
+    return DatabaseSettings.from_environ(os.environ).url
 
 
 def run_migrations_offline() -> None:

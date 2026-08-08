@@ -8,6 +8,7 @@ dependencies = [
     "fastapi",
     "memovi-auth",
     "memovi-automation",
+    "memovi-config",
     "memovi-connectors",
     "memovi-documents",
     "memovi-intelligence",
@@ -36,6 +37,7 @@ package = true
 [tool.uv.sources]
 memovi-auth = { workspace = true }
 memovi-automation = { workspace = true }
+memovi-config = { workspace = true }
 memovi-connectors = { workspace = true }
 memovi-documents = { workspace = true }
 memovi-intelligence = { workspace = true }

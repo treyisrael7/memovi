@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from memovi_config.settings.models import ModelsSettings
 from memovi_intelligence.config import IntelligenceConfig
 from memovi_intelligence.domain.exceptions import (
     InvalidIntelligenceConfigError,
@@ -48,7 +49,15 @@ class OpenAIProviderSettings:
         base_url: str | None = None,
     ) -> OpenAIProviderSettings:
         """Build settings from IntelligenceConfig plus secret/env inputs."""
-        resolved_key = api_key if api_key is not None else os.environ.get("OPENAI_API_KEY")
+        if api_key is None:
+            models = ModelsSettings.from_environ(os.environ)
+            resolved_key = (
+                models.openai_api_key.get_secret_value()
+                if models.openai_api_key is not None
+                else None
+            )
+        else:
+            resolved_key = api_key
         if resolved_key is None or not resolved_key.strip():
             raise ReasoningProviderUnavailableError(
                 "OpenAI API key is not configured.",

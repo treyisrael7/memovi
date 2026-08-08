@@ -34,6 +34,7 @@ from memovi_automation.infrastructure.sqlalchemy_execution_audit_store import (
 from memovi_automation.infrastructure.sqlalchemy_permission_policy_store import (
     SqlAlchemyPermissionPolicyStore,
 )
+from memovi_config.settings.capabilities import CapabilitiesSettings
 from memovi_shared import DEFAULT_WORKSPACE_ID
 
 from api.authorization import SqlAlchemyWorkspaceMembershipPort
@@ -42,26 +43,19 @@ from api.capability_planner_integration import CapabilityPlannerAdapter
 from api.database import create_session
 
 
-def _roots_from_env(env_name: str) -> tuple[Path, ...] | None:
-    configured = os.environ.get(env_name, "").strip()
-    if not configured:
-        return None
-    roots = [Path(part.strip()) for part in configured.split(os.pathsep) if part.strip()]
-    existing = tuple(root for root in roots if root.exists() and root.is_dir())
-    return existing or None
-
-
-def _filesystem_roots() -> tuple[Path, ...]:
-    configured = _roots_from_env("MEMOVI_FILESYSTEM_ROOTS")
-    if configured is not None:
-        return configured
+def _filesystem_roots(settings: CapabilitiesSettings) -> tuple[Path, ...]:
+    if settings.filesystem_roots is not None:
+        return settings.filesystem_roots
 
     fallback = Path(tempfile.mkdtemp(prefix="memovi-filesystem-"))
     return (fallback,)
 
 
-def _capability_roots(env_name: str, *, fallback: tuple[Path, ...]) -> tuple[Path, ...]:
-    configured = _roots_from_env(env_name)
+def _capability_roots(
+    configured: tuple[Path, ...] | None,
+    *,
+    fallback: tuple[Path, ...],
+) -> tuple[Path, ...]:
     if configured is not None:
         return configured
     return fallback
@@ -70,22 +64,23 @@ def _capability_roots(env_name: str, *, fallback: tuple[Path, ...]) -> tuple[Pat
 def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
     """Register capabilities and attach the execution engine to the app."""
     registry = CapabilityRegistry()
-    roots = _filesystem_roots()
+    settings = CapabilitiesSettings.from_environ(os.environ)
+    roots = _filesystem_roots(settings)
     register_filesystem_capability(
         registry,
         FilesystemCapabilityConfig.from_roots(roots),
     )
-    terminal_roots = _capability_roots("MEMOVI_TERMINAL_ROOTS", fallback=roots)
+    terminal_roots = _capability_roots(settings.terminal_roots, fallback=roots)
     register_terminal_capability(
         registry,
         TerminalCapabilityConfig.from_roots(terminal_roots),
     )
-    git_roots = _capability_roots("MEMOVI_GIT_ROOTS", fallback=roots)
+    git_roots = _capability_roots(settings.git_roots, fallback=roots)
     register_git_capability(
         registry,
         GitCapabilityConfig.from_roots(git_roots),
     )
-    browser_roots = _capability_roots("MEMOVI_BROWSER_DOWNLOAD_ROOTS", fallback=roots)
+    browser_roots = _capability_roots(settings.browser_download_roots, fallback=roots)
     register_browser_capability(
         registry,
         BrowserCapabilityConfig.from_roots(browser_roots),

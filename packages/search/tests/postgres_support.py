@@ -7,16 +7,15 @@ from sqlalchemy.orm import Session, sessionmaker
 
 
 def postgres_database_url() -> str:
-    explicit_url = os.getenv("DATABASE_URL")
-    if explicit_url and explicit_url.startswith("postgresql"):
-        return explicit_url
+    from memovi_config.settings.database import DatabaseSettings
 
-    user = os.getenv("POSTGRES_USER", "memovi_app")
-    password = os.getenv("POSTGRES_PASSWORD", "memovi_local_pg_9f4c8e2d7a6b41c3")
-    host = os.getenv("POSTGRES_HOST", "127.0.0.1")
-    port = os.getenv("POSTGRES_PORT", "5432")
-    database = os.getenv("POSTGRES_DB", "memovi")
-    return f"postgresql+psycopg://{user}:{password}@{host}:{port}/{database}"
+    explicit = os.getenv("DATABASE_URL")
+    if explicit and explicit.startswith("postgresql"):
+        return DatabaseSettings.from_environ({"DATABASE_URL": explicit}).url
+
+    # Ignore non-Postgres DATABASE_URL (e.g. sqlite) for these integration tests.
+    environ = {key: value for key, value in os.environ.items() if key != "DATABASE_URL"}
+    return DatabaseSettings.from_environ(environ).url
 
 
 _POSTGRES_AVAILABLE: bool | None = None

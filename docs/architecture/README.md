@@ -51,6 +51,7 @@ document that matches the concern being changed or reviewed.
 | [`DESKTOP_CLIENT.md`](DESKTOP_CLIENT.md) | Flagship Tauri desktop shell, client boundaries, and API communication |
 | [`../design/DESIGN_SYSTEM.md`](../design/DESIGN_SYSTEM.md) | Desktop design system: tokens, components, interaction, accessibility |
 | [`KNOWLEDGE_EXPLORER.md`](KNOWLEDGE_EXPLORER.md) | Read-only knowledge inspection, provenance navigation, explorer contracts |
+| [`CONFIGURATION.md`](CONFIGURATION.md) | Typed settings, environment variables, startup validation, secrets |
 | [`observability.md`](observability.md) | Telemetry for requests, workers, events, AI, connectors, search, errors, and performance |
 | [`deployment.md`](deployment.md) | Self-hostable posture, runtime components, infrastructure isolation, and deployment constraints |
 | [`scaling.md`](scaling.md) | Evolution strategy, worker scaling, storage scaling, and future service extraction |

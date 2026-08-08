@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 
+from memovi_config.env import get_str
+from memovi_config.settings.models import ModelsSettings
 from memovi_intelligence.application.ports import ReasoningProvider
 from memovi_intelligence.application.services.model_gateway import ModelGateway
 from memovi_intelligence.config import DEFAULT_MODELS, IntelligenceConfig, ReasoningProviderKind
@@ -28,10 +30,15 @@ def build_model_gateway(config: IntelligenceConfig | None = None) -> ModelGatewa
         ReasoningProviderKind.FAKE.value: FakeReasoningProvider(),
     }
 
-    api_key = os.environ.get("OPENAI_API_KEY")
+    models = ModelsSettings.from_environ(os.environ)
+    api_key = (
+        models.openai_api_key.get_secret_value() if models.openai_api_key is not None else None
+    )
     if api_key and api_key.strip():
+        # OpenAI adapter uses OPENAI_MODEL (not the active intelligence provider model).
         openai_model = (
-            os.environ.get("OPENAI_MODEL") or DEFAULT_MODELS[ReasoningProviderKind.OPENAI]
+            get_str(os.environ, "OPENAI_MODEL", default=None)
+            or DEFAULT_MODELS[ReasoningProviderKind.OPENAI]
         )
         settings = OpenAIProviderSettings(
             api_key=api_key,

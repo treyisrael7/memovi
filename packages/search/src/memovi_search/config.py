@@ -2,29 +2,21 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from enum import StrEnum
 
+from memovi_config.exceptions import ConfigurationError
+from memovi_config.settings.embeddings import (
+    DEFAULT_MODELS,
+    DEFAULT_OLLAMA_ENDPOINT,
+    EMBEDDING_VECTOR_DIMENSIONS as CONFIG_EMBEDDING_DIMENSIONS,
+    EmbeddingProviderKind,
+    EmbeddingsSettings,
+)
 from memovi_search.application.exceptions import InvalidEmbeddingConfigError
 from memovi_search.infrastructure.persistence.vector import EMBEDDING_VECTOR_DIMENSIONS
 
-
-class EmbeddingProviderKind(StrEnum):
-    """Supported embedding provider identifiers for configuration selection."""
-
-    FAKE = "fake"
-    OPENAI = "openai"
-    OLLAMA = "ollama"
-    SENTENCE_TRANSFORMER = "sentence_transformer"
-
-
-DEFAULT_MODELS: dict[EmbeddingProviderKind, str] = {
-    EmbeddingProviderKind.FAKE: "fake-embedding-v1",
-    EmbeddingProviderKind.OPENAI: "text-embedding-3-small",
-    EmbeddingProviderKind.OLLAMA: "all-minilm",
-    EmbeddingProviderKind.SENTENCE_TRANSFORMER: "all-MiniLM-L6-v2",
-}
-
-DEFAULT_OLLAMA_ENDPOINT = "http://127.0.0.1:11434"
+assert CONFIG_EMBEDDING_DIMENSIONS == EMBEDDING_VECTOR_DIMENSIONS, (
+    "memovi_config embedding dimensions must match pgvector schema constant"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,43 +93,17 @@ class SearchEmbeddingConfig:
     def from_env(cls) -> SearchEmbeddingConfig:
         """Load embedding provider selection from process environment variables.
 
-        Recognized variables:
-        - ``SEARCH_EMBEDDING_PROVIDER`` (default: ``fake``)
-        - ``SEARCH_EMBEDDING_MODEL`` (optional override)
-        - ``SEARCH_EMBEDDING_DIMENSIONS`` (must match pgvector schema)
-        - ``SEARCH_EMBEDDING_ENDPOINT`` (Ollama base URL; optional OpenAI base URL)
-        - ``SEARCH_EMBEDDING_API_KEY`` or ``OPENAI_API_KEY`` (OpenAI)
-        - ``SEARCH_EMBEDDING_TIMEOUT_SECONDS`` (default: ``60``)
+        Environment parsing is owned by ``memovi_config.EmbeddingsSettings``.
         """
-        provider = os.environ.get(
-            "SEARCH_EMBEDDING_PROVIDER",
-            EmbeddingProviderKind.FAKE.value,
-        )
-        model = os.environ.get("SEARCH_EMBEDDING_MODEL")
-        dimensions_raw = os.environ.get("SEARCH_EMBEDDING_DIMENSIONS")
-        if dimensions_raw is None:
-            dimensions = EMBEDDING_VECTOR_DIMENSIONS
-        else:
-            try:
-                dimensions = int(dimensions_raw)
-            except ValueError as exc:
-                raise InvalidEmbeddingConfigError(
-                    "SEARCH_EMBEDDING_DIMENSIONS must be an integer.",
-                ) from exc
-        endpoint = os.environ.get("SEARCH_EMBEDDING_ENDPOINT")
-        api_key = os.environ.get("SEARCH_EMBEDDING_API_KEY") or os.environ.get("OPENAI_API_KEY")
-        timeout_raw = os.environ.get("SEARCH_EMBEDDING_TIMEOUT_SECONDS", "60")
         try:
-            timeout_seconds = float(timeout_raw)
-        except ValueError as exc:
-            raise InvalidEmbeddingConfigError(
-                "SEARCH_EMBEDDING_TIMEOUT_SECONDS must be a number.",
-            ) from exc
+            emb = EmbeddingsSettings.from_environ(os.environ)
+        except ConfigurationError as exc:
+            raise InvalidEmbeddingConfigError(str(exc)) from exc
         return cls(
-            provider=provider,
-            model=model,
-            dimensions=dimensions,
-            endpoint=endpoint,
-            api_key=api_key,
-            timeout_seconds=timeout_seconds,
+            provider=emb.provider,
+            model=emb.model,
+            dimensions=emb.dimensions,
+            endpoint=emb.endpoint,
+            api_key=emb.api_key.get_secret_value() if emb.api_key is not None else None,
+            timeout_seconds=emb.timeout_seconds,
         )

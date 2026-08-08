@@ -2,31 +2,16 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from enum import StrEnum
 
+from memovi_config.exceptions import ConfigurationError
+from memovi_config.settings.models import (
+    DEFAULT_MODELS as CONFIG_DEFAULT_MODELS,
+    ModelsSettings,
+    ReasoningProviderKind,
+)
 from memovi_intelligence.domain.exceptions import InvalidIntelligenceConfigError
 
-
-class ReasoningProviderKind(StrEnum):
-    """Known reasoning provider identifiers.
-
-    ``fake`` and ``openai`` are implemented. Remaining values reserve future adapters.
-    """
-
-    FAKE = "fake"
-    OPENAI = "openai"
-    ANTHROPIC = "anthropic"
-    OLLAMA = "ollama"
-    GEMINI = "gemini"
-
-
-DEFAULT_MODELS: dict[ReasoningProviderKind, str] = {
-    ReasoningProviderKind.FAKE: "fake-reasoning-v1",
-    ReasoningProviderKind.OPENAI: "gpt-4o-mini",
-    ReasoningProviderKind.ANTHROPIC: "claude-sonnet-4-5",
-    ReasoningProviderKind.OLLAMA: "llama3.2",
-    ReasoningProviderKind.GEMINI: "gemini-2.0-flash",
-}
+DEFAULT_MODELS = CONFIG_DEFAULT_MODELS
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,20 +67,13 @@ class IntelligenceConfig:
     def from_env(cls) -> IntelligenceConfig:
         """Load provider selection from process environment variables.
 
-        Recognized variables:
-        - ``INTELLIGENCE_PROVIDER`` (default: ``fake``)
-        - ``INTELLIGENCE_MODEL`` (optional override for any provider)
-        - ``OPENAI_MODEL`` (used when provider is ``openai`` and
-          ``INTELLIGENCE_MODEL`` is unset)
+        Environment parsing is owned by ``memovi_config.ModelsSettings``.
         """
-        provider = os.environ.get(
-            "INTELLIGENCE_PROVIDER",
-            ReasoningProviderKind.FAKE.value,
-        )
-        model = os.environ.get("INTELLIGENCE_MODEL")
-        if model is None and provider.strip().lower() == ReasoningProviderKind.OPENAI.value:
-            model = os.environ.get("OPENAI_MODEL")
-        return cls(provider=provider, model=model)
+        try:
+            models = ModelsSettings.from_environ(os.environ)
+        except ConfigurationError as exc:
+            raise InvalidIntelligenceConfigError(str(exc)) from exc
+        return cls(provider=models.provider, model=models.model)
 
     @property
     def provider_name(self) -> str:

@@ -79,7 +79,7 @@ memovi/
 | automation | `memovi-automation` | `memovi_automation` | Implemented |
 | workspace | `memovi-workspace` | `memovi_workspace` | Implemented |
 | models | `memovi-models` | `memovi_models` | Framework only (not wired to API) |
-| config | `memovi-config` | `memovi_config` | Scaffold only |
+| config | `memovi-config` | `memovi_config` | Typed settings + startup validation |
 | connectors | `memovi-connectors` | `memovi_connectors` | Scaffold only |
 | contracts | `memovi-contracts` | `memovi_contracts` | Scaffold only |
 | observability | `memovi-observability` | `memovi_observability` | RequestContext, structured logs, metrics, diagnostic events, OTel spans |
@@ -97,7 +97,7 @@ memovi/
 
 * `packages/shared` — `WorkspaceId`, workspace header constants, parsing helpers, and package-default FastAPI workspace dependency
 * `packages/contracts` — empty `events/`, `messages/`, `schemas/`
-* `packages/config` — empty settings package
+* `packages/config` — typed settings, env parsing, secrets, startup validation
 * `packages/observability` — RequestContext, structured JSON logging, MetricsRecorder, diagnostic emitter, OTel-API tracing
 
 Cross-domain coupling is composed only in `apps/api`, not via shared packages.
@@ -961,12 +961,15 @@ No API or web service is defined in Compose.
 
 ## Settings classes
 
-* `IntelligenceConfig` — real typed config + `from_env()`
+* `memovi_config.Settings` — authoritative aggregate; `load_settings()` / `validate_configuration()`
+* Domain settings: `ApiSettings`, `DatabaseSettings`, `AuthSettings`, `SearchSettings`,
+  `EmbeddingsSettings`, `ModelsSettings`, `StorageSettings`, `CapabilitiesSettings`,
+  `ConnectorsSettings`, `ObservabilitySettings`, `DesktopSettings`
+* `IntelligenceConfig` / `SearchEmbeddingConfig` — domain DTOs that load via `memovi_config`
 * `OpenAIProviderSettings` — OpenAI client settings
-* `EmbeddingProviderConfig` — kind selection helper (not env-loaded end-to-end)
+* `EmbeddingProviderConfig` — kind selection helper for provider factory
 * `DocumentProcessingWorkerConfig` — worker tuning
-* `memovi_config` package — empty; not wired
-* `apps/api` `validate_configuration()` — reserved startup hook (currently no-op)
+* `apps/api` `validate_configuration()` — delegates to `memovi_config.validate_configuration()`
 
 ## Feature flags
 
@@ -1045,7 +1048,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 | Milestone | Status | Evidence |
 |-----------|--------|----------|
 | 0 Foundation | **Complete** | Workspaces, Compose, CI, tooling, docs present |
-| 1 Platform | **In Progress** | Composition root/routers/observability done; typed config and architecture tests incomplete |
+| 1 Platform | **In Progress** | Composition root/routers/observability/typed config done; architecture tests incomplete |
 | 2 Identity & Ownership | **In Progress** | Auth complete; ownership on knowledge APIs and audit logging absent |
 | 3 Knowledge Ingestion | **In Progress** | Upload, MinIO, worker, processing, chunk handoff done; OCR and connector intake absent |
 | 4 Knowledge Platform | **In Progress** | Memory materialization exists; collections/tags/relationships/public Memory API absent |
@@ -1090,7 +1093,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 ## Planned / implied refactors (from docs/status, not unfinished code branches)
 
 * Ownership context on knowledge APIs
-* Typed `memovi_config` wiring
+* Architecture boundary tests
 * Memory HTTP surface
 * Live smoke coverage against hosted OpenAI / Ollama outside default CI
 * Tool loop integration into Reason (framework exists; path does not)

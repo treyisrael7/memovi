@@ -3,6 +3,7 @@ import os
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
+from memovi_config.settings.storage import StorageSettings
 
 
 class MinioObjectStorage:
@@ -35,17 +36,13 @@ class MinioObjectStorage:
 
     @classmethod
     def from_env(cls) -> MinioObjectStorage:
-        endpoint_url = os.getenv("MINIO_SERVER_URL", "http://127.0.0.1:9000")
-        access_key = os.getenv("MINIO_ROOT_USER", "memovi_minio_admin")
-        secret_key = os.getenv("MINIO_ROOT_PASSWORD", "memovi_local_minio_5c7f1e9a3b6d4a82")
-        bucket_name = os.getenv("MINIO_BUCKET", "memovi-documents")
-        region_name = os.getenv("MINIO_REGION_NAME", "us-east-1")
+        storage = StorageSettings.from_environ(os.environ)
         return cls(
-            endpoint_url=endpoint_url,
-            access_key=access_key,
-            secret_key=secret_key,
-            bucket_name=bucket_name,
-            region_name=region_name,
+            endpoint_url=storage.endpoint_url,
+            access_key=storage.access_key.get_secret_value(),
+            secret_key=storage.secret_key.get_secret_value(),
+            bucket_name=storage.bucket_name,
+            region_name=storage.region_name,
         )
 
     def put_object(self, *, key: str, content: bytes, content_type: str) -> None:

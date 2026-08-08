@@ -93,8 +93,8 @@ would be a large, cross-repo refactor with no runtime benefit.
 
 ### Scaffold packages
 
-`memovi_config`, `memovi_connectors`, and `memovi_contracts` retain empty package
-structure for future milestones.
+`memovi_connectors` and `memovi_contracts` retain empty or early package
+structure for future milestones. `memovi_config` is populated (Milestone 36).
 
 ### Dual model provider stacks
 
@@ -105,8 +105,7 @@ Intelligence still uses its own gateway; migration to `memovi_models` is tracked
 
 ## Future recommendations
 
-1. **Centralize configuration** — Wire typed settings through `memovi_config` instead of
-   ad hoc `from_env()` helpers per package.
+1. **Centralize configuration** — Done in Milestone 36 (`memovi_config`).
 2. **Standardize list response envelopes** — Adopt `{ items, count }` (or similar) across
    all list endpoints in a versioned API pass.
 3. **Add pagination** — Extend memory, documents, conversations, and capability list

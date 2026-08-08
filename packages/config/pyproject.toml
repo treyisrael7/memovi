@@ -1,13 +1,18 @@
 [project]
 name = "memovi-config"
 version = "0.1.0"
-description = "Configuration package for typed settings and environment loading boundaries. Runtime configuration should be centralized here when application code is introduced."
+description = "Typed application configuration, environment parsing, and startup validation for Memovi."
 requires-python = ">=3.14"
 dependencies = []
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/memovi_config",
+]
 
 [tool.uv]
 package = true
