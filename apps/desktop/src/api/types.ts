@@ -18,11 +18,31 @@ export interface WorkspaceResponse {
   id: string;
   name: string;
   created_at: string;
+  role?: string | null;
 }
 
 export interface WorkspaceListResponse {
   workspaces: WorkspaceResponse[];
   count: number;
+}
+
+export interface WorkspaceMembership {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  role: string;
+  created_at: string;
+  email?: string | null;
+}
+
+export interface WorkspaceMembershipListResponse {
+  items: WorkspaceMembership[];
+  count: number;
+}
+
+export interface TransferWorkspaceOwnershipResponse {
+  previous_owner: WorkspaceMembership;
+  new_owner: WorkspaceMembership;
 }
 
 export interface ConversationSummary {

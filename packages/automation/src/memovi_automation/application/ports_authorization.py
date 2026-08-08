@@ -29,6 +29,9 @@ class WorkspaceMembershipPort(Protocol):
     def is_member(self, *, user_id: str, workspace_id: WorkspaceId) -> bool:
         raise NotImplementedError
 
+    def get_role(self, *, user_id: str, workspace_id: WorkspaceId) -> str | None:
+        raise NotImplementedError
+
 
 class AuthorizationService(Protocol):
     """Resolves identity, membership, and capability permission decisions.
@@ -53,6 +56,14 @@ class AuthorizationService(Protocol):
         raise NotImplementedError
 
     def require_workspace_member(
+        self,
+        *,
+        user_id: str,
+        workspace_id: WorkspaceId,
+    ) -> None:
+        raise NotImplementedError
+
+    def require_workspace_owner(
         self,
         *,
         user_id: str,

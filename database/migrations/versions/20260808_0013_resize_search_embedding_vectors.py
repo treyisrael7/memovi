@@ -23,10 +23,7 @@ _PREVIOUS_EMBEDDING_VECTOR_DIMENSIONS = 4
 def upgrade() -> None:
     # Embeddings are derived and regenerable; clear rows before resizing storage.
     op.execute(sa.text("DELETE FROM search_embeddings"))
-    op.drop_index(
-        "ix_search_embeddings_vector_hnsw",
-        table_name="search_embeddings",
-    )
+    op.execute(sa.text("DROP INDEX IF EXISTS ix_search_embeddings_vector_hnsw"))
     op.drop_column("search_embeddings", "vector")
     op.add_column(
         "search_embeddings",

@@ -57,7 +57,20 @@ ownership selector, not an authorization token.
 
 Creating a workspace enrolls the creator as `owner`. Registering a user enrolls
 them as `member` of the Default Workspace. Listing workspaces returns only
-workspaces the caller belongs to.
+workspaces the caller belongs to (including the caller's `role`).
+
+Membership administration (invite, remove, transfer, leave) is documented in
+[`WORKSPACES.md`](WORKSPACES.md). Roles are enforced through the same membership
+table — there is no parallel RBAC system.
+
+Owner-only operations (examples):
+
+* Invite / remove members; transfer ownership
+* Change capability permission modes
+  (`AuthorizationService.require_workspace_owner`)
+
+Member-or-better continues to gate workspace-scoped knowledge APIs via
+`require_workspace_member` / active workspace resolution.
 
 # Authorization Service
 
@@ -67,9 +80,10 @@ capability execution.
 Responsibilities:
 
 1. Resolve current user / session (from `AuthenticatedExecutionContext` inputs)
-2. Evaluate workspace membership
-3. Resolve capability permission mode from durable server policy storage
-4. Return an authorization decision and effective permissions
+2. Evaluate workspace membership (`require_workspace_member`)
+3. Evaluate workspace ownership when required (`require_workspace_owner`)
+4. Resolve capability permission mode from durable server policy storage
+5. Return an authorization decision and effective permissions
 
 Capabilities never evaluate authorization themselves. After allow/approve, the
 Capability Execution Engine grants declared metadata permissions into

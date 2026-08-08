@@ -462,7 +462,7 @@ class CapabilityExecutionEngine:
         workspace_id: WorkspaceId,
         context: AuthenticatedExecutionContext,
     ) -> None:
-        self._authorization.require_workspace_member(
+        self._authorization.require_workspace_owner(
             user_id=context.user_id,
             workspace_id=workspace_id,
         )

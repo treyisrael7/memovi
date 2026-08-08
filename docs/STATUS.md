@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 42).
+system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 43).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -96,8 +96,8 @@ APIs. Capability authorization and durable audit are covered by Milestone 28.
 
 **Remaining**
 
-* Richer membership roles beyond owner/member
-* Broader ownership audit beyond capability execution audits
+* Owner / member roles with membership management (Milestone 43)
+* Membership audit events (Milestone 43)
 
 **Known Risks**
 
@@ -621,8 +621,8 @@ validation, durable capability policies, and durable audit storage are in place.
 
 **Remaining**
 
-* Broader non-capability ownership audit logging
-* Richer role-based authorization beyond membership + capability policy modes
+* Additional roles beyond owner/member (deferred; V1 uses owner/member)
+* Broader non-membership domain audit (capability + membership audits exist)
 
 ---
 
@@ -1221,6 +1221,47 @@ ingestion or inventing a parallel job system.
 **Next Recommended Work**
 
 * Keep processing visibility covered by Desktop smoke / release checklist
+* Architecture boundary tests
+
+---
+
+# Milestone 43 — Workspace Members & Roles
+
+**Overall Status:** Complete
+
+Workspace membership management and owner-role enforcement are finished on the
+existing Workspace + Authorization foundations — without redesigning either.
+
+**Completed**
+
+* Member APIs: list, invite (by registered email), remove, transfer ownership,
+  leave
+* Durable membership audit (`workspace_membership_events`)
+* Role on workspace list/detail responses
+* `AuthorizationService.require_workspace_owner` + owner-gated capability
+  permission-mode changes
+* Desktop Settings → Workspaces member list, invite, remove/transfer/leave
+  confirmations; capability policies read-only for members
+* `docs/architecture/WORKSPACES.md` (+ AUTHORIZATION updates)
+* Workspace and authorization unit tests
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Optional email invite tokens / out-of-band invitations (not required for V1)
+* Workspace delete / rename settings (still deferred)
+
+**Known Risks**
+
+* Invite requires an already-registered user email
+* Sole owners must transfer before leaving
+
+**Next Recommended Work**
+
+* Keep membership covered in Desktop release checklist
 * Architecture boundary tests
 
 ---

@@ -38,6 +38,7 @@ document that matches the concern being changed or reviewed.
 | [`connector-framework.md`](connector-framework.md) | Redirect to `CONNECTOR_FRAMEWORK.md` |
 | [`COLLECTIONS.md`](COLLECTIONS.md) | Knowledge collections: flat organization, membership, search filter |
 | [`AUTHORIZATION.md`](AUTHORIZATION.md) | Authentication, membership, capability security, and trust boundaries |
+| [`WORKSPACES.md`](WORKSPACES.md) | Workspace membership lifecycle, roles, owner enforcement, and audit |
 | [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
 | [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md) | Execution engine lifecycle, server-owned policies, audit, Intelligence bridge |
 | [`CAPABILITY_PLANNER.md`](CAPABILITY_PLANNER.md) | Plan-then-execute composition; planner never invokes capabilities |

@@ -54,6 +54,33 @@ class CapabilityAuthorizationService:
                 },
             )
 
+    def require_workspace_owner(
+        self,
+        *,
+        user_id: str,
+        workspace_id: WorkspaceId,
+    ) -> None:
+        role = self._membership.get_role(user_id=user_id, workspace_id=workspace_id)
+        if role is None:
+            raise AuthorizationDeniedError(
+                f"User '{user_id}' is not a member of workspace '{workspace_id.value}'.",
+                code="workspace_membership_required",
+                details={
+                    "user_id": user_id,
+                    "workspace_id": workspace_id.value,
+                },
+            )
+        if role != "owner":
+            raise AuthorizationDeniedError(
+                f"User '{user_id}' must be an owner of workspace '{workspace_id.value}'.",
+                code="workspace_owner_required",
+                details={
+                    "user_id": user_id,
+                    "workspace_id": workspace_id.value,
+                    "role": role,
+                },
+            )
+
     def authorize_capability(
         self,
         *,

@@ -28,10 +28,12 @@ class ListWorkspaces:
                 WorkspaceDto.from_workspace(workspace)
                 for workspace in self._workspaces.list_all()
             ]
-        workspace_ids = self._memberships.list_workspace_ids_for_user(query.user_id)
+        memberships = self._memberships.list_for_user(query.user_id)
         results: list[WorkspaceDto] = []
-        for workspace_id in workspace_ids:
-            workspace = self._workspaces.get_by_id(workspace_id)
+        for membership in memberships:
+            workspace = self._workspaces.get_by_id(membership.workspace_id)
             if workspace is not None:
-                results.append(WorkspaceDto.from_workspace(workspace))
+                results.append(
+                    WorkspaceDto.from_workspace(workspace, role=membership.role),
+                )
         return results

@@ -34,11 +34,12 @@ class GetWorkspace:
         workspace = self._workspaces.get_by_id(workspace_id)
         if workspace is None:
             raise WorkspaceNotFoundError(f"Workspace '{query.workspace_id}' was not found.")
-        if not self._memberships.is_member(
+        membership = self._memberships.get(
             user_id=query.user_id,
             workspace_id=workspace_id,
-        ):
+        )
+        if membership is None:
             raise WorkspaceMembershipRequiredError(
                 f"User is not a member of workspace '{query.workspace_id}'.",
             )
-        return WorkspaceDto.from_workspace(workspace)
+        return WorkspaceDto.from_workspace(workspace, role=membership.role)

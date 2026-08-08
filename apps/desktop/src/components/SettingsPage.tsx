@@ -5,8 +5,19 @@ import {
   setCapabilityPermissionMode,
 } from "../api/capabilities";
 import { ApiRequestError } from "../api/client";
-import type { CapabilityMetadata, PermissionMode } from "../api/types";
-import { createWorkspace } from "../api/workspaces";
+import type {
+  CapabilityMetadata,
+  PermissionMode,
+  WorkspaceMembership,
+} from "../api/types";
+import {
+  createWorkspace,
+  inviteWorkspaceMember,
+  leaveWorkspace,
+  listWorkspaceMembers,
+  removeWorkspaceMember,
+  transferWorkspaceOwnership,
+} from "../api/workspaces";
 import { type ThemeMode, useAppState } from "../state/AppStateContext";
 import { Alert } from "./ui/Alert";
 import { Badge } from "./ui/Badge";
@@ -150,6 +161,7 @@ function AccountSection() {
 
 function WorkspacesSection() {
   const {
+    user,
     workspaces,
     activeWorkspace,
     setActiveWorkspaceId,
@@ -158,6 +170,45 @@ function WorkspacesSection() {
   const { showToast } = useToast();
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [members, setMembers] = useState<WorkspaceMembership[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isInviting, setIsInviting] = useState(false);
+  const [pendingRemove, setPendingRemove] =
+    useState<WorkspaceMembership | null>(null);
+  const [pendingTransfer, setPendingTransfer] =
+    useState<WorkspaceMembership | null>(null);
+  const [pendingLeave, setPendingLeave] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
+
+  const workspaceId = activeWorkspace?.id ?? null;
+  const isOwner = (activeWorkspace?.role ?? "").toLowerCase() === "owner";
+  const currentUserId = user?.id ?? null;
+
+  async function refreshMembers() {
+    if (!workspaceId) {
+      setMembers([]);
+      return;
+    }
+    setMembersLoading(true);
+    try {
+      setMembers(await listWorkspaceMembers(workspaceId));
+    } catch (err) {
+      showToast(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Failed to load members.",
+        "bad",
+      );
+    } finally {
+      setMembersLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void refreshMembers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when active workspace changes
+  }, [workspaceId]);
 
   async function handleCreate() {
     const name = newWorkspaceName.trim();
@@ -180,17 +231,103 @@ function WorkspacesSection() {
     }
   }
 
+  async function handleInvite() {
+    if (!workspaceId || !inviteEmail.trim()) return;
+    setIsInviting(true);
+    try {
+      await inviteWorkspaceMember(workspaceId, inviteEmail.trim());
+      setInviteEmail("");
+      showToast("Member invited.", "ok");
+      await refreshMembers();
+    } catch (err) {
+      showToast(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Failed to invite member.",
+        "bad",
+      );
+    } finally {
+      setIsInviting(false);
+    }
+  }
+
+  async function handleConfirmRemove() {
+    if (!workspaceId || !pendingRemove) return;
+    setActionBusy(true);
+    try {
+      await removeWorkspaceMember(workspaceId, pendingRemove.user_id);
+      showToast("Member removed.", "ok");
+      setPendingRemove(null);
+      await refreshMembers();
+    } catch (err) {
+      showToast(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Failed to remove member.",
+        "bad",
+      );
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  async function handleConfirmTransfer() {
+    if (!workspaceId || !pendingTransfer) return;
+    setActionBusy(true);
+    try {
+      await transferWorkspaceOwnership(workspaceId, pendingTransfer.user_id);
+      showToast("Ownership transferred.", "ok");
+      setPendingTransfer(null);
+      await refreshWorkspaces();
+      await refreshMembers();
+    } catch (err) {
+      showToast(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Failed to transfer ownership.",
+        "bad",
+      );
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  async function handleConfirmLeave() {
+    if (!workspaceId) return;
+    setActionBusy(true);
+    try {
+      await leaveWorkspace(workspaceId);
+      showToast("You left the workspace.", "ok");
+      setPendingLeave(false);
+      await refreshWorkspaces();
+    } catch (err) {
+      showToast(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Failed to leave workspace.",
+        "bad",
+      );
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
   return (
     <div className="settings-section">
       <h2>Workspaces</h2>
       <p className="muted">
-        Workspaces isolate documents, knowledge, and conversations from each
-        other.
+        Workspaces isolate documents, knowledge, and conversations. Owners
+        manage members and ownership.
       </p>
       <ul className="workspace-list">
         {workspaces.map((workspace) => (
           <li key={workspace.id}>
-            <span>{workspace.name}</span>
+            <span>
+              {workspace.name}
+              {workspace.role ? (
+                <span className="muted"> · {workspace.role}</span>
+              ) : null}
+            </span>
             {workspace.id === activeWorkspace?.id ? (
               <Badge label="Active" tone="ok" />
             ) : (
@@ -231,6 +368,133 @@ function WorkspacesSection() {
           {isCreating ? "Creating…" : "Create workspace"}
         </Button>
       </form>
+
+      <h3 className="settings-subsection-title">
+        Members{activeWorkspace ? ` — ${activeWorkspace.name}` : ""}
+      </h3>
+      {!workspaceId ? (
+        <EmptyState
+          title="No active workspace"
+          description="Select a workspace to manage members."
+        />
+      ) : membersLoading ? (
+        <LoadingState label="Loading members…" />
+      ) : (
+        <>
+          <ul className="workspace-member-list">
+            {members.map((member) => {
+              const label = member.email ?? member.user_id;
+              const isSelf = member.user_id === currentUserId;
+              return (
+                <li key={member.id} className="workspace-member-row">
+                  <div>
+                    <div className="workspace-member-name">
+                      {label}
+                      {isSelf ? " (you)" : ""}
+                    </div>
+                    <Badge
+                      label={member.role === "owner" ? "Owner" : "Member"}
+                      tone={member.role === "owner" ? "ok" : "idle"}
+                    />
+                  </div>
+                  {isOwner && !isSelf ? (
+                    <div className="workspace-member-actions">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setPendingTransfer(member)}
+                      >
+                        Make owner
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => setPendingRemove(member)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+
+          {isOwner ? (
+            <form
+              className="settings-field"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleInvite();
+              }}
+            >
+              <TextInput
+                label="Invite by email"
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                placeholder="registered-user@example.com"
+              />
+              <Button
+                type="submit"
+                className="settings-inline-action"
+                busy={isInviting}
+                disabled={!inviteEmail.trim()}
+              >
+                {isInviting ? "Inviting…" : "Invite member"}
+              </Button>
+            </form>
+          ) : (
+            <p className="muted">
+              Only workspace owners can invite or remove members.
+            </p>
+          )}
+
+          <div className="settings-field">
+            <Button
+              variant="secondary"
+              onClick={() => setPendingLeave(true)}
+              disabled={!currentUserId}
+            >
+              Leave workspace
+            </Button>
+          </div>
+        </>
+      )}
+
+      {pendingRemove ? (
+        <ConfirmationDialog
+          title={`Remove ${pendingRemove.email ?? pendingRemove.user_id}?`}
+          description="They will lose access to this workspace's documents and knowledge."
+          confirmLabel="Remove"
+          tone="danger"
+          busy={actionBusy}
+          onConfirm={() => void handleConfirmRemove()}
+          onCancel={() => setPendingRemove(null)}
+        />
+      ) : null}
+
+      {pendingTransfer ? (
+        <ConfirmationDialog
+          title="Transfer ownership?"
+          description={`Make ${pendingTransfer.email ?? pendingTransfer.user_id} the owner. You will become a member.`}
+          confirmLabel="Transfer ownership"
+          busy={actionBusy}
+          onConfirm={() => void handleConfirmTransfer()}
+          onCancel={() => setPendingTransfer(null)}
+        />
+      ) : null}
+
+      {pendingLeave ? (
+        <ConfirmationDialog
+          title="Leave this workspace?"
+          description="If you are the sole owner, transfer ownership first."
+          confirmLabel="Leave"
+          tone="danger"
+          busy={actionBusy}
+          onConfirm={() => void handleConfirmLeave()}
+          onCancel={() => setPendingLeave(false)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -239,6 +503,7 @@ function CapabilitiesSection() {
   const { activeWorkspace, connection } = useAppState();
   const { showToast } = useToast();
   const workspaceId = activeWorkspace?.id ?? null;
+  const isOwner = (activeWorkspace?.role ?? "").toLowerCase() === "owner";
   const canUseBackend =
     connection.status === "connected" || connection.status === "degraded";
 
@@ -293,8 +558,15 @@ function CapabilitiesSection() {
       <h2>Capability policies</h2>
       <p className="muted">
         Control whether Memovi may act on your behalf automatically, ask first,
-        or never for each capability.
+        or never for each capability. Only workspace owners can change these
+        policies.
       </p>
+      {!isOwner ? (
+        <Alert tone="warn">
+          Capability policies are read-only for members. Ask a workspace owner
+          to change them.
+        </Alert>
+      ) : null}
       {isLoading ? (
         <LoadingState label="Loading capabilities…" />
       ) : capabilities.length === 0 ? (
@@ -311,7 +583,7 @@ function CapabilitiesSection() {
               </div>
               <select
                 value={capability.permission_mode}
-                disabled={busyId === capability.id}
+                disabled={!isOwner || busyId === capability.id}
                 onChange={(event) =>
                   void handleChange(
                     capability.id,

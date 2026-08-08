@@ -68,7 +68,8 @@ It answers the question:
 ### Does Not Own
 
 * Document, memory, search, or conversation content
-* Authentication identity, membership, or roles (deferred)
+* Authentication identity (Auth domain). Workspace membership and roles are
+  owned by Workspace (`WORKSPACES.md`).
 
 Knowledge domains depend only on the shared `WorkspaceId` primitive. Active workspace resolution happens at the API composition root (`X-Memovi-Workspace-Id`, falling back to Default Workspace).
 

@@ -22,8 +22,25 @@ class WorkspaceMembershipRepository(Protocol):
     def add(self, membership: WorkspaceMembership) -> None:
         raise NotImplementedError
 
+    def update(self, membership: WorkspaceMembership) -> None:
+        raise NotImplementedError
+
+    def remove(
+        self,
+        *,
+        user_id: str,
+        workspace_id: WorkspaceId,
+    ) -> WorkspaceMembership | None:
+        raise NotImplementedError
+
     def list_for_user(self, user_id: str) -> list[WorkspaceMembership]:
         raise NotImplementedError
 
+    def list_for_workspace(self, workspace_id: WorkspaceId) -> list[WorkspaceMembership]:
+        raise NotImplementedError
+
     def list_workspace_ids_for_user(self, user_id: str) -> list[WorkspaceId]:
+        raise NotImplementedError
+
+    def count_by_role(self, *, workspace_id: WorkspaceId, role: str) -> int:
         raise NotImplementedError

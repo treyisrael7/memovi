@@ -48,6 +48,7 @@ export type AuthStatus =
 export interface ActiveWorkspace {
   id: string;
   name: string;
+  role?: string | null;
 }
 
 export interface ActiveModelSelection {
@@ -178,6 +179,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const mapped = listed.map((workspace) => ({
         id: workspace.id,
         name: workspace.name,
+        role: workspace.role ?? null,
       }));
       setWorkspaces(mapped);
       setActiveWorkspace((current) => {
@@ -191,10 +193,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         }
         const resolved = resolveActiveWorkspace(listed);
         return resolved
-          ? { id: resolved.id, name: resolved.name }
+          ? {
+              id: resolved.id,
+              name: resolved.name,
+              role: resolved.role ?? null,
+            }
           : {
               id: DEFAULT_WORKSPACE_ID,
               name: "Default Workspace",
+              role: null,
             };
       });
     } catch (error) {
@@ -205,6 +212,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setActiveWorkspace({
         id: DEFAULT_WORKSPACE_ID,
         name: "Default Workspace",
+        role: null,
       });
     }
   }, [user]);

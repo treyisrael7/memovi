@@ -579,6 +579,7 @@ The following documents expand this blueprint without redefining it.
 | [`architecture/CAPABILITY_PLANNER.md`](architecture/CAPABILITY_PLANNER.md) | Plan-then-execute composition; planner never invokes capabilities |
 | [`architecture/WORKFLOW_AUTOMATION.md`](architecture/WORKFLOW_AUTOMATION.md) | Reusable sequential workflows over planner + execution engine |
 | [`architecture/MODEL_PROVIDER_FRAMEWORK.md`](architecture/MODEL_PROVIDER_FRAMEWORK.md) | Provider-neutral model abstractions, registry, capabilities, and health |
+| [`architecture/WORKSPACES.md`](architecture/WORKSPACES.md) | Workspace membership lifecycle, roles, owner enforcement, and audit |
 | [`architecture/DESKTOP_CLIENT.md`](architecture/DESKTOP_CLIENT.md) | Flagship Tauri desktop shell, client boundaries, and API communication |
 | [`testing/DESKTOP_TESTING.md`](testing/DESKTOP_TESTING.md) | Desktop CI, critical-path smoke tests, and release validation |
 | [`architecture/observability.md`](architecture/observability.md) | Request, worker, event, AI, connector, search, error, and performance telemetry |

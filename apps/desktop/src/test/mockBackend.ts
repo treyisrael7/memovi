@@ -115,7 +115,31 @@ export function createMockBackend(): MockBackend {
         return { status: 401, body: { detail: "Not authenticated" } };
       return {
         status: 200,
-        body: { workspaces: [SMOKE_WORKSPACE], count: 1 },
+        body: {
+          workspaces: [{ ...SMOKE_WORKSPACE, role: "owner" }],
+          count: 1,
+        },
+      };
+    }
+    if (
+      path.match(/^\/workspaces\/[^/]+\/members$/) &&
+      method === "GET"
+    ) {
+      return {
+        status: 200,
+        body: {
+          items: [
+            {
+              id: "mem-smoke-1",
+              workspace_id: DEFAULT_WORKSPACE_ID,
+              user_id: SMOKE_USER.id,
+              role: "owner",
+              created_at: "2026-01-01T00:00:00.000Z",
+              email: SMOKE_USER.email,
+            },
+          ],
+          count: 1,
+        },
       };
     }
     if (path === "/conversations/models") {

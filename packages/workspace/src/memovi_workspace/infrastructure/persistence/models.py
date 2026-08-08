@@ -40,3 +40,22 @@ class WorkspaceMembershipRecord(Base):
     user_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
     role: Mapped[str] = mapped_column(String(32), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class WorkspaceMembershipEventRecord(Base):
+    """Durable audit trail for workspace membership changes."""
+
+    __tablename__ = "workspace_membership_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("workspace_workspaces.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    actor_user_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    target_user_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    detail: Mapped[str] = mapped_column(String(512), nullable=False, default="")
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

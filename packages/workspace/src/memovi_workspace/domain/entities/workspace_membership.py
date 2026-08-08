@@ -7,6 +7,8 @@ from memovi_shared import WorkspaceId
 from memovi_workspace.domain.exceptions import WorkspaceDomainError
 
 VALID_ROLES = frozenset({"owner", "member"})
+OWNER_ROLE = "owner"
+MEMBER_ROLE = "member"
 
 
 class InvalidWorkspaceMembershipError(WorkspaceDomainError):
@@ -38,13 +40,26 @@ class WorkspaceMembership:
         object.__setattr__(self, "user_id", user_id)
         object.__setattr__(self, "role", role)
 
+    @property
+    def is_owner(self) -> bool:
+        return self.role == OWNER_ROLE
+
+    def with_role(self, role: str) -> "WorkspaceMembership":
+        return WorkspaceMembership(
+            id=self.id,
+            workspace_id=self.workspace_id,
+            user_id=self.user_id,
+            role=role,
+            created_at=self.created_at,
+        )
+
     @classmethod
     def create(
         cls,
         *,
         workspace_id: WorkspaceId,
         user_id: str,
-        role: str = "member",
+        role: str = MEMBER_ROLE,
         membership_id: str | None = None,
         now: datetime | None = None,
     ) -> WorkspaceMembership:

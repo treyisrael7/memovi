@@ -54,6 +54,51 @@ class SqlAlchemyWorkspaceMembershipRepository:
                 )
             )
 
+    def update(self, membership: WorkspaceMembership) -> None:
+        with timed_operation("repository.update", repository=_REPO):
+            record = (
+                self._session.query(WorkspaceMembershipRecord)
+                .filter(WorkspaceMembershipRecord.id == membership.id)
+                .one_or_none()
+            )
+            if record is None:
+                record = (
+                    self._session.query(WorkspaceMembershipRecord)
+                    .filter(
+                        WorkspaceMembershipRecord.user_id == membership.user_id,
+                        WorkspaceMembershipRecord.workspace_id
+                        == membership.workspace_id.value,
+                    )
+                    .one_or_none()
+                )
+            if record is None:
+                self.add(membership)
+                return
+            record.role = membership.role
+            record.user_id = membership.user_id
+            record.workspace_id = membership.workspace_id.value
+
+    def remove(
+        self,
+        *,
+        user_id: str,
+        workspace_id: WorkspaceId,
+    ) -> WorkspaceMembership | None:
+        with timed_operation("repository.remove", repository=_REPO):
+            record = (
+                self._session.query(WorkspaceMembershipRecord)
+                .filter(
+                    WorkspaceMembershipRecord.user_id == user_id.strip(),
+                    WorkspaceMembershipRecord.workspace_id == workspace_id.value,
+                )
+                .one_or_none()
+            )
+            if record is None:
+                return None
+            membership = self._to_domain(record)
+            self._session.delete(record)
+            return membership
+
     def list_for_user(self, user_id: str) -> list[WorkspaceMembership]:
         with timed_operation("repository.list_for_user", repository=_REPO):
             records = (
@@ -64,8 +109,29 @@ class SqlAlchemyWorkspaceMembershipRepository:
             )
             return [self._to_domain(record) for record in records]
 
+    def list_for_workspace(self, workspace_id: WorkspaceId) -> list[WorkspaceMembership]:
+        with timed_operation("repository.list_for_workspace", repository=_REPO):
+            records = (
+                self._session.query(WorkspaceMembershipRecord)
+                .filter(WorkspaceMembershipRecord.workspace_id == workspace_id.value)
+                .order_by(WorkspaceMembershipRecord.created_at.asc())
+                .all()
+            )
+            return [self._to_domain(record) for record in records]
+
     def list_workspace_ids_for_user(self, user_id: str) -> list[WorkspaceId]:
         return [item.workspace_id for item in self.list_for_user(user_id)]
+
+    def count_by_role(self, *, workspace_id: WorkspaceId, role: str) -> int:
+        with timed_operation("repository.count_by_role", repository=_REPO):
+            return (
+                self._session.query(WorkspaceMembershipRecord)
+                .filter(
+                    WorkspaceMembershipRecord.workspace_id == workspace_id.value,
+                    WorkspaceMembershipRecord.role == role.strip().lower(),
+                )
+                .count()
+            )
 
     def _to_domain(self, record: WorkspaceMembershipRecord) -> WorkspaceMembership:
         return WorkspaceMembership(

@@ -48,6 +48,7 @@ from memovi_search.api.router import router as search_router
 from memovi_shared import WorkspaceId
 from memovi_workspace.api.dependencies import get_authenticated_user_id
 from memovi_workspace.api.dependencies import get_database_session as get_workspace_database_session
+from memovi_workspace.api.dependencies import get_user_directory as get_workspace_user_directory
 from memovi_workspace.api.router import router as workspace_router
 from sqlalchemy.orm import Session as OrmSession
 
@@ -55,7 +56,7 @@ from api.auth_context import (
     build_authenticated_execution_context,
     get_authenticated_principal,
 )
-from api.authorization import RequestScopedMembershipEnroller
+from api.authorization import RequestScopedMembershipEnroller, build_user_directory
 from api.capability_framework import configure_capability_execution
 from api.connector_framework import configure_connector_framework
 from api.database import database_session
@@ -66,6 +67,12 @@ from api.intelligence_integration import (
     get_sqlalchemy_conversation_repository,
 )
 from api.workspace_context import get_active_workspace_id
+
+
+def _workspace_user_directory(
+    session: OrmSession = Depends(get_workspace_database_session),
+):
+    return build_user_directory(session)
 
 
 def _register_user(
@@ -129,6 +136,7 @@ def register_routers(app: FastAPI) -> None:
     app.dependency_overrides[get_search_database_session] = database_session
     app.dependency_overrides[get_intelligence_database_session] = database_session
     app.dependency_overrides[get_workspace_database_session] = database_session
+    app.dependency_overrides[get_workspace_user_directory] = _workspace_user_directory
     app.dependency_overrides[get_documents_workspace_id] = get_active_workspace_id
     app.dependency_overrides[get_memory_workspace_id] = get_active_workspace_id
     app.dependency_overrides[get_search_workspace_id] = get_active_workspace_id
