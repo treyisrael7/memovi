@@ -15,6 +15,9 @@ class DocumentDto:
     processing_status: str | None = None
     processing_failure_reason: str | None = None
     processing_updated_at: datetime | None = None
+    processing_attempt: int | None = None
+    processing_started_at: datetime | None = None
+    processing_completed_at: datetime | None = None
 
     @classmethod
     def from_document(
@@ -35,4 +38,7 @@ class DocumentDto:
                 processing_job.failure_reason if processing_job else None
             ),
             processing_updated_at=processing_job.updated_at if processing_job else None,
+            processing_attempt=processing_job.attempt if processing_job else None,
+            processing_started_at=processing_job.started_at if processing_job else None,
+            processing_completed_at=processing_job.completed_at if processing_job else None,
         )

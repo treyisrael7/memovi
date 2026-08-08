@@ -5,7 +5,7 @@ from collections.abc import Callable
 from documents.application.exceptions import ProcessingJobNotFoundError
 from documents.application.ports import EventPublisher, ObjectStorage, ProcessingJobQueue
 from documents.application.workers import DocumentProcessingWorker, DocumentProcessingWorkerConfig
-from documents.infrastructure.queue import InMemoryProcessingJobQueue
+from documents.infrastructure.queue import SqlAlchemyProcessingJobQueue
 from documents.infrastructure.storage import MinioObjectStorage
 from fastapi import FastAPI
 from sqlalchemy.orm import Session as OrmSession
@@ -28,7 +28,12 @@ def configure_document_processing(
     event_publisher: EventPublisher | None = None,
     event_dispatcher: InProcessEventDispatcher | None = None,
 ) -> DocumentProcessingWorker:
-    processing_queue = queue or InMemoryProcessingJobQueue()
+    processing_queue = queue or SqlAlchemyProcessingJobQueue(
+        session_factory,
+        poll_interval_seconds=(
+            worker_config.poll_interval_seconds if worker_config is not None else 0.25
+        ),
+    )
     app.state.processing_job_queue = processing_queue
 
     if event_dispatcher is not None:

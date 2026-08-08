@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 36).
+system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 37).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -962,6 +962,49 @@ startup fail-fast checks live there. Domain `from_env()` helpers delegate to
 **Next Recommended Work**
 
 * Architecture boundary tests (Milestone 1 remaining)
+
+---
+
+# Milestone 37 — Durable Document Processing Queue
+
+**Overall Status:** Complete
+
+Document processing jobs are dispatched from durable Postgres rows instead of a
+process-local in-memory queue. The Documents → Memory → Search pipeline is
+unchanged; only the queue implementation and job metadata were extended.
+
+**Completed**
+
+* `SqlAlchemyProcessingJobQueue` with atomic claim (`FOR UPDATE SKIP LOCKED` on
+  Postgres) and poll/wake semantics
+* Durable columns on `documents_processing_jobs`: attempt, request/workspace IDs,
+  started/completed timestamps, available/claimed leases
+* Restart recovery for interrupted `extracting` / `normalizing` jobs
+* Retry attempt persistence and cancelled status for superseded reprocess jobs
+* Worker metrics via existing `memovi_observability` recorder
+* Document API fields for attempt / started / completed timestamps
+* `docs/architecture/DOCUMENT_PIPELINE.md`
+* Durable queue unit tests
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Optional dedicated background worker process (same queue contract)
+* Lease renewal for very long-running extraction
+
+**Known Risks**
+
+* Single in-process worker remains the default runtime; multi-worker safety relies
+  on claim locks
+* SQLite test locks are weaker than Postgres `SKIP LOCKED`
+
+**Next Recommended Work**
+
+* Run `task db:migrate` locally to apply `20260808_0014`
+* Architecture boundary tests
 
 ---
 

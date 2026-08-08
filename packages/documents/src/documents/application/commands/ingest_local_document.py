@@ -83,6 +83,7 @@ class IngestLocalDocument:
         job = ProcessingJob.create_pending(
             document_id=document.id,
             document_version_id=version.id,
+            workspace_id=command.workspace_id.value,
             now=now,
         )
 

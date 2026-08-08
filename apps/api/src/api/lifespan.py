@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from documents.application.ports import ObjectStorage
-from documents.infrastructure.queue import InMemoryProcessingJobQueue
+from documents.infrastructure.queue import SqlAlchemyProcessingJobQueue
 from documents.infrastructure.storage import InMemoryObjectStorage, MinioObjectStorage
 from fastapi import FastAPI
 
@@ -41,7 +41,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         configure_document_processing(
             app,
             session_factory=create_session,
-            queue=InMemoryProcessingJobQueue(),
+            queue=SqlAlchemyProcessingJobQueue(create_session),
             object_storage=_startup_object_storage(),
         )
     if not hasattr(app.state, "document_processing_worker_task"):

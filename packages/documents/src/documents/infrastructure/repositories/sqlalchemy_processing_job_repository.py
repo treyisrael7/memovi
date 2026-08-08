@@ -59,6 +59,13 @@ class SqlAlchemyProcessingJobRepository:
                 document_version_id=job.document_version_id,
                 status=job.status,
                 failure_reason=job.failure_reason,
+                attempt=job.attempt,
+                request_id=job.request_id,
+                workspace_id=job.workspace_id,
+                started_at=job.started_at,
+                completed_at=job.completed_at,
+                available_at=job.created_at,
+                claimed_at=None,
                 created_at=job.created_at,
                 updated_at=job.updated_at,
             )
@@ -71,7 +78,17 @@ class SqlAlchemyProcessingJobRepository:
 
         record.status = job.status
         record.failure_reason = job.failure_reason
+        record.attempt = job.attempt
+        record.request_id = job.request_id
+        record.workspace_id = job.workspace_id
+        record.started_at = job.started_at
+        record.completed_at = job.completed_at
         record.updated_at = job.updated_at
+        # Pending jobs must be reclaimable after retry or restart recovery.
+        if job.status is ProcessingStatus.PENDING:
+            record.claimed_at = None
+            if record.available_at is None:
+                record.available_at = job.updated_at
 
     def _to_domain(self, record: ProcessingJobRecord) -> ProcessingJob:
         return ProcessingJob(
@@ -82,6 +99,11 @@ class SqlAlchemyProcessingJobRepository:
             created_at=_as_utc(record.created_at),
             updated_at=_as_utc(record.updated_at),
             failure_reason=record.failure_reason,
+            attempt=record.attempt,
+            request_id=record.request_id,
+            workspace_id=record.workspace_id,
+            started_at=_as_utc_optional(record.started_at),
+            completed_at=_as_utc_optional(record.completed_at),
         )
 
 
@@ -89,3 +111,9 @@ def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
+
+
+def _as_utc_optional(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    return _as_utc(value)

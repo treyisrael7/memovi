@@ -50,6 +50,9 @@ def _to_response(document: DocumentDto) -> DocumentResponse:
         processing_status=document.processing_status,
         processing_failure_reason=document.processing_failure_reason,
         processing_updated_at=document.processing_updated_at,
+        processing_attempt=document.processing_attempt,
+        processing_started_at=document.processing_started_at,
+        processing_completed_at=document.processing_completed_at,
     )
 
 

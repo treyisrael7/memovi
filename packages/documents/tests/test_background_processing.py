@@ -302,3 +302,88 @@ def test_background_processing_fails_after_retry_limit(
     assert job.failure_reason is not None
     assert "timeout" in job.failure_reason.lower()
     assert any(isinstance(event, ProcessingFailed) for event in event_publisher.events)
+
+
+def test_upload_is_processed_with_durable_queue() -> None:
+    """Pending DB jobs complete when the durable queue is wired (no in-memory backlog)."""
+    from documents.infrastructure.queue import SqlAlchemyProcessingJobQueue
+
+    object_storage = InMemoryObjectStorage()
+    event_publisher = CollectingEventPublisher()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    AuthBase.metadata.create_all(engine)
+    DocumentsBase.metadata.create_all(engine)
+    WorkspaceBase.metadata.create_all(engine)
+    test_session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+
+    with Session(engine) as seed_session:
+        seed_session.add(
+            WorkspaceRecord(
+                id=DEFAULT_WORKSPACE_ID.value,
+                name="Default",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            )
+        )
+        seed_session.commit()
+
+    def database_session() -> Iterator[Session]:
+        session = test_session_factory()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    app = create_app()
+    app.state.auth_session_factory = test_session_factory
+    queue = SqlAlchemyProcessingJobQueue(
+        test_session_factory,
+        poll_interval_seconds=0.05,
+    )
+    configure_document_processing(
+        app,
+        session_factory=test_session_factory,
+        queue=queue,
+        worker_config=DocumentProcessingWorkerConfig(
+            max_retries=3,
+            poll_interval_seconds=0.05,
+        ),
+        object_storage=object_storage,
+        event_publisher=event_publisher,
+    )
+    app.dependency_overrides[api_database_session] = database_session
+    app.dependency_overrides[get_auth_database_session] = database_session
+    app.dependency_overrides[get_documents_database_session] = build_documents_database_session(
+        database_session
+    )
+    app.dependency_overrides[get_object_storage] = lambda: object_storage
+
+    with TestClient(app, base_url="https://testserver") as client:
+        register_response = client.post(
+            "/auth/register",
+            json={"email": "durable-queue@example.com", "password": "password123"},
+        )
+        assert register_response.status_code == 201
+        response = client.post(
+            "/documents",
+            files={"file": ("notes.md", b"# Durable\n\nBody", "text/markdown")},
+        )
+        assert response.status_code == 202
+        payload = response.json()
+        job = _wait_for_job_status(
+            engine,
+            payload["processing_job_id"],
+            ProcessingStatus.COMPLETED,
+        )
+        assert job.attempt >= 1
+        assert job.started_at is not None
+        assert job.completed_at is not None
+
+    engine.dispose()

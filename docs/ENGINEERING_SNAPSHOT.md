@@ -1075,7 +1075,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 
 * Embedding dimension hard-coded to **4** for fake/local vector path
 * Production embedding providers are config-selected at the API composition root
-* Document processing queue is in-memory (lost on process restart)
+* Document processing queue is durable in Postgres (`SqlAlchemyProcessingJobQueue`)
 * Event bus is in-process only
 * Auth events defined but unused
 * Several domain events defined but never published
@@ -1141,7 +1141,7 @@ flagship desktop shell exists in `apps/desktop`; product pages are not built yet
 Implemented vertical slices:
 
 1. **Local auth** — register/login/logout/me with SQLAlchemy sessions and Argon2id.
-2. **Document ingestion** — multipart upload to MinIO, in-memory processing queue, background worker, PDF/Markdown/text processing, normalized content.
+2. **Document ingestion** — multipart upload to MinIO, durable processing queue, background worker, PDF/Markdown/text processing, normalized content.
 3. **Memory materialization** — on `ProcessingCompleted`, create knowledge items and chunks.
 4. **Search indexing and retrieval** — search documents, PostgreSQL FTS, pgvector embeddings (dim 4 + fake provider in composition), hybrid RRF retrieval API.
 5. **Intelligence foundation** — Reason pipeline, conversation memory, Conversation REST API, execution traces, fake/OpenAI providers, tool framework (unused by Reason).

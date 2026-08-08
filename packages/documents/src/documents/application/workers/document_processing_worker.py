@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from collections.abc import Callable
 from contextvars import Token
 from dataclasses import dataclass
@@ -10,6 +11,7 @@ from memovi_observability import (
     RequestContext,
     bind_request_context,
     clear_request_context,
+    get_metrics_recorder,
 )
 from memovi_shared import InvalidWorkspaceIdError, WorkspaceId
 from sqlalchemy.orm import Session as OrmSession
@@ -109,6 +111,8 @@ class DocumentProcessingWorker:
 
     def _process_queued_job(self, queued: QueuedProcessingJob) -> None:
         context_token = _bind_queued_request_context(queued)
+        metrics = get_metrics_recorder()
+        started = time.perf_counter()
         session = self._session_factory()
         try:
             process_document = ProcessDocument(
@@ -132,14 +136,25 @@ class DocumentProcessingWorker:
                 self._handle_transient_failure(queued, reason=str(exc))
                 return
 
+            duration_ms = (time.perf_counter() - started) * 1000.0
+            metrics.timing(
+                "memovi.documents.processing.duration_ms",
+                duration_ms,
+                tags={"status": result.processing_status.value},
+            )
             if result.processing_status is ProcessingStatus.FAILED:
+                metrics.increment("memovi.documents.processing.failed")
                 LOGGER.warning(
                     "Processing job %s failed permanently: %s",
                     queued.processing_job_id,
                     result.events[-1],
                 )
+            elif result.processing_status is ProcessingStatus.COMPLETED:
+                metrics.increment("memovi.documents.processing.completed")
+                metrics.increment("memovi.documents.processing.throughput")
         except Exception:
             session.rollback()
+            metrics.increment("memovi.documents.processing.failed")
             LOGGER.exception(
                 "Unexpected error while processing job %s",
                 queued.processing_job_id,
@@ -150,22 +165,29 @@ class DocumentProcessingWorker:
             _clear_queued_request_context(context_token)
 
     def _handle_transient_failure(self, queued: QueuedProcessingJob, *, reason: str) -> None:
+        metrics = get_metrics_recorder()
         if queued.attempt >= self._config.max_retries:
             self._fail_exhausted_job(queued.processing_job_id, reason=reason)
+            metrics.increment("memovi.documents.processing.failed")
             return
 
         if not self._reset_job_to_pending(queued.processing_job_id):
             return
 
+        next_attempt = queued.attempt + 1
         self._queue.enqueue(
             queued.processing_job_id,
-            attempt=queued.attempt + 1,
+            attempt=next_attempt,
             request_id=queued.request_id,
             workspace_id=queued.workspace_id,
         )
+        metrics.increment(
+            "memovi.documents.processing.retries",
+            tags={"attempt": str(next_attempt)},
+        )
         LOGGER.info(
             "Scheduled retry %s/%s for processing job %s",
-            queued.attempt + 1,
+            next_attempt,
             self._config.max_retries,
             queued.processing_job_id,
         )

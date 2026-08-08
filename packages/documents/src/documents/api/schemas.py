@@ -20,6 +20,9 @@ class DocumentResponse(BaseModel):
     processing_status: str | None = None
     processing_failure_reason: str | None = None
     processing_updated_at: datetime | None = None
+    processing_attempt: int | None = None
+    processing_started_at: datetime | None = None
+    processing_completed_at: datetime | None = None
 
 
 class DocumentListResponse(BaseModel):
