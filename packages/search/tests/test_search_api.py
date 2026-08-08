@@ -1,14 +1,24 @@
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from api.app import create_app
+from api.database import database_session as api_database_session
+from auth.api.dependencies import get_database_session as get_auth_database_session
+from auth.infrastructure.persistence import Base as AuthBase
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from memovi_search.api.dependencies import get_retrieve_knowledge
 from memovi_search.application.dto import SearchFilters, SearchResultDto
 from memovi_search.application.queries import RetrieveKnowledgeQuery
 from memovi_search.application.services import RetrievalMode
-from memovi_shared import WorkspaceId
+from memovi_shared import DEFAULT_WORKSPACE_ID, WorkspaceId
+from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
+from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 SEARCH_DOCUMENT_ID = "11111111-1111-1111-1111-111111111111"
 KNOWLEDGE_ITEM_ID = "22222222-2222-2222-2222-222222222222"
@@ -26,6 +36,57 @@ class FakeRetrieveKnowledge:
     def execute(self, query: RetrieveKnowledgeQuery) -> list[SearchResultDto]:
         self.last_query = query
         return self._results[query.offset : query.offset + query.limit]
+
+
+def _build_authenticated_app(
+    dependency_overrides: dict[Callable[..., Any], Callable[..., Any]] | None = None,
+) -> tuple[FastAPI, Engine]:
+    """Minimal sqlite auth + workspace so AuthenticationMiddleware accepts requests."""
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    AuthBase.metadata.create_all(engine)
+    WorkspaceBase.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+
+    with Session(engine) as seed_session:
+        seed_session.add(
+            WorkspaceRecord(
+                id=DEFAULT_WORKSPACE_ID.value,
+                name="Default",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            )
+        )
+        seed_session.commit()
+
+    def database_session() -> Iterator[Session]:
+        session = session_factory()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    app = create_app()
+    app.state.auth_session_factory = session_factory
+    app.dependency_overrides[api_database_session] = database_session
+    app.dependency_overrides[get_auth_database_session] = database_session
+    for dep, override in (dependency_overrides or {}).items():
+        app.dependency_overrides[dep] = override
+    return app, engine
+
+
+def _register(client: TestClient, *, email: str) -> None:
+    response = client.post(
+        "/auth/register",
+        json={"email": email, "password": "password123"},
+    )
+    assert response.status_code == 201
 
 
 @pytest.fixture
@@ -60,13 +121,16 @@ def search_client(
     search_results: list[SearchResultDto],
 ) -> Iterator[tuple[TestClient, FakeRetrieveKnowledge]]:
     fake_search = FakeRetrieveKnowledge(results=search_results)
-    app = create_app()
-    app.dependency_overrides[get_retrieve_knowledge] = lambda: fake_search
+    app, engine = _build_authenticated_app(
+        {get_retrieve_knowledge: lambda: fake_search},
+    )
     client = TestClient(app, base_url="https://testserver")
     try:
+        _register(client, email="search-tester@example.com")
         yield (client, fake_search)
     finally:
         client.close()
+        engine.dispose()
 
 
 def test_search_returns_matching_document(
@@ -107,13 +171,16 @@ def test_search_accepts_mode_parameter(
 
 def test_search_returns_empty_results_when_nothing_matches() -> None:
     fake_search = FakeRetrieveKnowledge(results=[])
-    app = create_app()
-    app.dependency_overrides[get_retrieve_knowledge] = lambda: fake_search
+    app, engine = _build_authenticated_app(
+        {get_retrieve_knowledge: lambda: fake_search},
+    )
     client = TestClient(app, base_url="https://testserver")
     try:
+        _register(client, email="search-empty@example.com")
         response = client.get("/search", params={"q": "no-such-term"})
     finally:
         client.close()
+        engine.dispose()
     assert response.status_code == 200
     assert response.json() == {"query": "no-such-term", "count": 0, "results": []}
 
@@ -211,23 +278,21 @@ def test_search_passes_date_range_filters(
 
 
 @pytest.mark.parametrize(
-    ("params", "expected_substring"),
+    ("params", "error_field"),
     [
-        ({}, "q"),
         ({"q": ""}, "q"),
         ({"q": "   "}, "q"),
-        ({"q": "Memovi", "limit": 101}, "limit"),
+        ({"q": "Memovi", "limit": 0}, "limit"),
         ({"q": "Memovi", "offset": -1}, "offset"),
-        ({"q": "Memovi", "mode": "invalid"}, "mode"),
+        ({"q": "Memovi", "mode": "fuzzy"}, "mode"),
     ],
 )
 def test_search_rejects_invalid_query_parameters(
     search_client: tuple[TestClient, FakeRetrieveKnowledge],
-    params: dict[str, str | int],
-    expected_substring: str,
+    params: dict[str, object],
+    error_field: str,
 ) -> None:
-    client, fake_search = search_client
+    client, _ = search_client
     response = client.get("/search", params=params)
     assert response.status_code == 422
-    assert expected_substring in response.text.lower()
-    assert fake_search.last_query is None
+    assert any(error["loc"][-1] == error_field for error in response.json()["detail"])

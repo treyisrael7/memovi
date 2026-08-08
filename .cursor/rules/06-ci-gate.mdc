@@ -1,0 +1,31 @@
+---
+description: Require full local CI parity before declaring a milestone finished
+alwaysApply: true
+---
+
+# CI Gate Before Milestone Completion
+
+Do not declare a milestone, feature, or substantial change finished until the full local CI suite has passed.
+
+## Required Gate
+
+Run `task ci` before considering milestone work done. This mirrors GitHub Actions:
+
+- Backend: Ruff, Black, MyPy, Pytest (`ci:backend`)
+- Desktop: typecheck, unit, smoke, Vite build (`ci:desktop`)
+- Frontend: lint, typecheck, build (`ci:frontend`)
+
+Linux-only Tauri packaging is excluded from local parity; everything else must pass.
+
+## When This Applies
+
+- Completing a numbered milestone from the roadmap/status docs
+- Finishing a multi-file feature or bugfix that would land on main
+- After fixing CI failures that previously blocked merge
+
+## Expectations
+
+- Fix failures in the same change; do not hand off known red CI
+- Prefer `task ci` over ad-hoc single-package checks when closing work
+- If a step cannot run locally (missing Docker/Postgres, etc.), say so explicitly and still run every check that can run
+- Do not claim “CI is green” from partial runs (for example only Ruff, or only unit tests)

@@ -14,12 +14,17 @@ from api.events import InProcessEventDispatcher
 from api.health import _check_embedding_provider
 from api.middleware import CORRELATION_ID_HEADER, REQUEST_ID_HEADER
 from api.observability_bridge import register_observability_event_bridge
+from api.routers import _register_user
 from api.workspace_context import (
     WORKSPACE_HEADER,
     BoundRequestContext,
     get_active_workspace_id,
     get_request_context_dependency,
 )
+from auth.api.dependencies import get_database_session as get_auth_database_session
+from auth.api.dependencies import get_register_user as get_auth_register_user
+from auth.api.router import router as auth_router
+from auth.infrastructure.persistence import Base as AuthBase
 from documents.domain.events import DocumentCreated
 from documents.domain.value_objects import DocumentId
 from fastapi import Depends, FastAPI
@@ -37,9 +42,11 @@ from memovi_observability import (
 from memovi_search.domain.events import SearchIndexed
 from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from memovi_shared import DEFAULT_WORKSPACE_ID, WorkspaceId
+from memovi_workspace.domain.entities import WorkspaceMembership
 from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
 from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
-from sqlalchemy import create_engine
+from memovi_workspace.infrastructure.repositories import SqlAlchemyWorkspaceMembershipRepository
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -52,11 +59,89 @@ def metrics_recorder() -> Iterator[InMemoryMetricsRecorder]:
     set_metrics_recorder(InMemoryMetricsRecorder())
 
 
+def _sqlite_engine() -> Engine:
+    return create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+
+
+def _configure_auth(
+    app: FastAPI,
+    *,
+    engine: Engine,
+    session_factory: sessionmaker[Session],
+) -> None:
+    AuthBase.metadata.create_all(engine)
+    WorkspaceBase.metadata.create_all(engine)
+
+    def database_session() -> Iterator[Session]:
+        session = session_factory()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    app.include_router(auth_router)
+    app.state.auth_session_factory = session_factory
+    app.dependency_overrides[api_database_session] = database_session
+    app.dependency_overrides[get_auth_database_session] = database_session
+    app.dependency_overrides[get_auth_register_user] = _register_user
+
+
+def _register_and_enroll(
+    client: TestClient,
+    *,
+    engine: Engine,
+    email: str,
+    extra_workspaces: tuple[WorkspaceId, ...] = (),
+) -> None:
+    response = client.post(
+        "/auth/register",
+        json={"email": email, "password": "password123"},
+    )
+    assert response.status_code == 201
+    user_id = response.json()["id"]
+    if not extra_workspaces:
+        return
+    with Session(engine) as session:
+        memberships = SqlAlchemyWorkspaceMembershipRepository(session)
+        for workspace_id in extra_workspaces:
+            memberships.add(
+                WorkspaceMembership.create(
+                    workspace_id=workspace_id,
+                    user_id=user_id,
+                    role="member",
+                )
+            )
+        session.commit()
+
+
 def test_request_id_is_echoed_and_stable_across_handler() -> None:
+    engine = _sqlite_engine()
+    AuthBase.metadata.create_all(engine)
+    WorkspaceBase.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+    with Session(engine) as session:
+        session.add(
+            WorkspaceRecord(
+                id=DEFAULT_WORKSPACE_ID.value,
+                name="Default",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            )
+        )
+        session.commit()
+
     app = FastAPI()
     from api.middleware import register_middleware
 
     register_middleware(app)
+    _configure_auth(app, engine=engine, session_factory=session_factory)
 
     @app.get("/probe")
     def probe(
@@ -70,30 +155,31 @@ def test_request_id_is_echoed_and_stable_across_handler() -> None:
             ),
         }
 
-    with TestClient(app) as client:
-        response = client.get(
-            "/probe",
-            headers={
-                REQUEST_ID_HEADER: "req-stable-1",
-                CORRELATION_ID_HEADER: "corr-1",
-            },
-        )
+    try:
+        with TestClient(app, base_url="https://testserver") as client:
+            _register_and_enroll(client, engine=engine, email="obs-request-id@example.com")
+            response = client.get(
+                "/probe",
+                headers={
+                    REQUEST_ID_HEADER: "req-stable-1",
+                    CORRELATION_ID_HEADER: "corr-1",
+                },
+            )
 
-    assert response.status_code == 200
-    assert response.headers[REQUEST_ID_HEADER] == "req-stable-1"
-    assert response.headers[CORRELATION_ID_HEADER] == "corr-1"
-    body = response.json()
-    assert body["request_id"] == "req-stable-1"
-    assert body["bound_request_id"] == "req-stable-1"
-    assert body["correlation_id"] == "corr-1"
+        assert response.status_code == 200
+        assert response.headers[REQUEST_ID_HEADER] == "req-stable-1"
+        assert response.headers[CORRELATION_ID_HEADER] == "corr-1"
+        body = response.json()
+        assert body["request_id"] == "req-stable-1"
+        assert body["bound_request_id"] == "req-stable-1"
+        assert body["correlation_id"] == "corr-1"
+    finally:
+        engine.dispose()
 
 
 def test_workspace_id_bound_into_request_context() -> None:
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+    engine = _sqlite_engine()
+    AuthBase.metadata.create_all(engine)
     WorkspaceBase.metadata.create_all(engine)
     session_factory = sessionmaker(bind=engine, expire_on_commit=False)
     explicit = WorkspaceId.new()
@@ -115,22 +201,11 @@ def test_workspace_id_bound_into_request_context() -> None:
         )
         session.commit()
 
-    def database_session() -> Iterator[Session]:
-        session = session_factory()
-        try:
-            yield session
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-
     app = FastAPI()
     from api.middleware import register_middleware
 
     register_middleware(app)
-    app.dependency_overrides[api_database_session] = database_session
+    _configure_auth(app, engine=engine, session_factory=session_factory)
 
     @app.get("/active-workspace")
     def active_workspace(
@@ -146,7 +221,13 @@ def test_workspace_id_bound_into_request_context() -> None:
         }
 
     try:
-        with TestClient(app) as client:
+        with TestClient(app, base_url="https://testserver") as client:
+            _register_and_enroll(
+                client,
+                engine=engine,
+                email="obs-workspace@example.com",
+                extra_workspaces=(explicit,),
+            )
             response = client.get(
                 "/active-workspace",
                 headers={

@@ -240,6 +240,9 @@ def test_not_a_repository_is_structured(repo: Path) -> None:
     workspace = repo.parent
     empty = workspace / "empty"
     empty.mkdir()
+    # Block parent worktree discovery (e.g. a .git under the user home) so this
+    # path is treated as outside any repository while remaining under allowed roots.
+    (empty / ".git").write_text("gitdir: /nonexistent-memovi-git-test\n", encoding="utf-8")
     _registry, invoker, _cap = _stack_for_repo(repo)
     result = _invoke(
         invoker,

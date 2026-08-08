@@ -61,6 +61,7 @@ from memovi_workspace.api.dependencies import get_authenticated_user_id
 from memovi_workspace.api.dependencies import get_database_session as get_workspace_database_session
 from memovi_workspace.api.dependencies import get_user_directory as get_workspace_user_directory
 from memovi_workspace.api.router import router as workspace_router
+from memovi_workspace.application.ports import UserDirectoryPort
 from sqlalchemy.orm import Session as OrmSession
 
 from api.auth_context import (
@@ -83,7 +84,7 @@ from api.workspace_context import get_active_workspace_id
 
 def _workspace_user_directory(
     session: OrmSession = Depends(get_workspace_database_session),
-):
+) -> UserDirectoryPort:
     return build_user_directory(session)
 
 

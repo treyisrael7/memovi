@@ -61,7 +61,7 @@ class SentenceTransformerEmbeddingProvider:
 
     def _load_encoder(self) -> Any:
         try:
-            from sentence_transformers import SentenceTransformer
+            from sentence_transformers import SentenceTransformer  # type: ignore[import-not-found]
         except ImportError as exc:
             raise EmbeddingProviderUnavailableError(
                 "The sentence-transformers package is required for "

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import cast
 
 from auth.api.dependencies import SESSION_COOKIE_NAME
 from auth.application.dto import AuthenticatedPrincipal
@@ -106,7 +107,7 @@ class AuthenticationMiddleware:
         if app is not None:
             factory = getattr(getattr(app, "state", None), "auth_session_factory", None)
             if callable(factory):
-                return factory
+                return cast(Callable[[], OrmSession], factory)
         return create_session
 
     def _resolve_principal(

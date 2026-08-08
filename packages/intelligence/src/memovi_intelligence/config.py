@@ -9,7 +9,9 @@ from memovi_config.settings.models import (
 )
 from memovi_config.settings.models import (
     ModelsSettings,
-    ReasoningProviderKind,
+)
+from memovi_config.settings.models import (
+    ReasoningProviderKind as ReasoningProviderKind,
 )
 
 from memovi_intelligence.domain.exceptions import InvalidIntelligenceConfigError

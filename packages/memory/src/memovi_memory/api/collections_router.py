@@ -18,6 +18,7 @@ from memovi_memory.api.collection_schemas import (
     UpdateCollectionDescriptionRequest,
 )
 from memovi_memory.api.dependencies import get_active_workspace_id, get_collection_service
+from memovi_memory.application.dto import CollectionDto, CollectionMembershipDto
 from memovi_memory.application.services import CollectionService
 from memovi_memory.domain.exceptions import (
     CollectionMembershipNotFoundError,
@@ -31,7 +32,7 @@ from memovi_memory.domain.exceptions import (
 router = APIRouter(prefix="/collections", tags=["collections"])
 
 
-def _collection_response(dto) -> CollectionResponse:
+def _collection_response(dto: CollectionDto) -> CollectionResponse:
     return CollectionResponse(
         id=dto.id,
         workspace_id=dto.workspace_id,
@@ -42,7 +43,7 @@ def _collection_response(dto) -> CollectionResponse:
     )
 
 
-def _membership_response(dto) -> CollectionMembershipResponse:
+def _membership_response(dto: CollectionMembershipDto) -> CollectionMembershipResponse:
     return CollectionMembershipResponse(
         id=dto.id,
         collection_id=dto.collection_id,

@@ -1,5 +1,5 @@
-from collections.abc import Mapping
-from typing import Final
+from collections.abc import Callable, Mapping
+from typing import Final, cast
 
 from memovi_automation.application.services.capability_registry import CapabilityRegistry
 from memovi_automation.browser import operations
@@ -344,8 +344,10 @@ def _resolve_search_limit(
     return min(value, config.max_search_limit)
 
 
-def _context_progress(context: CapabilityContext):
+def _context_progress(
+    context: CapabilityContext,
+) -> Callable[[Mapping[str, object]], None] | None:
     reporter = context.metadata.get("report_progress")
     if not callable(reporter):
         return None
-    return reporter
+    return cast(Callable[[Mapping[str, object]], None], reporter)

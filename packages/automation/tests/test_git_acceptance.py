@@ -281,6 +281,8 @@ def test_8_outside_repository_returns_normalized_error(repo: Path) -> None:
     engine = _engine(repo.parent, mode=PermissionMode.ALWAYS_ALLOW)
     empty = repo.parent / "not-a-repo"
     empty.mkdir()
+    # Block parent worktree discovery so git reports not-a-repository.
+    (empty / ".git").write_text("gitdir: /nonexistent-memovi-git-test\n", encoding="utf-8")
 
     result = _submit(
         engine,

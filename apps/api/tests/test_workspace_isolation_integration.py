@@ -40,7 +40,11 @@ from memovi_shared import DEFAULT_WORKSPACE_ID, WorkspaceId
 from memovi_workspace.api.dependencies import get_database_session as get_workspace_database_session
 from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
 from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
-from postgres_support import ensure_pgvector_extension, postgres_available, postgres_database_url
+from postgres_support import (
+    create_postgres_engine,
+    ensure_pgvector_extension,
+    postgres_available,
+)
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -152,6 +156,7 @@ def _build_client(engine: Engine) -> Iterator[tuple[TestClient, Engine]]:
             session.close()
 
     app = create_app()
+    app.state.auth_session_factory = test_session_factory
     configure_document_processing(
         app,
         session_factory=test_session_factory,
@@ -174,6 +179,11 @@ def _build_client(engine: Engine) -> Iterator[tuple[TestClient, Engine]]:
     app.dependency_overrides[get_knowledge_retriever] = lambda: FakeKnowledgeRetriever()
 
     with TestClient(app, base_url="https://testserver") as client:
+        register_response = client.post(
+            "/auth/register",
+            json={"email": "workspace-isolation@example.com", "password": "password123"},
+        )
+        assert register_response.status_code == 201
         yield client, engine
 
     engine.dispose()
@@ -203,7 +213,7 @@ def workspace_isolation_postgres_client() -> Iterator[tuple[TestClient, Engine]]
     if not postgres_available():
         pytest.skip("PostgreSQL is required for workspace search isolation tests.")
 
-    engine = create_engine(postgres_database_url(), pool_pre_ping=True)
+    engine = create_postgres_engine()
     ensure_pgvector_extension(engine)
     # Drop owned tables before workspace so FK constraints from migrations do not block.
     for base in (

@@ -1,6 +1,7 @@
 import uuid
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from typing import Any
 
 from documents.domain.enums import ProcessingStatus
 from documents.domain.exceptions import InvalidProcessingJobError, InvalidProcessingTransitionError
@@ -172,7 +173,7 @@ class ProcessingJob:
             )
 
         timestamp = now or datetime.now(UTC)
-        updates: dict[str, object] = {
+        updates: dict[str, Any] = {
             "status": next_status,
             "updated_at": timestamp,
         }

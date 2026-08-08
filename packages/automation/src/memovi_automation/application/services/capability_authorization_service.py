@@ -133,7 +133,7 @@ class CapabilityAuthorizationService:
                     f"Capability '{capability_id}' is denied by the active permission policy."
                 ),
             )
-            effective = frozenset()
+            effective: frozenset[str] = frozenset()
         else:
             decision = CapabilityAuthorizationDecision(
                 allowed=True,

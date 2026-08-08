@@ -57,6 +57,9 @@ class _AllowAllMembership:
     def is_member(self, *, user_id: str, workspace_id: WorkspaceId) -> bool:
         return True
 
+    def get_role(self, *, user_id: str, workspace_id: WorkspaceId) -> str | None:
+        return "owner"
+
 
 class CapabilityExecutionEngine:
     """Secure pipeline for resolving, authorizing, invoking, and auditing capabilities.

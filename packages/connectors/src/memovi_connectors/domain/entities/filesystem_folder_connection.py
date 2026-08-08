@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from types import EllipsisType
 from uuid import uuid4
 
 from memovi_shared import WorkspaceId
@@ -96,9 +97,9 @@ class FilesystemFolderConnection:
         *,
         sync_cursor: str | None = None,
         sync_status: str | None = None,
-        last_error: str | None = ...,  # type: ignore[assignment]
+        last_error: str | None | EllipsisType = ...,
         imported_document_count: int | None = None,
-        last_synchronized_at: datetime | None = ...,  # type: ignore[assignment]
+        last_synchronized_at: datetime | None | EllipsisType = ...,
         now: datetime | None = None,
     ) -> FilesystemFolderConnection:
         timestamp = now or datetime.now(tz=UTC)

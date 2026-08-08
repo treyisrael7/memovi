@@ -61,18 +61,32 @@ def run_git(
 
     started = perf_counter()
     try:
-        process = subprocess.Popen(
-            argv,
-            cwd=str(repository),
-            env=env,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            **_spawn_kwargs(),
-        )
+        if sys.platform == "win32":
+            process = subprocess.Popen(
+                argv,
+                cwd=str(repository),
+                env=env,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+            )
+        else:
+            process = subprocess.Popen(
+                argv,
+                cwd=str(repository),
+                env=env,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                start_new_session=True,
+            )
     except FileNotFoundError as exc:
         raise CapabilityExecutionError(
             "Git executable is not available on this host.",
@@ -170,12 +184,6 @@ def _normalize_git_failure(result: GitCliResult) -> CapabilityExecutionError:
             "stderr_summary": result.stderr.strip()[:500],
         },
     )
-
-
-def _spawn_kwargs() -> dict[str, object]:
-    if sys.platform == "win32":
-        return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}  # type: ignore[attr-defined]
-    return {"start_new_session": True}
 
 
 def _close_streams(process: subprocess.Popen[str]) -> None:

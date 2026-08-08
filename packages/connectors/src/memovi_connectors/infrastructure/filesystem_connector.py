@@ -211,11 +211,11 @@ class FilesystemConnector:
         rename_map: dict[str, str] = {}
         unmatched_vanished = set(vanished)
         unmatched_appeared = set(appeared)
-        hash_to_vanished: dict[str, str] = {
-            previous[path]["sha256"]: path
-            for path in vanished
-            if previous.get(path, {}).get("sha256")
-        }
+        hash_to_vanished: dict[str, str] = {}
+        for path in vanished:
+            digest = previous.get(path, {}).get("sha256")
+            if isinstance(digest, str) and digest:
+                hash_to_vanished[digest] = path
         for new_path in list(unmatched_appeared):
             digest = current[new_path].sha256
             old_path = hash_to_vanished.get(digest)
@@ -231,6 +231,10 @@ class FilesystemConnector:
         deleted = 0
         skipped = 0
 
+        document_import = self._document_import
+        folders = self._folders
+        assert document_import is not None and folders is not None
+
         for old_path, new_path in rename_map.items():
             # Rename = delete old identity + upsert new path (same content).
             delete_item = self._build_item(
@@ -241,7 +245,7 @@ class FilesystemConnector:
                 change_kind="delete",
                 content=b"",
             )
-            self._document_import.import_item(delete_item)
+            document_import.import_item(delete_item)
             items.append(delete_item)
             deleted += 1
 
@@ -253,7 +257,7 @@ class FilesystemConnector:
                 change_kind="upsert",
                 content=current[new_path].content,
             )
-            self._document_import.import_item(upsert_item)
+            document_import.import_item(upsert_item)
             items.append(upsert_item)
             imported += 1
 
@@ -266,7 +270,7 @@ class FilesystemConnector:
                 change_kind="delete",
                 content=b"",
             )
-            self._document_import.import_item(item)
+            document_import.import_item(item)
             items.append(item)
             deleted += 1
 
@@ -280,7 +284,7 @@ class FilesystemConnector:
                 change_kind="upsert",
                 content=snapshot.content,
             )
-            self._document_import.import_item(item)
+            document_import.import_item(item)
             items.append(item)
             imported += 1
 
@@ -303,7 +307,7 @@ class FilesystemConnector:
                 change_kind="upsert",
                 content=snapshot.content,
             )
-            self._document_import.import_item(item)
+            document_import.import_item(item)
             items.append(item)
             updated += 1
 
@@ -326,7 +330,7 @@ class FilesystemConnector:
             last_synchronized_at=now,
             now=now,
         )
-        self._folders.save(healthy)
+        folders.save(healthy)
         self._config = ConnectorConfiguration(
             connector_id=CONNECTOR_FILESYSTEM,
             enabled=self._enabled,

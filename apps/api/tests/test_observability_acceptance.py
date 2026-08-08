@@ -17,12 +17,17 @@ from api.events import InProcessEventDispatcher
 from api.health import _check_database, run_readiness_checks
 from api.middleware import REQUEST_ID_HEADER, register_middleware
 from api.observability_bridge import register_observability_event_bridge
+from api.routers import _register_user
 from api.workspace_context import (
     WORKSPACE_HEADER,
     BoundRequestContext,
     get_active_workspace_id,
     get_request_context_dependency,
 )
+from auth.api.dependencies import get_database_session as get_auth_database_session
+from auth.api.dependencies import get_register_user as get_auth_register_user
+from auth.api.router import router as auth_router
+from auth.infrastructure.persistence import Base as AuthBase
 from documents.domain.events import DocumentCreated
 from documents.domain.value_objects import DocumentId
 from fastapi import Depends, FastAPI
@@ -41,8 +46,10 @@ from memovi_observability import (
 )
 from memovi_observability.logging.structured import RequestContextFilter, log_operation
 from memovi_shared import DEFAULT_WORKSPACE_ID, WorkspaceId
+from memovi_workspace.domain.entities import WorkspaceMembership
 from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
 from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
+from memovi_workspace.infrastructure.repositories import SqlAlchemyWorkspaceMembershipRepository
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -91,6 +98,7 @@ def _workspace_app() -> _WorkspaceFixture:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+    AuthBase.metadata.create_all(engine)
     WorkspaceBase.metadata.create_all(engine)
     session_factory = sessionmaker(bind=engine, expire_on_commit=False)
     workspace_a = WorkspaceId.new()
@@ -133,7 +141,11 @@ def _workspace_app() -> _WorkspaceFixture:
 
     app = FastAPI()
     register_middleware(app)
+    app.include_router(auth_router)
+    app.state.auth_session_factory = session_factory
     app.dependency_overrides[api_database_session] = database_session
+    app.dependency_overrides[get_auth_database_session] = database_session
+    app.dependency_overrides[get_auth_register_user] = _register_user
 
     @app.get("/probe")
     def probe(
@@ -171,12 +183,50 @@ def _workspace_app() -> _WorkspaceFixture:
     )
 
 
+def _authenticate_workspace_client(
+    client: TestClient,
+    *,
+    engine: Engine,
+    workspace_a: WorkspaceId,
+    workspace_b: WorkspaceId,
+    email: str,
+) -> None:
+    response = client.post(
+        "/auth/register",
+        json={"email": email, "password": "password123"},
+    )
+    assert response.status_code == 201
+    user_id = response.json()["id"]
+    with Session(engine) as session:
+        memberships = SqlAlchemyWorkspaceMembershipRepository(session)
+        for workspace_id in (workspace_a, workspace_b):
+            memberships.add(
+                WorkspaceMembership.create(
+                    workspace_id=workspace_id,
+                    user_id=user_id,
+                    role="member",
+                )
+            )
+        session.commit()
+
+
 def test_request_id_constant_across_search_memory_intelligence_logs(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     fixture = _workspace_app()
     try:
-        with caplog.at_level(logging.INFO), TestClient(fixture.app) as client:
+        with (
+            caplog.at_level(logging.INFO),
+            TestClient(fixture.app, base_url="https://testserver") as client,
+        ):
+            _authenticate_workspace_client(
+                client,
+                engine=fixture.engine,
+                workspace_a=fixture.workspace_a,
+                workspace_b=fixture.workspace_b,
+                email="obs-accept-request@example.com",
+            )
+            caplog.clear()
             response = client.get(
                 "/probe",
                 headers={
@@ -205,7 +255,18 @@ def test_workspace_switch_changes_logged_workspace_id(
 ) -> None:
     fixture = _workspace_app()
     try:
-        with caplog.at_level(logging.INFO), TestClient(fixture.app) as client:
+        with (
+            caplog.at_level(logging.INFO),
+            TestClient(fixture.app, base_url="https://testserver") as client,
+        ):
+            _authenticate_workspace_client(
+                client,
+                engine=fixture.engine,
+                workspace_a=fixture.workspace_a,
+                workspace_b=fixture.workspace_b,
+                email="obs-accept-workspace@example.com",
+            )
+            caplog.clear()
             first = client.get(
                 "/probe",
                 headers={

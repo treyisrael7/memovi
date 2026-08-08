@@ -7,11 +7,13 @@ from memovi_config.exceptions import ConfigurationError
 from memovi_config.settings.embeddings import (
     DEFAULT_MODELS,
     DEFAULT_OLLAMA_ENDPOINT,
-    EmbeddingProviderKind,
     EmbeddingsSettings,
 )
 from memovi_config.settings.embeddings import (
     EMBEDDING_VECTOR_DIMENSIONS as CONFIG_EMBEDDING_DIMENSIONS,
+)
+from memovi_config.settings.embeddings import (
+    EmbeddingProviderKind as EmbeddingProviderKind,
 )
 
 from memovi_search.application.exceptions import InvalidEmbeddingConfigError

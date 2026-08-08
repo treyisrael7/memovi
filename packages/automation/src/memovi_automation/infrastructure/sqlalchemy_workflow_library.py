@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import Any, cast
 from uuid import uuid4
 
 from sqlalchemy.orm import Session as OrmSession
@@ -216,8 +217,8 @@ class SqlAlchemyWorkflowLibrary:
             name=definition.name,
             description=definition.description,
             version=definition.version,
-            steps=list(payload["steps"]),  # type: ignore[arg-type]
-            variables=list(payload["variables"]),  # type: ignore[arg-type]
+            steps=cast(list[Any], payload["steps"]),
+            variables=cast(list[Any], payload["variables"]),
             expected_outputs=list(definition.expected_outputs),
             required_capabilities=list(definition.required_capabilities),
             metadata_json=dict(definition.metadata),
@@ -236,8 +237,8 @@ class SqlAlchemyWorkflowLibrary:
         record.name = definition.name
         record.description = definition.description
         record.version = record.version + 1 if bump_version else definition.version
-        record.steps = [serialize_step(step) for step in definition.steps]  # type: ignore[assignment]
-        record.variables = [serialize_variable(variable) for variable in definition.variables]  # type: ignore[assignment]
+        record.steps = [serialize_step(step) for step in definition.steps]
+        record.variables = [serialize_variable(variable) for variable in definition.variables]
         record.expected_outputs = list(definition.expected_outputs)
         record.required_capabilities = list(definition.required_capabilities)
         record.metadata_json = dict(definition.metadata)

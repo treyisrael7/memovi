@@ -7,7 +7,7 @@ Handlers never overwrite silently and never return raw exceptions.
 from __future__ import annotations
 
 import shutil
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 from memovi_automation.domain.exceptions import CapabilityExecutionError
@@ -65,8 +65,8 @@ def execute_write_operation(
     path: Path,
     arguments: Mapping[str, object],
     config: FilesystemCapabilityConfig,
-    resolve_path,
-    check_cancelled,
+    resolve_path: Callable[..., Path],
+    check_cancelled: Callable[[], None],
 ) -> dict[str, object]:
     """Dispatch a write operation and return a structured success payload."""
     check_cancelled()
@@ -298,7 +298,7 @@ def _handle_existing_destination(
 def _resolve_destination(
     arguments: Mapping[str, object],
     *,
-    resolve_path,
+    resolve_path: Callable[..., Path],
     config: FilesystemCapabilityConfig,
 ) -> Path:
     raw = arguments.get("destination")
@@ -593,7 +593,7 @@ def _rename_path(
     operation: str,
     arguments: Mapping[str, object],
     config: FilesystemCapabilityConfig,
-    check_cancelled,
+    check_cancelled: Callable[[], None],
 ) -> dict[str, object]:
     _reject_root_target(source, allowed_roots=config.allowed_roots)
     if source == destination:
@@ -652,7 +652,7 @@ def _copy_path(
     operation: str,
     arguments: Mapping[str, object],
     config: FilesystemCapabilityConfig,
-    check_cancelled,
+    check_cancelled: Callable[[], None],
 ) -> dict[str, object]:
     _reject_root_target(source, allowed_roots=config.allowed_roots)
     if source == destination:
@@ -703,7 +703,7 @@ def _move_path(
     operation: str,
     arguments: Mapping[str, object],
     config: FilesystemCapabilityConfig,
-    check_cancelled,
+    check_cancelled: Callable[[], None],
 ) -> dict[str, object]:
     _reject_root_target(source, allowed_roots=config.allowed_roots)
     if source == destination:
@@ -762,7 +762,7 @@ def _delete_path(
     operation: str,
     arguments: Mapping[str, object],
     config: FilesystemCapabilityConfig,
-    check_cancelled,
+    check_cancelled: Callable[[], None],
 ) -> dict[str, object]:
     _reject_root_target(path, allowed_roots=config.allowed_roots)
     if not path.exists():

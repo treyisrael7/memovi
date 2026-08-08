@@ -26,7 +26,9 @@ from memovi_automation.api.workflow_schemas import (
     WorkflowListResponse,
     WorkflowStepResponse,
     WorkflowStepResultResponse,
+    WorkflowStepWrite,
     WorkflowVariableResponse,
+    WorkflowVariableWrite,
 )
 from memovi_automation.application.services.workflow_engine import WorkflowEngine
 from memovi_automation.domain.exceptions import (
@@ -138,7 +140,7 @@ def _history_response(entry: WorkflowHistoryEntry) -> WorkflowHistoryEntryRespon
     )
 
 
-def _steps_from_write(steps: list) -> tuple[WorkflowStep, ...]:
+def _steps_from_write(steps: list[WorkflowStepWrite]) -> tuple[WorkflowStep, ...]:
     return tuple(
         WorkflowStep(
             step_id=step.step_id,
@@ -153,7 +155,7 @@ def _steps_from_write(steps: list) -> tuple[WorkflowStep, ...]:
     )
 
 
-def _variables_from_write(variables: list) -> tuple[WorkflowVariable, ...]:
+def _variables_from_write(variables: list[WorkflowVariableWrite]) -> tuple[WorkflowVariable, ...]:
     return tuple(
         WorkflowVariable(
             name=variable.name,

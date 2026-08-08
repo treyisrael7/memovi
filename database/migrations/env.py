@@ -27,7 +27,7 @@ def _ensure_package(name: str, path: Path) -> None:
     if name in sys.modules:
         return
     module = types.ModuleType(name)
-    module.__path__ = [str(path)]  # type: ignore[attr-defined]
+    module.__path__ = [str(path)]
     sys.modules[name] = module
 
 

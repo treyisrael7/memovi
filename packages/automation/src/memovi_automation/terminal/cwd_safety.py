@@ -48,18 +48,19 @@ def resolve_working_directory(
                 details={"path": path_text},
             )
     else:
-        resolved = None
+        resolved_relative: Path | None = None
         for root in allowed_roots:
             candidate_resolved = (root / candidate).resolve(strict=False)
             if _is_within_root(candidate_resolved, root):
-                resolved = candidate_resolved
+                resolved_relative = candidate_resolved
                 break
-        if resolved is None:
+        if resolved_relative is None:
             raise CapabilityExecutionError(
                 "Working directory is outside allowed roots.",
                 code=INVALID_WORKING_DIRECTORY,
                 details={"path": path_text},
             )
+        resolved = resolved_relative
 
     if not resolved.exists():
         raise CapabilityExecutionError(

@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from time import perf_counter
+from typing import cast
 
 from memovi_observability import get_logger, get_metrics_recorder, get_request_context
 from memovi_observability.logging.structured import log_operation
@@ -149,7 +150,12 @@ class WorkflowEngine:
         drafts = []
         prior_ids: list[str] = []
         for step in definition.steps:
-            arguments = dict(substitute_value(dict(step.input_mapping), context))
+            arguments = dict(
+                cast(
+                    Mapping[str, object],
+                    substitute_value(dict(step.input_mapping), context),
+                )
+            )
             arguments.setdefault("operation", step.operation)
             drafts.append(
                 {
@@ -275,7 +281,10 @@ class WorkflowEngine:
                 arguments = {
                     key: value
                     for key, value in dict(
-                        substitute_value(dict(step.input_mapping), context)
+                        cast(
+                            Mapping[str, object],
+                            substitute_value(dict(step.input_mapping), context),
+                        )
                     ).items()
                     if value is not None
                 }

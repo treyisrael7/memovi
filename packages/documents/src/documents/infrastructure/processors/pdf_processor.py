@@ -1,7 +1,7 @@
 from io import BytesIO
 
 from pypdf import PdfReader
-from pypdf.errors import PdfReadError
+from pypdf.errors import PyPdfError
 
 from documents.application.exceptions import DocumentProcessingError
 
@@ -13,7 +13,7 @@ class PdfDocumentProcessor:
         try:
             reader = PdfReader(BytesIO(content))
             pages = [page.extract_text() or "" for page in reader.pages]
-        except PdfReadError as exc:
+        except PyPdfError as exc:
             raise DocumentProcessingError("PDF content could not be extracted.") from exc
 
         extracted = "\n".join(pages).strip()

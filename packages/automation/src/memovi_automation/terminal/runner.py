@@ -206,6 +206,7 @@ def _spawn(
     """
     use_argv = prefer_argv and argv is not None and len(argv) > 0 and not needs_shell
     if use_argv:
+        assert argv is not None
         try:
             return (
                 _popen(
@@ -247,24 +248,34 @@ def _popen(
     env: dict[str, str],
     encoding: str,
 ) -> subprocess.Popen[str]:
-    kwargs: dict[str, object] = {
-        "args": args,
-        "shell": shell,
-        "cwd": str(cwd),
-        "env": env,
-        "stdin": subprocess.DEVNULL,
-        "stdout": subprocess.PIPE,
-        "stderr": subprocess.PIPE,
-        "text": True,
-        "encoding": encoding,
-        "errors": "replace",
-    }
     if sys.platform == "win32":
         # New process group so we can terminate the whole tree on cancel/timeout.
-        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP  # type: ignore[attr-defined]
-    else:
-        kwargs["start_new_session"] = True
-    return subprocess.Popen(**kwargs)  # type: ignore[arg-type]
+        return subprocess.Popen(
+            args,
+            shell=shell,
+            cwd=str(cwd),
+            env=env,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding=encoding,
+            errors="replace",
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+        )
+    return subprocess.Popen(
+        args,
+        shell=shell,
+        cwd=str(cwd),
+        env=env,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding=encoding,
+        errors="replace",
+        start_new_session=True,
+    )
 
 
 def _close_streams(process: subprocess.Popen[str]) -> None:

@@ -1,8 +1,10 @@
 import time
 from collections.abc import Iterator
+from datetime import UTC, datetime
 
 import pytest
 from api.app import create_app
+from api.database import database_session as api_database_session
 from api.document_processing import configure_document_processing
 from api.documents_session import build_documents_database_session
 from api.intelligence_integration import get_search_knowledge_retriever
@@ -35,8 +37,15 @@ from memovi_search.infrastructure.persistence.models import (
     SearchDocumentRecord,
     SearchEmbeddingRecord,
 )
-from postgres_support import ensure_pgvector_extension, postgres_available, postgres_database_url
-from sqlalchemy import Engine, create_engine, select
+from memovi_shared import DEFAULT_WORKSPACE_ID
+from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
+from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
+from postgres_support import (
+    create_postgres_engine,
+    ensure_pgvector_extension,
+    postgres_available,
+)
+from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 UNIQUE_KNOWLEDGE = (
@@ -114,12 +123,35 @@ def conversation_retrieval_client() -> Iterator[tuple[TestClient, Engine]]:
         pytest.skip("PostgreSQL is required for conversation retrieval integration tests.")
 
     object_storage = InMemoryObjectStorage()
-    engine = create_engine(postgres_database_url(), pool_pre_ping=True)
+    engine = create_postgres_engine()
     ensure_pgvector_extension(engine)
-    for base in (AuthBase, DocumentsBase, MemoryBase, SearchBase, IntelligenceBase):
+    for base in (
+        AuthBase,
+        WorkspaceBase,
+        DocumentsBase,
+        MemoryBase,
+        SearchBase,
+        IntelligenceBase,
+    ):
         base.metadata.drop_all(engine)
-    for base in (AuthBase, DocumentsBase, MemoryBase, SearchBase, IntelligenceBase):
+    for base in (
+        AuthBase,
+        WorkspaceBase,
+        DocumentsBase,
+        MemoryBase,
+        SearchBase,
+        IntelligenceBase,
+    ):
         base.metadata.create_all(engine)
+    with Session(engine) as seed_session:
+        seed_session.add(
+            WorkspaceRecord(
+                id=DEFAULT_WORKSPACE_ID.value,
+                name="Default",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            )
+        )
+        seed_session.commit()
     test_session_factory = sessionmaker(bind=engine, expire_on_commit=False)
 
     def database_session() -> Iterator[Session]:
@@ -134,6 +166,7 @@ def conversation_retrieval_client() -> Iterator[tuple[TestClient, Engine]]:
             session.close()
 
     app = create_app()
+    app.state.auth_session_factory = test_session_factory
     configure_document_processing(
         app,
         session_factory=test_session_factory,
@@ -144,6 +177,7 @@ def conversation_retrieval_client() -> Iterator[tuple[TestClient, Engine]]:
         ),
         object_storage=object_storage,
     )
+    app.dependency_overrides[api_database_session] = database_session
     app.dependency_overrides[get_auth_database_session] = database_session
     app.dependency_overrides[get_documents_database_session] = build_documents_database_session(
         database_session
@@ -153,6 +187,11 @@ def conversation_retrieval_client() -> Iterator[tuple[TestClient, Engine]]:
     app.dependency_overrides[get_object_storage] = lambda: object_storage
 
     with TestClient(app, base_url="https://testserver") as client:
+        register_response = client.post(
+            "/auth/register",
+            json={"email": "conversation-retrieval@example.com", "password": "password123"},
+        )
+        assert register_response.status_code == 201
         yield client, engine
 
     engine.dispose()

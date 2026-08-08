@@ -135,7 +135,18 @@ The API health endpoint is available at `http://localhost:8000/health`.
 Local authentication endpoints are available under `http://localhost:8000/auth`.
 Full-text, semantic, and hybrid search are available at `http://localhost:8000/search`.
 
-Run validation before opening a pull request:
+Run the full GitHub Actions–parity suite before opening a pull request or
+finishing a milestone:
+
+```bash
+task ci
+```
+
+That runs backend (Ruff, Black, MyPy, Pytest), desktop (typecheck, unit, smoke,
+Vite build), and optional web (lint, typecheck, build). Linux-only Tauri
+packaging remains GitHub Actions–only.
+
+For narrower checks while iterating:
 
 ```bash
 task backend:check
@@ -171,6 +182,8 @@ client (build, smoke, packaging) through GitHub Actions. See
 - `task format` formats backend and web-workspace files.
 - `task typecheck` runs backend and web-workspace type checks.
 - `task test` runs tests.
+- `task ci` runs full local CI parity (backend + desktop + frontend).
+- `task ci:backend` / `task ci:desktop` / `task ci:frontend` run those slices alone.
 - `task dev` starts Docker infrastructure and the optional web-workspace dev server.
 
 Run `task --list` for the full command list, including scoped backend and

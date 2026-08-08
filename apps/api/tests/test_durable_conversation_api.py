@@ -1,7 +1,9 @@
 from collections.abc import Iterator
+from datetime import UTC, datetime
 
 import pytest
 from api.app import create_app
+from api.database import database_session as api_database_session
 from api.document_processing import configure_document_processing
 from api.intelligence_integration import get_sqlalchemy_conversation_repository
 from auth.api.dependencies import get_database_session as get_auth_database_session
@@ -25,7 +27,9 @@ from memovi_intelligence.infrastructure import (
 )
 from memovi_intelligence.infrastructure.persistence import Base as IntelligenceBase
 from memovi_search.api.dependencies import get_database_session as get_search_database_session
-from memovi_shared import WorkspaceId
+from memovi_shared import DEFAULT_WORKSPACE_ID, WorkspaceId
+from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
+from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -50,9 +54,20 @@ def conversation_api_client() -> Iterator[tuple[TestClient, sessionmaker[Session
         poolclass=StaticPool,
     )
     AuthBase.metadata.create_all(engine)
+    WorkspaceBase.metadata.create_all(engine)
     IntelligenceBase.metadata.create_all(engine)
     test_session_factory = sessionmaker(bind=engine, expire_on_commit=False)
     object_storage = InMemoryObjectStorage()
+
+    with Session(engine) as seed_session:
+        seed_session.add(
+            WorkspaceRecord(
+                id=DEFAULT_WORKSPACE_ID.value,
+                name="Default",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            )
+        )
+        seed_session.commit()
 
     def database_session() -> Iterator[Session]:
         session = test_session_factory()
@@ -66,6 +81,7 @@ def conversation_api_client() -> Iterator[tuple[TestClient, sessionmaker[Session
             session.close()
 
     app = create_app()
+    app.state.auth_session_factory = test_session_factory
     configure_document_processing(
         app,
         session_factory=test_session_factory,
@@ -76,6 +92,7 @@ def conversation_api_client() -> Iterator[tuple[TestClient, sessionmaker[Session
         ),
         object_storage=object_storage,
     )
+    app.dependency_overrides[api_database_session] = database_session
     app.dependency_overrides[get_auth_database_session] = database_session
     app.dependency_overrides[get_search_database_session] = database_session
     app.dependency_overrides[get_intelligence_database_session] = database_session
@@ -83,6 +100,11 @@ def conversation_api_client() -> Iterator[tuple[TestClient, sessionmaker[Session
     app.dependency_overrides[get_knowledge_retriever] = lambda: FakeKnowledgeRetriever()
 
     with TestClient(app, base_url="https://testserver") as client:
+        register_response = client.post(
+            "/auth/register",
+            json={"email": "conversation-api@example.com", "password": "password123"},
+        )
+        assert register_response.status_code == 201
         yield client, test_session_factory, engine
 
     engine.dispose()

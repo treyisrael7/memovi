@@ -35,8 +35,10 @@ from memovi_automation.filesystem.write_operations import (
     DELETE_OPERATIONS,
     MODIFY_OPERATIONS,
     MOVE_OPERATIONS,
-    WRITE_OPERATIONS,
     execute_write_operation,
+)
+from memovi_automation.filesystem.write_operations import (
+    WRITE_OPERATIONS as WRITE_OPERATIONS,
 )
 
 CAPABILITY_ID: Final = "filesystem"

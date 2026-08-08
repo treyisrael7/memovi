@@ -178,13 +178,9 @@ tasks:
       - uv run black --check .
 
   backend:typecheck:
-    desc: Run MyPy when Python files exist.
+    desc: Run MyPy on application/package source (CI parity).
     cmds:
-      - >-
-        python -c "from pathlib import Path; import subprocess, sys;
-        files = [path for path in subprocess.check_output(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '*.py', '*.pyi'], text=True).splitlines() if Path(path).exists() and not Path(path).parts[0].startswith('.')];
-        print('No Python files found; skipping MyPy.') if not files else None;
-        sys.exit(0 if not files else subprocess.call(['uv', 'run', 'mypy', *files]))"
+      - uv run python scripts/ci_mypy.py
 
   backend:test:
     desc: Run Pytest when tests exist.
@@ -218,4 +214,56 @@ tasks:
   frontend:build:
     desc: Build the web app.
     cmds:
+      - pnpm --filter {{.WEB_PACKAGE}} build
+
+  # ---------------------------------------------------------------------------
+  # CI parity — run before considering a milestone finished.
+  # Mirrors .github/workflows/{backend,desktop,frontend}.yml (excluding the
+  # Linux-only Tauri packaging job).
+  # ---------------------------------------------------------------------------
+  ci:
+    desc: Run the full local CI suite (backend + desktop + frontend).
+    cmds:
+      - task: ci:backend
+      - task: ci:desktop
+      - task: ci:frontend
+
+  ci:backend:
+    desc: Backend CI parity (Ruff, Black, MyPy, Pytest).
+    deps:
+      - docker-up
+    env:
+      UV_LINK_MODE: copy
+      POSTGRES_HOST: '{{.POSTGRES_HOST | default "127.0.0.1"}}'
+      POSTGRES_PORT: '{{.POSTGRES_PORT | default "5432"}}'
+      POSTGRES_DB: '{{.POSTGRES_DB | default "memovi"}}'
+      POSTGRES_USER: '{{.POSTGRES_USER | default "memovi_app"}}'
+      POSTGRES_PASSWORD: '{{.POSTGRES_PASSWORD | default "memovi_local_pg_9f4c8e2d7a6b41c3"}}'
+    cmds:
+      - docker compose up -d --wait postgres
+      - uv sync --all-packages --all-groups --link-mode=copy
+      - uv run ruff check .
+      - uv run black --check .
+      - uv run python scripts/ci_mypy.py
+      - >-
+        python -c "import subprocess, sys;
+        status = subprocess.call(['uv', 'run', 'pytest']);
+        print('No tests collected; treating empty test suite as valid.') if status == 5 else None;
+        sys.exit(0 if status == 5 else status)"
+
+  ci:desktop:
+    desc: Desktop CI parity (typecheck, unit, smoke, Vite build).
+    cmds:
+      - pnpm install --frozen-lockfile
+      - pnpm --filter {{.DESKTOP_PACKAGE}} typecheck
+      - pnpm --filter {{.DESKTOP_PACKAGE}} test:unit
+      - pnpm --filter {{.DESKTOP_PACKAGE}} test:smoke
+      - pnpm --filter {{.DESKTOP_PACKAGE}} build
+
+  ci:frontend:
+    desc: Frontend CI parity (lint, typecheck, build).
+    cmds:
+      - pnpm install --frozen-lockfile
+      - pnpm --filter {{.WEB_PACKAGE}} lint
+      - pnpm --filter {{.WEB_PACKAGE}} typecheck
       - pnpm --filter {{.WEB_PACKAGE}} build

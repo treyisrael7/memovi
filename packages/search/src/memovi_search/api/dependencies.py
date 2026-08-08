@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import Depends, Request
 from memovi_shared.fastapi import get_default_active_workspace_id
@@ -22,7 +22,7 @@ def get_embedding_provider(request: Request) -> EmbeddingProvider:
     provider = getattr(request.app.state, "embedding_provider", None)
     if provider is None:
         raise RuntimeError("Embedding provider was not configured at application startup.")
-    return provider
+    return cast(EmbeddingProvider, provider)
 
 
 def get_retrieve_knowledge(

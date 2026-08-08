@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from api.app import create_app
+from api.database import database_session as api_database_session
 from api.document_processing import configure_document_processing
 from api.documents_session import build_documents_database_session
 from api.events import InProcessEventDispatcher
@@ -25,8 +26,15 @@ from memovi_memory.infrastructure.persistence.models import Base as MemoryBase
 from memovi_search.api.dependencies import get_database_session as get_search_database_session
 from memovi_search.infrastructure.persistence.models import Base as SearchBase
 from memovi_search.infrastructure.persistence.models import SearchDocumentRecord
-from postgres_support import ensure_pgvector_extension, postgres_available, postgres_database_url
-from sqlalchemy import Engine, create_engine, select
+from memovi_shared import DEFAULT_WORKSPACE_ID
+from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
+from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
+from postgres_support import (
+    create_postgres_engine,
+    ensure_pgvector_extension,
+    postgres_available,
+)
+from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 
@@ -115,16 +123,27 @@ def search_filter_client() -> Iterator[tuple[TestClient, Engine]]:
         pytest.skip("PostgreSQL is required for search filter integration tests.")
 
     object_storage = InMemoryObjectStorage()
-    engine = create_engine(postgres_database_url(), pool_pre_ping=True)
+    engine = create_postgres_engine()
     ensure_pgvector_extension(engine)
     AuthBase.metadata.drop_all(engine)
+    WorkspaceBase.metadata.drop_all(engine)
     DocumentsBase.metadata.drop_all(engine)
     MemoryBase.metadata.drop_all(engine)
     SearchBase.metadata.drop_all(engine)
     AuthBase.metadata.create_all(engine)
+    WorkspaceBase.metadata.create_all(engine)
     DocumentsBase.metadata.create_all(engine)
     MemoryBase.metadata.create_all(engine)
     SearchBase.metadata.create_all(engine)
+    with Session(engine) as seed_session:
+        seed_session.add(
+            WorkspaceRecord(
+                id=DEFAULT_WORKSPACE_ID.value,
+                name="Default",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            )
+        )
+        seed_session.commit()
     test_session_factory = sessionmaker(bind=engine, expire_on_commit=False)
 
     def database_session() -> Iterator[Session]:
@@ -142,6 +161,7 @@ def search_filter_client() -> Iterator[tuple[TestClient, Engine]]:
         return test_session_factory()
 
     app = create_app()
+    app.state.auth_session_factory = test_session_factory
     queue = InMemoryProcessingJobQueue()
     configure_document_processing(
         app,
@@ -155,6 +175,7 @@ def search_filter_client() -> Iterator[tuple[TestClient, Engine]]:
     )
     _: InProcessEventDispatcher = app.state.event_dispatcher
 
+    app.dependency_overrides[api_database_session] = database_session
     app.dependency_overrides[get_auth_database_session] = database_session
     app.dependency_overrides[get_documents_database_session] = build_documents_database_session(
         database_session
@@ -163,6 +184,11 @@ def search_filter_client() -> Iterator[tuple[TestClient, Engine]]:
     app.dependency_overrides[get_object_storage] = lambda: object_storage
 
     with TestClient(app, base_url="https://testserver") as client:
+        register_response = client.post(
+            "/auth/register",
+            json={"email": "search-filter@example.com", "password": "password123"},
+        )
+        assert register_response.status_code == 201
         yield client, engine
 
     engine.dispose()

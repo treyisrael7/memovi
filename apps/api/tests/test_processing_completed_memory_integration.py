@@ -1,9 +1,11 @@
 import time
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 from api.app import create_app
+from api.database import database_session as api_database_session
 from api.document_processing import configure_document_processing
 from api.documents_session import build_documents_database_session
 from api.events import InProcessEventDispatcher
@@ -26,6 +28,9 @@ from memovi_memory.domain.events import KnowledgeMaterialized
 from memovi_memory.infrastructure.persistence.models import Base as MemoryBase
 from memovi_memory.infrastructure.persistence.models import ChunkRecord, KnowledgeItemRecord
 from memovi_search.infrastructure.persistence.models import Base as SearchBase
+from memovi_shared import DEFAULT_WORKSPACE_ID
+from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
+from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -77,9 +82,19 @@ def memory_integration_client() -> Iterator[tuple[TestClient, Engine, InProcessE
         poolclass=StaticPool,
     )
     AuthBase.metadata.create_all(engine)
+    WorkspaceBase.metadata.create_all(engine)
     DocumentsBase.metadata.create_all(engine)
     MemoryBase.metadata.create_all(engine)
     SearchBase.metadata.create_all(engine)
+    with Session(engine) as seed_session:
+        seed_session.add(
+            WorkspaceRecord(
+                id=DEFAULT_WORKSPACE_ID.value,
+                name="Default",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            )
+        )
+        seed_session.commit()
     test_session_factory = sessionmaker(bind=engine, expire_on_commit=False)
 
     def database_session() -> Iterator[Session]:
@@ -97,6 +112,7 @@ def memory_integration_client() -> Iterator[tuple[TestClient, Engine, InProcessE
         return test_session_factory()
 
     app = create_app()
+    app.state.auth_session_factory = test_session_factory
     queue = InMemoryProcessingJobQueue()
     configure_document_processing(
         app,
@@ -110,6 +126,7 @@ def memory_integration_client() -> Iterator[tuple[TestClient, Engine, InProcessE
     )
     dispatcher: InProcessEventDispatcher = app.state.event_dispatcher
 
+    app.dependency_overrides[api_database_session] = database_session
     app.dependency_overrides[get_auth_database_session] = database_session
     app.dependency_overrides[get_documents_database_session] = build_documents_database_session(
         database_session
@@ -117,6 +134,11 @@ def memory_integration_client() -> Iterator[tuple[TestClient, Engine, InProcessE
     app.dependency_overrides[get_object_storage] = lambda: object_storage
 
     with TestClient(app, base_url="https://testserver") as client:
+        register_response = client.post(
+            "/auth/register",
+            json={"email": "memory-integration@example.com", "password": "password123"},
+        )
+        assert register_response.status_code == 201
         yield client, engine, dispatcher
 
     engine.dispose()

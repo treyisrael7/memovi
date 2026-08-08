@@ -1,12 +1,23 @@
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from api.app import create_app
+from api.database import database_session as api_database_session
+from auth.api.dependencies import get_database_session as get_auth_database_session
+from auth.infrastructure.persistence import Base as AuthBase
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from memovi_search.api.dependencies import get_semantic_search
 from memovi_search.application.dto import SearchResultDto
 from memovi_search.application.queries import SemanticSearchQuery
-from memovi_shared import WorkspaceId
+from memovi_shared import DEFAULT_WORKSPACE_ID, WorkspaceId
+from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
+from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 SEARCH_DOCUMENT_ID = "11111111-1111-1111-1111-111111111111"
 KNOWLEDGE_ITEM_ID = "22222222-2222-2222-2222-222222222222"
@@ -22,6 +33,56 @@ class FakeSemanticSearch:
     def execute(self, query: SemanticSearchQuery) -> list[SearchResultDto]:
         self.last_query = query
         return self._results[: query.limit]
+
+
+def _build_authenticated_app(
+    dependency_overrides: dict[Callable[..., Any], Callable[..., Any]] | None = None,
+) -> tuple[FastAPI, Engine]:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    AuthBase.metadata.create_all(engine)
+    WorkspaceBase.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+
+    with Session(engine) as seed_session:
+        seed_session.add(
+            WorkspaceRecord(
+                id=DEFAULT_WORKSPACE_ID.value,
+                name="Default",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            )
+        )
+        seed_session.commit()
+
+    def database_session() -> Iterator[Session]:
+        session = session_factory()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    app = create_app()
+    app.state.auth_session_factory = session_factory
+    app.dependency_overrides[api_database_session] = database_session
+    app.dependency_overrides[get_auth_database_session] = database_session
+    for dep, override in (dependency_overrides or {}).items():
+        app.dependency_overrides[dep] = override
+    return app, engine
+
+
+def _register(client: TestClient, *, email: str) -> None:
+    response = client.post(
+        "/auth/register",
+        json={"email": email, "password": "password123"},
+    )
+    assert response.status_code == 201
 
 
 @pytest.fixture
@@ -49,13 +110,16 @@ def semantic_client(
     semantic_results: list[SearchResultDto],
 ) -> Iterator[tuple[TestClient, FakeSemanticSearch]]:
     fake_search = FakeSemanticSearch(results=semantic_results)
-    app = create_app()
-    app.dependency_overrides[get_semantic_search] = lambda: fake_search
+    app, engine = _build_authenticated_app(
+        {get_semantic_search: lambda: fake_search},
+    )
     client = TestClient(app, base_url="https://testserver")
     try:
+        _register(client, email="semantic-tester@example.com")
         yield (client, fake_search)
     finally:
         client.close()
+        engine.dispose()
 
 
 def test_semantic_search_returns_matching_document(

@@ -133,7 +133,7 @@ def deserialize_pending_request(payload: Mapping[str, Any]) -> CapabilityExecuti
     if isinstance(policy_raw, Mapping):
         mode_raw = policy_raw.get("permission_mode")
         policy = CapabilityExecutionPolicy(
-            timeout_seconds=policy_raw.get("timeout_seconds"),  # type: ignore[arg-type]
+            timeout_seconds=policy_raw.get("timeout_seconds"),
             cancellable=bool(policy_raw.get("cancellable", True)),
             permission_mode=(None if mode_raw is None else PermissionMode(str(mode_raw))),
         )

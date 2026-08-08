@@ -37,7 +37,7 @@ from memovi_workspace.application.commands import (
     TransferWorkspaceOwnership,
     TransferWorkspaceOwnershipCommand,
 )
-from memovi_workspace.application.dto import WorkspaceMembershipDto
+from memovi_workspace.application.dto import WorkspaceDto, WorkspaceMembershipDto
 from memovi_workspace.application.queries import (
     GetWorkspace,
     GetWorkspaceQuery,
@@ -62,7 +62,7 @@ router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 _DIAGNOSTICS = DiagnosticEventEmitter()
 
 
-def _workspace_response(workspace) -> WorkspaceResponse:
+def _workspace_response(workspace: WorkspaceDto) -> WorkspaceResponse:
     return WorkspaceResponse(
         id=workspace.id,
         name=workspace.name,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import Any, cast
 
 from memovi_observability import get_metrics_recorder
 from memovi_shared import WorkspaceId
@@ -79,7 +80,7 @@ class SqlAlchemyExecutionStateStore:
                     duration=result.duration,
                     output=json_safe(result.output),
                     error=serialize_error(result.error),
-                    metadata_json=dict(json_safe(dict(result.metadata))),  # type: ignore[arg-type]
+                    metadata_json=cast(dict[str, Any], json_safe(dict(result.metadata))),
                     pending_request=None,
                     pending_auth=None,
                     created_at=result.created_at,
@@ -107,7 +108,7 @@ class SqlAlchemyExecutionStateStore:
                 record.duration = result.duration
                 record.output = json_safe(result.output)
                 record.error = serialize_error(result.error)
-                record.metadata_json = dict(json_safe(dict(result.metadata)))  # type: ignore[arg-type]
+                record.metadata_json = cast(dict[str, Any], json_safe(dict(result.metadata)))
                 record.updated_at = result.updated_at
                 if result.status.value in _TERMINAL:
                     record.completed_at = result.updated_at
