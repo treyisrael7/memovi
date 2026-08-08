@@ -13,34 +13,53 @@ This package owns:
 * Metadata normalization
 * Connector health
 * Scheduler foundation (no timed runs yet)
+* Filesystem Connector (local folder registration and manual sync)
 
 It does **not** own document storage, processing, knowledge extraction, search
-indexing, or provider-specific product logic.
+indexing, or provider-specific product logic beyond acquire + normalize.
 
-## Usage
+## Filesystem Connector
 
 ```python
 from memovi_connectors import (
     ConnectorRegistry,
     ConnectorScheduler,
-    FakeConnector,
-    ConnectorExecutionContext,
+    FilesystemFolderService,
+    AddFilesystemFolderCommand,
+    SyncFilesystemFolderCommand,
+    register_filesystem_connector,
+    InMemoryDocumentImportPort,
+    InMemoryFilesystemFolderRepository,
 )
 from memovi_shared import WorkspaceId
 
 registry = ConnectorRegistry()
-connector = FakeConnector()
-registry.register(connector)
-
-scheduler = ConnectorScheduler(registry)
-result = scheduler.run_now(
-    connector_id=connector.connector_id(),
-    context=ConnectorExecutionContext.create(
+folders = InMemoryFilesystemFolderRepository()
+document_import = InMemoryDocumentImportPort()
+register_filesystem_connector(
+    registry,
+    document_import=document_import,
+    folders=folders,
+)
+service = FilesystemFolderService(
+    folders=folders,
+    scheduler=ConnectorScheduler(registry),
+)
+folder = service.add_folder(
+    AddFilesystemFolderCommand(
         workspace_id=WorkspaceId.default(),
-        connector_id=connector.connector_id(),
-        sync_mode="initial",
+        root_path="/path/to/notes",
+    ),
+)
+result = service.sync_folder(
+    SyncFilesystemFolderCommand(
+        workspace_id=WorkspaceId.default(),
+        folder_id=folder.id,
     ),
 )
 ```
+
+Production wiring lives in `apps/api` (`configure_connector_framework` +
+request-scoped `DocumentsDocumentImportPort`).
 
 See [`docs/architecture/CONNECTOR_FRAMEWORK.md`](../../docs/architecture/CONNECTOR_FRAMEWORK.md).

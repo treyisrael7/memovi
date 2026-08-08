@@ -32,8 +32,35 @@ class InMemoryDocumentRepository(DocumentRepository):
     def get_by_id_unscoped(self, document_id: DocumentId) -> Document | None:
         return self.documents.get(document_id.value)
 
+    def get_by_connector_external_id(
+        self,
+        *,
+        workspace_id: WorkspaceId,
+        connector_id: str,
+        external_id: str,
+    ) -> Document | None:
+        for document in self.documents.values():
+            if (
+                document.workspace_id == workspace_id
+                and document.connector_id == connector_id.strip().lower()
+                and document.external_id == external_id.strip()
+            ):
+                return document
+        return None
+
     def add(self, document: Document) -> None:
         self.documents[document.id.value] = document
+
+    def save(self, document: Document) -> None:
+        self.documents[document.id.value] = document
+
+    def delete(self, document_id: DocumentId) -> None:
+        self.documents.pop(document_id.value, None)
+        self.versions = {
+            version_id: version
+            for version_id, version in self.versions.items()
+            if version.document_id != document_id
+        }
 
     def list_by_workspace(self, *, workspace_id: WorkspaceId) -> list[Document]:
         return [
@@ -41,6 +68,26 @@ class InMemoryDocumentRepository(DocumentRepository):
             for document in self.documents.values()
             if document.workspace_id == workspace_id
         ]
+
+    def count_by_connector(
+        self,
+        *,
+        workspace_id: WorkspaceId,
+        connector_id: str,
+        external_id_prefix: str | None = None,
+    ) -> int:
+        count = 0
+        for document in self.documents.values():
+            if document.workspace_id != workspace_id:
+                continue
+            if document.connector_id != connector_id.strip().lower():
+                continue
+            if external_id_prefix is not None and not (
+                document.external_id or ""
+            ).startswith(external_id_prefix):
+                continue
+            count += 1
+        return count
 
     def add_version(self, version: DocumentVersion) -> None:
         self.versions[version.id] = version
@@ -89,6 +136,9 @@ class InMemoryObjectStorage:
 
     def get_object(self, key: str) -> bytes:
         return self.objects[key][0]
+
+    def delete_object(self, key: str) -> None:
+        self.objects.pop(key, None)
 
 
 def build_use_case() -> tuple[
@@ -211,3 +261,83 @@ def test_document_repository_isolates_workspaces() -> None:
     assert documents.get_by_id(DocumentId(result_a.document_id), workspace_id=workspace_b) is None
     assert len(documents.list_by_workspace(workspace_id=workspace_a)) == 1
     assert len(documents.list_by_workspace(workspace_id=workspace_b)) == 1
+
+
+def test_ingest_connector_document_upsert_update_and_delete() -> None:
+    from documents.application.commands.ingest_connector_document import (
+        IngestConnectorDocument,
+        IngestConnectorDocumentCommand,
+    )
+
+    documents = InMemoryDocumentRepository()
+    processing_jobs = InMemoryProcessingJobRepository()
+    object_storage = InMemoryObjectStorage()
+    use_case = IngestConnectorDocument(
+        documents=documents,
+        processing_jobs=processing_jobs,
+        object_storage=object_storage,
+    )
+    workspace_id = WorkspaceId.default()
+
+    created = use_case.execute(
+        IngestConnectorDocumentCommand(
+            workspace_id=workspace_id,
+            name="notes.md",
+            mime_type="text/markdown",
+            content=b"# one",
+            connector_id="filesystem",
+            external_id="folder:notes.md",
+            external_path="/tmp/notes.md",
+            change_kind="upsert",
+        ),
+    )
+    assert created.created is True
+    assert created.processing_job_id is not None
+    document = documents.get_by_connector_external_id(
+        workspace_id=workspace_id,
+        connector_id="filesystem",
+        external_id="folder:notes.md",
+    )
+    assert document is not None
+    assert document.source_type.value == "connector"
+    assert document.external_path == "/tmp/notes.md"
+
+    updated = use_case.execute(
+        IngestConnectorDocumentCommand(
+            workspace_id=workspace_id,
+            name="notes.md",
+            mime_type="text/markdown",
+            content=b"# two",
+            connector_id="filesystem",
+            external_id="folder:notes.md",
+            external_path="/tmp/notes.md",
+            change_kind="upsert",
+        ),
+    )
+    assert updated.created is False
+    assert updated.document_id == created.document_id
+    latest = documents.get_latest_version(DocumentId(created.document_id))
+    assert latest is not None
+    assert latest.version_number == 2
+    assert object_storage.get_object(latest.storage_key) == b"# two"
+
+    deleted = use_case.execute(
+        IngestConnectorDocumentCommand(
+            workspace_id=workspace_id,
+            name="notes.md",
+            mime_type="text/markdown",
+            content=b"",
+            connector_id="filesystem",
+            external_id="folder:notes.md",
+            change_kind="delete",
+        ),
+    )
+    assert deleted.document_id == created.document_id
+    assert (
+        documents.get_by_connector_external_id(
+            workspace_id=workspace_id,
+            connector_id="filesystem",
+            external_id="folder:notes.md",
+        )
+        is None
+    )

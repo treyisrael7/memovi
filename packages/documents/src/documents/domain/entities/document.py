@@ -16,6 +16,9 @@ class Document:
     mime_type: MimeType
     source_type: SourceType
     created_at: datetime
+    connector_id: str | None = None
+    external_id: str | None = None
+    external_path: str | None = None
 
     @classmethod
     def create(
@@ -26,6 +29,9 @@ class Document:
         mime_type: MimeType,
         source_type: SourceType,
         now: datetime | None = None,
+        connector_id: str | None = None,
+        external_id: str | None = None,
+        external_path: str | None = None,
     ) -> Document:
         return cls(
             id=DocumentId.new(),
@@ -34,4 +40,27 @@ class Document:
             mime_type=mime_type,
             source_type=source_type,
             created_at=now or datetime.now(UTC),
+            connector_id=connector_id,
+            external_id=external_id,
+            external_path=external_path,
+        )
+
+    def with_identity(
+        self,
+        *,
+        name: DocumentName | None = None,
+        mime_type: MimeType | None = None,
+        external_path: str | None = None,
+    ) -> Document:
+        """Return a copy with updated display identity fields."""
+        return Document(
+            id=self.id,
+            workspace_id=self.workspace_id,
+            name=name or self.name,
+            mime_type=mime_type or self.mime_type,
+            source_type=self.source_type,
+            created_at=self.created_at,
+            connector_id=self.connector_id,
+            external_id=self.external_id,
+            external_path=self.external_path if external_path is None else external_path,
         )

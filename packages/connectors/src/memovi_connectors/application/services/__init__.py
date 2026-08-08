@@ -4,11 +4,19 @@ from memovi_connectors.application.services.connector_scheduler import (
     ConnectorScheduler,
     ConnectorScheduleSpec,
 )
+from memovi_connectors.application.services.filesystem_folder_service import (
+    AddFilesystemFolderCommand,
+    FilesystemFolderService,
+    SyncFilesystemFolderCommand,
+)
 
 __all__ = [
+    "AddFilesystemFolderCommand",
     "Connector",
     "ConnectorRegistry",
     "ConnectorScheduler",
     "ConnectorScheduleSpec",
     "DocumentImportPort",
+    "FilesystemFolderService",
+    "SyncFilesystemFolderCommand",
 ]

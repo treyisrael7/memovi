@@ -8,6 +8,7 @@ export type PageId =
   | "home"
   | "chat"
   | "documents"
+  | "connectors"
   | "knowledge"
   | "collections"
   | "search"
@@ -36,6 +37,11 @@ export const PAGES: readonly PageDefinition[] = [
     id: "documents",
     label: "Documents",
     description: "Import documents and track processing into knowledge.",
+  },
+  {
+    id: "connectors",
+    label: "Connectors",
+    description: "Connect local folders and sync them into Documents.",
   },
   {
     id: "knowledge",

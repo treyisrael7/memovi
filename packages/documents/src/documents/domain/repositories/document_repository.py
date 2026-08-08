@@ -21,7 +21,21 @@ class DocumentRepository(Protocol):
         """Load a document by ID for trusted pipeline/system use."""
         raise NotImplementedError
 
+    def get_by_connector_external_id(
+        self,
+        *,
+        workspace_id: WorkspaceId,
+        connector_id: str,
+        external_id: str,
+    ) -> Document | None:
+        """Load a connector-imported document by stable external identity."""
+        raise NotImplementedError
+
     def add(self, document: Document) -> None:
+        raise NotImplementedError
+
+    def save(self, document: Document) -> None:
+        """Persist updates to an existing document's mutable identity fields."""
         raise NotImplementedError
 
     def delete(self, document_id: DocumentId) -> None:
@@ -29,6 +43,16 @@ class DocumentRepository(Protocol):
         raise NotImplementedError
 
     def list_by_workspace(self, *, workspace_id: WorkspaceId) -> list[Document]:
+        raise NotImplementedError
+
+    def count_by_connector(
+        self,
+        *,
+        workspace_id: WorkspaceId,
+        connector_id: str,
+        external_id_prefix: str | None = None,
+    ) -> int:
+        """Count connector-imported documents, optionally filtered by external_id prefix."""
         raise NotImplementedError
 
     def add_version(self, version: DocumentVersion) -> None:

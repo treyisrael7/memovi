@@ -211,6 +211,45 @@ export function createMockBackend(): MockBackend {
         body: { items: documents },
       };
     }
+    if (path === "/connectors" && method === "GET") {
+      return {
+        status: 200,
+        body: {
+          items: [
+            {
+              connector_id: "filesystem",
+              display_name: "Filesystem",
+              description: "Local folder sync",
+              source_category: "filesystem",
+              auth_methods: ["none"],
+              supports_incremental_sync: true,
+              supports_delete_detection: true,
+            },
+          ],
+          count: 1,
+        },
+      };
+    }
+    if (path === "/connectors/filesystem/folders" && method === "GET") {
+      return { status: 200, body: { items: [], count: 0 } };
+    }
+    if (path === "/connectors/filesystem/folders" && method === "POST") {
+      return {
+        status: 201,
+        body: {
+          id: "folder-smoke-1",
+          workspace_id: DEFAULT_WORKSPACE_ID,
+          root_path: "C:\\smoke\\notes",
+          display_name: "notes",
+          sync_status: "idle",
+          last_error: null,
+          imported_document_count: 0,
+          last_synchronized_at: null,
+          created_at: "2026-01-01T00:00:00.000Z",
+          updated_at: "2026-01-01T00:00:00.000Z",
+        },
+      };
+    }
     if (path === "/documents" && method === "POST") {
       const uploaded = {
         ...SMOKE_DOCUMENT,

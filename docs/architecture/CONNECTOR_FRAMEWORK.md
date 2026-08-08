@@ -10,10 +10,12 @@ Documents → Memory → Search → Intelligence pipeline.
 
 It covers connector responsibility, core interfaces, lifecycle,
 synchronization, authentication references, metadata normalization, health,
-scheduler foundation, ownership boundaries, and the relationship to Documents.
+scheduler foundation, ownership boundaries, the relationship to Documents, and
+the production **Filesystem Connector**.
 
-It does **not** describe concrete GitHub, Google Drive, Slack, or other provider
-adapters, OAuth provider flows, or scheduled background runners.
+It does **not** describe concrete GitHub, Google Drive, Slack, or Notion
+adapters, OAuth provider flows, filesystem watchers, or scheduled background
+runners.
 
 # Relationship to ARCHITECTURE.md
 
@@ -81,6 +83,7 @@ Connectors own:
 * Metadata normalization into a provider-neutral shape
 * Connector health reporting
 * Import scheduling foundation (registration only today)
+* Filesystem folder registration and manual sync
 
 Connectors do not own:
 
@@ -108,6 +111,7 @@ Connectors import knowledge. They do not interpret it.
 * `DocumentImportPort`
 * `ConnectorScheduler` foundation
 * Domain events: `ConnectorAuthorized`, `ConnectorSynchronized`, `ImportCompleted`
+* Production `FilesystemConnector` + filesystem folder connections
 
 Concrete provider adapters register explicitly at the composition root. There is
 no reflection and no global registry singleton.
@@ -193,7 +197,8 @@ The framework supports:
 
 **Scheduled synchronization is not implemented yet.** `ConnectorScheduler`
 accepts `ConnectorScheduleSpec` values and can execute `run_now(...)`, but it
-does not run a background timer or worker loop.
+does not run a background timer or worker loop. Manual sync is the supported
+path for the Filesystem Connector today.
 
 # Authentication
 
@@ -224,10 +229,17 @@ Every connector produces the same internal representation before Documents.
 * External ID
 * Connector ID
 * Workspace
+* Extra provider-neutral fields (for example `external_path`, `import_source`,
+  `file_type`)
 
 After normalization, Memory, Search, and Intelligence must not require
 connector-specific logic. Provenance remains available through normalized
-metadata and `source_type="connector"` on Documents.
+metadata and Documents fields:
+
+* `source_type="connector"`
+* `connector_id`
+* `external_id` (stable identity for upsert/delete)
+* `external_path` (display / provenance path when available)
 
 # Health
 
@@ -242,6 +254,9 @@ Each connector reports `ConnectorHealth`:
 
 Registries expose `health(connector_id)` and `health_all()`.
 
+Filesystem folder connections also track per-folder sync status, last sync
+time, imported count, and last error for the desktop Connectors page.
+
 # Relationship to Documents
 
 Documents are the entry point into the knowledge pipeline after connector data
@@ -249,10 +264,98 @@ is normalized.
 
 * Connectors produce `NormalizedImportItem`
 * `DocumentImportPort` is implemented at the API composition root
+  (`DocumentsDocumentImportPort`) and calls `IngestConnectorDocument`
 * Documents own storage, versions, processing jobs, and lifecycle
 * Connectors must not become a second document store
 
-`SourceType` already allows `"connector"`. Upload remains `"upload"`.
+`SourceType` allows `"connector"`. Upload remains `"upload"`. Connector upserts
+create a first version or append a new version and enqueue the existing
+processing pipeline. Deletes remove the matching document by
+`(workspace_id, connector_id, external_id)`.
+
+# Filesystem Connector
+
+The Filesystem Connector (`connector_id=filesystem`) is the first production
+connector on this framework. It proves local-folder import without introducing
+a second ingestion architecture.
+
+## Responsibilities
+
+* Register a local folder for a workspace
+* Initial import of supported files (`.txt`, `.md` / `.markdown`, `.pdf`)
+* Incremental sync from a JSON path inventory cursor (size, mtime, sha256)
+* File updates (content change → upsert / new document version)
+* File deletions (path vanished → delete change kind)
+* Practical rename detection (vanished + appeared paths matched by content hash
+  within one sync pass → delete old identity + upsert new path)
+* Metadata normalization into `NormalizedImportItem`
+
+## Synchronization lifecycle
+
+```text
+Add folder (API / desktop)
+        │
+        ▼
+Manual Sync Now
+        │
+        ▼
+Resolve folder + root path
+        │
+        ▼
+Scan supported files under root
+        │
+        ▼
+Diff against sync_cursor
+  ├── appeared  → upsert
+  ├── shared+changed → upsert
+  ├── vanished  → delete
+  └── rename (hash match) → delete + upsert
+        │
+        ▼
+DocumentImportPort per item
+        │
+        ▼
+Persist new cursor + folder health
+        │
+        ▼
+Documents processing → Memory → Search
+```
+
+Sync modes:
+
+* First sync for a folder uses `initial` when no cursor exists
+* Later manual syncs use `incremental` unless the client requests `initial`
+
+Out of scope for this milestone: filesystem watchers and scheduled sync.
+
+## Metadata mapping
+
+| Source field | Normalized / Documents target |
+| --- | --- |
+| Connector type | `connector_id=filesystem` |
+| Folder + relative path | `external_id="{folder_id}:{relative_path}"` |
+| Absolute path | `extra.external_path` → Documents `external_path` |
+| Relative path | `extra.relative_path` |
+| MIME / extension | `mime_type`, `extra.file_type` |
+| File created / modified | `created_at` / `modified_at` |
+| Workspace | `workspace_id` |
+| Import source | `extra.import_source="filesystem"`, `source=filesystem://…` |
+
+## API surface
+
+* `GET /connectors` — registered connector metadata
+* `GET /connectors/health` — connector-type health
+* `GET /connectors/filesystem/folders` — connected folders for the workspace
+* `POST /connectors/filesystem/folders` — add folder (`root_path`, optional
+  `display_name`)
+* `DELETE /connectors/filesystem/folders/{id}` — remove folder registration
+* `POST /connectors/filesystem/folders/{id}/sync` — manual sync
+
+## Desktop
+
+The Connectors page supports add folder, remove folder, manual sync, last sync
+time, sync status, imported document count, and error state. It does not
+redesign navigation beyond adding the Connectors surface.
 
 # Events
 
@@ -270,20 +373,28 @@ trigger document import and the existing downstream pipeline.
 `apps/api` wires the framework via `configure_connector_framework(app)`:
 
 * Creates `ConnectorRegistry` and `ConnectorScheduler`
+* Registers the production `FilesystemConnector`
 * Attaches them to `app.state`
-* Registers zero production connectors today
+* Binds request-scoped `DocumentImportPort` + folder repository during
+  filesystem sync via `FilesystemConnector.configure_runtime(...)`
 
-Future provider milestones add explicit `register_*_connector(registry, ...)`
-calls here. `FakeConnector` exists for tests and local wiring only.
+`FakeConnector` remains for tests and local wiring only.
 
-# Extending With a Provider
+# Extending With a Future Provider
+
+Future GitHub, Google Drive, Slack, and Notion connectors should:
 
 1. Implement the `Connector` protocol in `memovi_connectors` infrastructure (or
    a dedicated adapter module).
-2. Normalize remote records into `NormalizedImportItem`.
+2. Normalize remote records into `NormalizedImportItem` with stable
+   `external_id` values.
 3. Call `DocumentImportPort` for every importable change.
 4. Register the connector at the composition root.
-5. Do not add provider-specific branches to Memory, Search, or Intelligence.
+5. Reuse Documents provenance (`connector_id`, `external_id`, `external_path`)
+   rather than inventing provider-specific document stores.
+6. Do not add provider-specific branches to Memory, Search, or Intelligence.
+
+Prefer proving the shared contracts over provider-specific product features.
 
 # Key Decisions
 
@@ -293,6 +404,8 @@ calls here. `FakeConnector` exists for tests and local wiring only.
 * Credentials are referenced, never embedded in connector configuration.
 * Incremental sync and delete detection are first-class contracts.
 * Scheduling is a foundation only — no timed runners yet.
+* The Filesystem Connector is the reference production adapter for the
+  framework.
 * Future connectors extend this framework rather than creating parallel
   workflows.
 

@@ -217,6 +217,10 @@ Each connector translates external data into a normalized representation underst
 
 Connectors import knowledge. They do not interpret it.
 
+The first production connector is the Filesystem Connector (local folder
+registration, initial/incremental sync into Documents). Future providers
+(GitHub, Google Drive, Slack, Notion) extend the same framework.
+
 See [`connector-framework.md`](connector-framework.md) →
 [`CONNECTOR_FRAMEWORK.md`](CONNECTOR_FRAMEWORK.md).
 

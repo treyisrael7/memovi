@@ -1,10 +1,12 @@
 [project]
 name = "memovi-connectors"
 version = "0.1.0"
-description = "Connector Framework for Memovi. Owns connector contracts, registry, configuration, authentication references, synchronization, normalization into Documents, health, and a scheduler foundation. Concrete provider adapters are out of scope for this foundation."
+description = "Connector Framework for Memovi. Owns connector contracts, registry, configuration, authentication references, synchronization, normalization into Documents, health, scheduler foundation, and the production Filesystem Connector."
 requires-python = ">=3.14"
 dependencies = [
+    "fastapi",
     "memovi-shared",
+    "sqlalchemy>=2",
 ]
 
 [build-system]

@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 43).
+system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 44).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -114,8 +114,8 @@ APIs. Capability authorization and durable audit are covered by Milestone 28.
 **Overall Status:** In progress
 
 Upload-to-processing pipeline is operational locally. OCR remains open. The
-Connector Framework foundation (Milestone 32) now provides registration, sync
-contracts, and Documents handoff without concrete provider adapters yet.
+Connector Framework (Milestone 32) plus Filesystem Connector (Milestone 44)
+import local folders through Documents.
 
 **Completed**
 
@@ -127,17 +127,16 @@ contracts, and Documents handoff without concrete provider adapters yet.
 * Event-driven handoff into Memory
 * Connector Framework foundation (`memovi-connectors`: registry, sync, normalize,
   health, scheduler foundation, `DocumentImportPort`)
+* Filesystem Connector: folder registration, manual sync, Documents provenance
 
 **In Progress**
 
-* Local file intake (upload path exists; provider connectors not yet implemented)
 * Metadata extraction beyond ingest/process basics
-* Document versioning (initial version on upload; no re-version workflow)
 
 **Remaining**
 
 * OCR pipeline
-* Concrete connector providers (GitHub, Drive, Slack, …)
+* Additional connector providers (GitHub, Drive, Slack, …)
 
 **Known Risks**
 
@@ -145,8 +144,8 @@ contracts, and Documents handoff without concrete provider adapters yet.
 
 **Next Recommended Work**
 
-* Implement the first concrete connector on the framework (e.g. filesystem or GitHub)
 * Harden processing status visibility and expand supported ingest formats as needed
+* Next provider connector on the shared framework
 
 ---
 
@@ -793,8 +792,8 @@ contract. No concrete provider adapters or scheduled sync runners yet.
 
 **Remaining**
 
-* Concrete provider connectors
-* Production `DocumentImportPort` adapter over Documents ingest
+* Additional provider connectors beyond Filesystem (Milestone 44 shipped
+  filesystem; GitHub / Drive / Slack / Notion remain)
 * Scheduled synchronization runner
 
 **Known Risks**
@@ -803,7 +802,7 @@ contract. No concrete provider adapters or scheduled sync runners yet.
 
 **Next Recommended Work**
 
-* Ship the first real connector (filesystem or GitHub) on this framework
+* Ship the next provider connector (e.g. GitHub) on this framework
 
 ---
 
@@ -1263,6 +1262,48 @@ existing Workspace + Authorization foundations — without redesigning either.
 
 * Keep membership covered in Desktop release checklist
 * Architecture boundary tests
+
+---
+
+# Milestone 44 — First Production Connector (Filesystem)
+
+**Overall Status:** Complete
+
+Shipped the Filesystem Connector on the existing Connector Framework so local
+folders import and sync through Documents — without a second ingestion pipeline.
+
+**Completed**
+
+* `FilesystemConnector` with folder registration, initial/incremental sync,
+  updates, deletes, and practical content-hash rename detection
+* Production `DocumentImportPort` adapter (`DocumentsDocumentImportPort`) +
+  `IngestConnectorDocument` (upsert/delete by connector external identity)
+* Documents provenance columns: `connector_id`, `external_id`, `external_path`
+* Filesystem folder persistence (`connectors_filesystem_folders`)
+* Connector HTTP API (`/connectors`, filesystem folders + manual sync)
+* Desktop Connectors page: add/remove folder, sync now, status, last sync,
+  imported count, errors
+* `docs/architecture/CONNECTOR_FRAMEWORK.md` updated for filesystem lifecycle
+  and future provider expectations
+* Unit tests for filesystem sync and connector document ingest
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Filesystem watchers / scheduled sync (explicitly out of scope here)
+* Next provider connectors (GitHub, Google Drive, Slack, Notion)
+
+**Known Risks**
+
+* Desktop add-folder uses an absolute path string (no native folder picker yet)
+* Rename detection is best-effort via content hash within a single sync pass
+
+**Next Recommended Work**
+
+* Implement the next provider on the same framework (e.g. GitHub)
 
 ---
 

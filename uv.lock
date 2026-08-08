@@ -978,11 +978,17 @@ name = "memovi-connectors"
 version = "0.1.0"
 source = { editable = "packages/connectors" }
 dependencies = [
+    { name = "fastapi" },
     { name = "memovi-shared" },
+    { name = "sqlalchemy" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "memovi-shared", editable = "packages/shared" }]
+requires-dist = [
+    { name = "fastapi" },
+    { name = "memovi-shared", editable = "packages/shared" },
+    { name = "sqlalchemy", specifier = ">=2" },
+]
 
 [[package]]
 name = "memovi-contracts"

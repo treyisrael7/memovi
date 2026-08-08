@@ -4,6 +4,7 @@ import { useAppState } from "../state/AppStateContext";
 import { ActivityPage } from "./ActivityPage";
 import { ChatPage } from "./ChatPage";
 import { CollectionsPage } from "./CollectionsPage";
+import { ConnectorsPage } from "./ConnectorsPage";
 import { DocumentsPage } from "./DocumentsPage";
 import { KnowledgeExplorerPage } from "./KnowledgeExplorerPage";
 import { SearchPage } from "./SearchPage";
@@ -102,6 +103,9 @@ export function MainContent() {
       break;
     case "documents":
       body = <DocumentsPage />;
+      break;
+    case "connectors":
+      body = <ConnectorsPage />;
       break;
     case "search":
       body = <SearchPage />;

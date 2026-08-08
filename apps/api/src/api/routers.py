@@ -21,6 +21,12 @@ from memovi_automation.api.workflow_router import router as workflows_router
 from memovi_automation.domain.value_objects.authenticated_execution_context import (
     AuthenticatedExecutionContext,
 )
+from memovi_connectors.api.dependencies import get_active_workspace_id as get_connectors_workspace_id
+from memovi_connectors.api.dependencies import get_database_session as get_connectors_database_session
+from memovi_connectors.api.dependencies import (
+    get_filesystem_folder_service as get_connectors_filesystem_folder_service,
+)
+from memovi_connectors.api.router import router as connectors_router
 from memovi_intelligence.api.dependencies import (
     get_active_workspace_id as get_intelligence_workspace_id,
 )
@@ -50,6 +56,7 @@ from memovi_workspace.api.dependencies import get_authenticated_user_id
 from memovi_workspace.api.dependencies import get_database_session as get_workspace_database_session
 from memovi_workspace.api.dependencies import get_user_directory as get_workspace_user_directory
 from memovi_workspace.api.router import router as workspace_router
+from memovi_connectors.application.services.filesystem_folder_service import FilesystemFolderService
 from sqlalchemy.orm import Session as OrmSession
 
 from api.auth_context import (
@@ -58,6 +65,7 @@ from api.auth_context import (
 )
 from api.authorization import RequestScopedMembershipEnroller, build_user_directory
 from api.capability_framework import configure_capability_execution
+from api.connector_dependencies import build_filesystem_folder_service
 from api.connector_framework import configure_connector_framework
 from api.database import database_session
 from api.documents_session import build_documents_database_session
@@ -124,20 +132,33 @@ def _execution_caller_identity(
     )
 
 
+def _filesystem_folder_service(
+    request: Request,
+    session: OrmSession = Depends(get_connectors_database_session),
+) -> FilesystemFolderService:
+    return build_filesystem_folder_service(
+        request,
+        session,
+        request.app.state.connector_scheduler,
+    )
+
+
 def register_routers(app: FastAPI) -> None:
     configure_capability_execution(app)
     configure_connector_framework(app)
+    documents_session_dep = build_documents_database_session(database_session)
     app.dependency_overrides[get_auth_database_session] = database_session
     app.dependency_overrides[get_auth_register_user] = _register_user
-    app.dependency_overrides[get_documents_database_session] = build_documents_database_session(
-        database_session
-    )
+    app.dependency_overrides[get_documents_database_session] = documents_session_dep
+    app.dependency_overrides[get_connectors_database_session] = documents_session_dep
+    app.dependency_overrides[get_connectors_filesystem_folder_service] = _filesystem_folder_service
     app.dependency_overrides[get_memory_database_session] = database_session
     app.dependency_overrides[get_search_database_session] = database_session
     app.dependency_overrides[get_intelligence_database_session] = database_session
     app.dependency_overrides[get_workspace_database_session] = database_session
     app.dependency_overrides[get_workspace_user_directory] = _workspace_user_directory
     app.dependency_overrides[get_documents_workspace_id] = get_active_workspace_id
+    app.dependency_overrides[get_connectors_workspace_id] = get_active_workspace_id
     app.dependency_overrides[get_memory_workspace_id] = get_active_workspace_id
     app.dependency_overrides[get_search_workspace_id] = get_active_workspace_id
     app.dependency_overrides[get_intelligence_workspace_id] = get_active_workspace_id
@@ -151,6 +172,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(auth_router)
     app.include_router(workspace_router)
     app.include_router(documents_router)
+    app.include_router(connectors_router)
     app.include_router(memory_router)
     app.include_router(collections_router)
     app.include_router(capabilities_router)

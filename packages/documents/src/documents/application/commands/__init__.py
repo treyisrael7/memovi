@@ -21,6 +21,11 @@ from documents.application.commands.fail_processing import (
     FailProcessingCommand,
     FailProcessingResult,
 )
+from documents.application.commands.ingest_connector_document import (
+    IngestConnectorDocument,
+    IngestConnectorDocumentCommand,
+    IngestConnectorDocumentResult,
+)
 from documents.application.commands.ingest_local_document import (
     IngestLocalDocument,
     IngestLocalDocumentCommand,
@@ -56,6 +61,9 @@ __all__ = [
     "FailProcessing",
     "FailProcessingCommand",
     "FailProcessingResult",
+    "IngestConnectorDocument",
+    "IngestConnectorDocumentCommand",
+    "IngestConnectorDocumentResult",
     "IngestLocalDocument",
     "IngestLocalDocumentCommand",
     "IngestLocalDocumentResult",

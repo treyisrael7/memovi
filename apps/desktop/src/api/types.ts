@@ -171,6 +171,51 @@ export interface DocumentListResponse {
   items: DocumentSummary[];
 }
 
+export interface ConnectorMetadata {
+  connector_id: string;
+  display_name: string;
+  description: string;
+  source_category: string;
+  auth_methods: string[];
+  supports_incremental_sync: boolean;
+  supports_delete_detection: boolean;
+}
+
+export interface ConnectorListResponse {
+  items: ConnectorMetadata[];
+  count: number;
+}
+
+export interface FilesystemFolder {
+  id: string;
+  workspace_id: string;
+  root_path: string;
+  display_name: string;
+  sync_status: string;
+  last_error?: string | null;
+  imported_document_count: number;
+  last_synchronized_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FilesystemFolderListResponse {
+  items: FilesystemFolder[];
+  count: number;
+}
+
+export interface SyncFilesystemFolderResponse {
+  folder: FilesystemFolder;
+  success: boolean;
+  sync_mode: string;
+  imported_count: number;
+  updated_count: number;
+  deleted_count: number;
+  skipped_count: number;
+  error_code?: string | null;
+  error_message?: string | null;
+}
+
 export interface IngestDocumentResponse {
   document_id: string;
   processing_job_id: string;

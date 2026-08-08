@@ -1,131 +1,183 @@
-from datetime import UTC, datetime
-
-from memovi_observability import timed_operation
-from memovi_shared import WorkspaceId
-from sqlalchemy.orm import Session as OrmSession
-
-from documents.domain.entities import Document, DocumentVersion
-from documents.domain.value_objects import DocumentId, DocumentName, MimeType, SourceType
-from documents.infrastructure.persistence.models import DocumentRecord, DocumentVersionRecord
-
-_REPO = "SqlAlchemyDocumentRepository"
-
-
-class SqlAlchemyDocumentRepository:
-    def __init__(self, session: OrmSession) -> None:
-        self._session = session
-
-    def get_by_id(
-        self,
-        document_id: DocumentId,
-        *,
-        workspace_id: WorkspaceId,
-    ) -> Document | None:
-        with timed_operation("repository.get_by_id", repository=_REPO):
-            record = (
-                self._session.query(DocumentRecord)
-                .filter(
-                    DocumentRecord.id == document_id.value,
-                    DocumentRecord.workspace_id == workspace_id.value,
-                )
-                .one_or_none()
-            )
-            if record is None:
-                return None
-            return self._to_domain(record)
-
-    def get_by_id_unscoped(self, document_id: DocumentId) -> Document | None:
-        record = self._session.get(DocumentRecord, document_id.value)
-        if record is None:
-            return None
-        return self._to_domain(record)
-
-    def add(self, document: Document) -> None:
-        with timed_operation("repository.add", repository=_REPO):
-            self._session.add(
-                DocumentRecord(
-                    id=document.id.value,
-                    workspace_id=document.workspace_id.value,
-                    name=document.name.value,
-                    mime_type=document.mime_type.value,
-                    source_type=document.source_type.value,
-                    created_at=document.created_at,
-                )
-            )
-
-    def delete(self, document_id: DocumentId) -> None:
-        with timed_operation("repository.delete", repository=_REPO):
-            record = self._session.get(DocumentRecord, document_id.value)
-            if record is not None:
-                self._session.delete(record)
-
-    def list_by_workspace(self, *, workspace_id: WorkspaceId) -> list[Document]:
-        records = (
-            self._session.query(DocumentRecord)
-            .filter(DocumentRecord.workspace_id == workspace_id.value)
-            .order_by(DocumentRecord.created_at.desc())
-            .all()
-        )
-        return [self._to_domain(record) for record in records]
-
-    def add_version(self, version: DocumentVersion) -> None:
-        self._session.add(
-            DocumentVersionRecord(
-                id=version.id,
-                document_id=version.document_id.value,
-                version_number=version.version_number,
-                storage_key=version.storage_key,
-                normalized_content=version.normalized_content,
-                created_at=version.created_at,
-            )
-        )
-
-    def get_version_by_id(self, version_id: str) -> DocumentVersion | None:
-        record = self._session.get(DocumentVersionRecord, version_id)
-        if record is None:
-            return None
-        return self._version_to_domain(record)
-
-    def save_version(self, version: DocumentVersion) -> None:
-        record = self._session.get(DocumentVersionRecord, version.id)
-        if record is None:
-            raise ValueError(f"Document version '{version.id}' was not found.")
-
-        record.normalized_content = version.normalized_content
-
-    def get_latest_version(self, document_id: DocumentId) -> DocumentVersion | None:
-        record = (
-            self._session.query(DocumentVersionRecord)
-            .filter(DocumentVersionRecord.document_id == document_id.value)
-            .order_by(DocumentVersionRecord.version_number.desc())
-            .first()
-        )
-        if record is None:
-            return None
-        return self._version_to_domain(record)
-
-    def _to_domain(self, record: DocumentRecord) -> Document:
-        return Document(
-            id=DocumentId(record.id),
-            workspace_id=WorkspaceId(record.workspace_id),
-            name=DocumentName(record.name),
-            mime_type=MimeType(record.mime_type),
-            source_type=SourceType(record.source_type),
-            created_at=_as_utc(record.created_at),
-        )
-
-    def _version_to_domain(self, record: DocumentVersionRecord) -> DocumentVersion:
-        return DocumentVersion(
-            id=record.id,
-            document_id=DocumentId(record.document_id),
-            version_number=record.version_number,
-            storage_key=record.storage_key,
-            normalized_content=record.normalized_content,
-            created_at=_as_utc(record.created_at),
-        )
-
-
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
+from datetime import UTC, datetime
+
+from memovi_observability import timed_operation
+from memovi_shared import WorkspaceId
+from sqlalchemy.orm import Session as OrmSession
+
+from documents.domain.entities import Document, DocumentVersion
+from documents.domain.value_objects import DocumentId, DocumentName, MimeType, SourceType
+from documents.infrastructure.persistence.models import DocumentRecord, DocumentVersionRecord
+
+_REPO = "SqlAlchemyDocumentRepository"
+
+
+class SqlAlchemyDocumentRepository:
+    def __init__(self, session: OrmSession) -> None:
+        self._session = session
+
+    def get_by_id(
+        self,
+        document_id: DocumentId,
+        *,
+        workspace_id: WorkspaceId,
+    ) -> Document | None:
+        with timed_operation("repository.get_by_id", repository=_REPO):
+            record = (
+                self._session.query(DocumentRecord)
+                .filter(
+                    DocumentRecord.id == document_id.value,
+                    DocumentRecord.workspace_id == workspace_id.value,
+                )
+                .one_or_none()
+            )
+            if record is None:
+                return None
+            return self._to_domain(record)
+
+    def get_by_id_unscoped(self, document_id: DocumentId) -> Document | None:
+        record = self._session.get(DocumentRecord, document_id.value)
+        if record is None:
+            return None
+        return self._to_domain(record)
+
+    def get_by_connector_external_id(
+        self,
+        *,
+        workspace_id: WorkspaceId,
+        connector_id: str,
+        external_id: str,
+    ) -> Document | None:
+        record = (
+            self._session.query(DocumentRecord)
+            .filter(
+                DocumentRecord.workspace_id == workspace_id.value,
+                DocumentRecord.connector_id == connector_id.strip().lower(),
+                DocumentRecord.external_id == external_id.strip(),
+            )
+            .one_or_none()
+        )
+        if record is None:
+            return None
+        return self._to_domain(record)
+
+    def add(self, document: Document) -> None:
+        with timed_operation("repository.add", repository=_REPO):
+            self._session.add(
+                DocumentRecord(
+                    id=document.id.value,
+                    workspace_id=document.workspace_id.value,
+                    name=document.name.value,
+                    mime_type=document.mime_type.value,
+                    source_type=document.source_type.value,
+                    created_at=document.created_at,
+                    connector_id=document.connector_id,
+                    external_id=document.external_id,
+                    external_path=document.external_path,
+                )
+            )
+
+    def save(self, document: Document) -> None:
+        record = self._session.get(DocumentRecord, document.id.value)
+        if record is None:
+            raise ValueError(f"Document '{document.id.value}' was not found.")
+        record.name = document.name.value
+        record.mime_type = document.mime_type.value
+        record.connector_id = document.connector_id
+        record.external_id = document.external_id
+        record.external_path = document.external_path
+
+    def delete(self, document_id: DocumentId) -> None:
+        with timed_operation("repository.delete", repository=_REPO):
+            record = self._session.get(DocumentRecord, document_id.value)
+            if record is not None:
+                self._session.delete(record)
+
+    def list_by_workspace(self, *, workspace_id: WorkspaceId) -> list[Document]:
+        records = (
+            self._session.query(DocumentRecord)
+            .filter(DocumentRecord.workspace_id == workspace_id.value)
+            .order_by(DocumentRecord.created_at.desc())
+            .all()
+        )
+        return [self._to_domain(record) for record in records]
+
+    def count_by_connector(
+        self,
+        *,
+        workspace_id: WorkspaceId,
+        connector_id: str,
+        external_id_prefix: str | None = None,
+    ) -> int:
+        query = self._session.query(DocumentRecord).filter(
+            DocumentRecord.workspace_id == workspace_id.value,
+            DocumentRecord.connector_id == connector_id.strip().lower(),
+        )
+        if external_id_prefix is not None:
+            query = query.filter(DocumentRecord.external_id.startswith(external_id_prefix))
+        return query.count()
+
+    def add_version(self, version: DocumentVersion) -> None:
+        self._session.add(
+            DocumentVersionRecord(
+                id=version.id,
+                document_id=version.document_id.value,
+                version_number=version.version_number,
+                storage_key=version.storage_key,
+                normalized_content=version.normalized_content,
+                created_at=version.created_at,
+            )
+        )
+
+    def get_version_by_id(self, version_id: str) -> DocumentVersion | None:
+        record = self._session.get(DocumentVersionRecord, version_id)
+        if record is None:
+            return None
+        return self._version_to_domain(record)
+
+    def save_version(self, version: DocumentVersion) -> None:
+        record = self._session.get(DocumentVersionRecord, version.id)
+        if record is None:
+            raise ValueError(f"Document version '{version.id}' was not found.")
+
+        record.normalized_content = version.normalized_content
+
+    def get_latest_version(self, document_id: DocumentId) -> DocumentVersion | None:
+        record = (
+            self._session.query(DocumentVersionRecord)
+            .filter(DocumentVersionRecord.document_id == document_id.value)
+            .order_by(DocumentVersionRecord.version_number.desc())
+            .first()
+        )
+        if record is None:
+            return None
+        return self._version_to_domain(record)
+
+    def _to_domain(self, record: DocumentRecord) -> Document:
+        return Document(
+            id=DocumentId(record.id),
+            workspace_id=WorkspaceId(record.workspace_id),
+            name=DocumentName(record.name),
+            mime_type=MimeType(record.mime_type),
+            source_type=SourceType(record.source_type),
+            created_at=_as_utc(record.created_at),
+            connector_id=record.connector_id,
+            external_id=record.external_id,
+            external_path=record.external_path,
+        )
+
+    def _version_to_domain(self, record: DocumentVersionRecord) -> DocumentVersion:
+        return DocumentVersion(
+            id=record.id,
+            document_id=DocumentId(record.document_id),
+            version_number=record.version_number,
+            storage_key=record.storage_key,
+            normalized_content=record.normalized_content,
+            created_at=_as_utc(record.created_at),
+        )
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+

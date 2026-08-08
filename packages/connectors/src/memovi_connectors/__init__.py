@@ -2,16 +2,19 @@
 
 Provider-neutral connector abstractions for registration, configuration,
 authentication references, synchronization, normalization into Documents,
-health, and a scheduler foundation. Concrete provider adapters are out of
-scope for this foundation.
+health, and a scheduler foundation. Includes the production Filesystem
+Connector for local folder import and sync.
 """
 
 from memovi_connectors.application import (
+    AddFilesystemFolderCommand,
     Connector,
     ConnectorRegistry,
     ConnectorScheduler,
     ConnectorScheduleSpec,
     DocumentImportPort,
+    FilesystemFolderService,
+    SyncFilesystemFolderCommand,
 )
 from memovi_connectors.domain import (
     CONNECTOR_CLOUD_STORAGE,
@@ -39,10 +42,15 @@ from memovi_connectors.domain import (
     NormalizedSourceMetadata,
     UnknownConnectorError,
 )
+from memovi_connectors.domain.entities import FilesystemFolderConnection
 from memovi_connectors.infrastructure import (
     FakeConnector,
+    FilesystemConnector,
     InMemoryDocumentImportPort,
+    InMemoryFilesystemFolderRepository,
+    SqlAlchemyFilesystemFolderRepository,
     register_fake_connector,
+    register_filesystem_connector,
 )
 
 __all__ = [
@@ -55,6 +63,7 @@ __all__ = [
     "CONNECTOR_NOTION",
     "CONNECTOR_OBSIDIAN",
     "CONNECTOR_SLACK",
+    "AddFilesystemFolderCommand",
     "AuthCredentialRef",
     "Connector",
     "ConnectorAuthorized",
@@ -71,11 +80,18 @@ __all__ = [
     "ConnectorsDomainError",
     "DocumentImportPort",
     "FakeConnector",
+    "FilesystemConnector",
+    "FilesystemFolderConnection",
+    "FilesystemFolderService",
     "ImportCompleted",
     "InMemoryDocumentImportPort",
+    "InMemoryFilesystemFolderRepository",
     "InvalidConnectorError",
     "NormalizedImportItem",
     "NormalizedSourceMetadata",
+    "SqlAlchemyFilesystemFolderRepository",
+    "SyncFilesystemFolderCommand",
     "UnknownConnectorError",
     "register_fake_connector",
+    "register_filesystem_connector",
 ]

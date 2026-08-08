@@ -23,6 +23,9 @@ class DocumentRecord(Base):
     mime_type: Mapped[str] = mapped_column(String(255), nullable=False)
     source_type: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    connector_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    external_id: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    external_path: Mapped[str | None] = mapped_column(String(2048), nullable=True)
 
     versions: Mapped[list[DocumentVersionRecord]] = relationship(
         back_populates="document",
