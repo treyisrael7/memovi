@@ -317,14 +317,30 @@ def test_download_outside_roots_rejected(sandbox: Path) -> None:
         body=b"x",
     )
     _registry, invoker, _cap, _p = _stack(sandbox, provider)
+
+    # Portable absolute path outside the download root.
     result = _invoke(
         invoker,
         arguments={
             "operation": "download_file",
             "url": url,
-            "destination": str(Path("C:/Windows/evil.bin")),
+            "destination": str(sandbox.parent / "evil.bin"),
         },
     )
     assert result.success is False
     assert result.error is not None
     assert result.error.code == "invalid_destination"
+
+    # Windows drive-letter absolute form must never be treated as a relative
+    # path under the sandbox on POSIX runners.
+    windows_style = _invoke(
+        invoker,
+        arguments={
+            "operation": "download_file",
+            "url": url,
+            "destination": "C:/Windows/evil.bin",
+        },
+    )
+    assert windows_style.success is False
+    assert windows_style.error is not None
+    assert windows_style.error.code == "invalid_destination"

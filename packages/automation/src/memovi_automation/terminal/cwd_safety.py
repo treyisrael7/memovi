@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from memovi_automation.domain.exceptions import CapabilityExecutionError
+from memovi_automation.filesystem.path_safety import looks_like_windows_absolute
 from memovi_automation.terminal.errors import INVALID_WORKING_DIRECTORY
 
 
@@ -39,7 +40,13 @@ def resolve_working_directory(
         )
 
     candidate = Path(path_text)
-    if candidate.is_absolute():
+    if candidate.is_absolute() or looks_like_windows_absolute(path_text):
+        if not candidate.is_absolute():
+            raise CapabilityExecutionError(
+                "Working directory is outside allowed roots.",
+                code=INVALID_WORKING_DIRECTORY,
+                details={"path": path_text},
+            )
         resolved = candidate.resolve(strict=False)
         if _matching_root(resolved, allowed_roots) is None:
             raise CapabilityExecutionError(

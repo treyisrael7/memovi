@@ -31,7 +31,15 @@ def resolve_safe_path(raw_path: object, *, allowed_roots: tuple[Path, ...]) -> P
         )
 
     candidate = Path(path_text)
-    if candidate.is_absolute():
+    # On POSIX, ``Path("C:/Windows/x")`` is relative. Treat Windows absolute /
+    # UNC forms as absolute so they never join under an allowed root.
+    if candidate.is_absolute() or looks_like_windows_absolute(path_text):
+        if not candidate.is_absolute():
+            raise CapabilityExecutionError(
+                "Filesystem path is outside allowed roots.",
+                code=INVALID_PATH,
+                details={"path": path_text},
+            )
         resolved = candidate.resolve(strict=False)
         root = _matching_root(resolved, allowed_roots)
         if root is None:
@@ -56,6 +64,14 @@ def resolve_safe_path(raw_path: object, *, allowed_roots: tuple[Path, ...]) -> P
         details={"path": path_text},
     )
 
+
+def looks_like_windows_absolute(path_text: str) -> bool:
+    """Detect drive-letter and UNC paths that POSIX Path treats as relative."""
+    if path_text.startswith(("\\\\", "//")):
+        return True
+    if len(path_text) >= 2 and path_text[0].isalpha() and path_text[1] == ":":
+        return len(path_text) == 2 or path_text[2] in "/\\"
+    return False
 
 def _matching_root(resolved: Path, allowed_roots: tuple[Path, ...]) -> Path | None:
     for root in allowed_roots:
