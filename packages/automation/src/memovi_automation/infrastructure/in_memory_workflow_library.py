@@ -285,9 +285,11 @@ class InMemoryWorkflowLibrary:
                 required_capabilities=definition.required_capabilities,
                 metadata=definition.metadata,
                 version=max(existing.version + 1, definition.version),
-                workspace_id=definition.workspace_id
-                if definition.workspace_id is not None
-                else existing.workspace_id,
+                workspace_id=(
+                    definition.workspace_id
+                    if definition.workspace_id is not None
+                    else existing.workspace_id
+                ),
                 created_at=existing.created_at,
                 updated_at=datetime.now(UTC),
             )

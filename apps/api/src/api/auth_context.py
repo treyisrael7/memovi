@@ -55,11 +55,7 @@ def build_authenticated_execution_context(
 ) -> AuthenticatedExecutionContext:
     """Build AuthenticatedExecutionContext from the resolved principal and workspace."""
     request_context = getattr(request.state, "request_context", None) or get_request_context()
-    request_id = (
-        request_context.request_id
-        if request_context is not None
-        else str(uuid4())
-    )
+    request_id = request_context.request_id if request_context is not None else str(uuid4())
     resolved_correlation = correlation_id
     if resolved_correlation is None and request_context is not None:
         resolved_correlation = request_context.correlation_id

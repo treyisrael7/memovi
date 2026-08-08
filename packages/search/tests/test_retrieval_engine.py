@@ -179,4 +179,3 @@ def test_retrieval_engine_filters_by_collection_member_ids() -> None:
     )
     assert len(results) == 1
     assert results[0].search_document.knowledge_item_id == included.knowledge_item_id
-

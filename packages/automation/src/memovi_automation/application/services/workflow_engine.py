@@ -559,9 +559,7 @@ class WorkflowEngine:
     ) -> None:
         capabilities = tuple(
             dict.fromkeys(
-                step.capability_id
-                for step in result.step_results
-                if step.execution_id is not None
+                step.capability_id for step in result.step_results if step.execution_id is not None
             )
         )
         entry = WorkflowHistoryEntry(

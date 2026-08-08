@@ -57,7 +57,9 @@ def test_always_allow_executes_terminal_through_engine(tmp_path: Path) -> None:
             workspace_id=WorkspaceId.default(),
             arguments={"command": _echo("engine-ok")},
             source="test",
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
 
     assert result.status is CapabilityExecutionStatus.COMPLETED
     assert result.output is not None
@@ -81,7 +83,9 @@ def test_ask_every_time_requires_approval(tmp_path: Path) -> None:
             capability_id="terminal",
             workspace_id=WorkspaceId.default(),
             arguments={"command": _echo("needs-approval")},
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
     assert pending.metadata["operation_summary"]["command"] == "echo needs-approval"
 
@@ -101,7 +105,9 @@ def test_deny_policy_blocks_terminal(tmp_path: Path) -> None:
             capability_id="terminal",
             workspace_id=WorkspaceId.default(),
             arguments={"command": _echo("blocked")},
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert result.status is CapabilityExecutionStatus.FAILED
     assert result.error is not None
     assert result.error.code == "permission_denied"
@@ -121,7 +127,9 @@ def test_sensitive_env_is_redacted_in_audit(tmp_path: Path) -> None:
                     "NORMAL_PATH": "C:\\tmp",
                 },
             },
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert result.status is CapabilityExecutionStatus.COMPLETED
     audit = engine.list_audit(workspace_id=WorkspaceId.default())
     completed = next(
@@ -140,7 +148,9 @@ def test_cancel_pending_terminal_execution(tmp_path: Path) -> None:
             capability_id="terminal",
             workspace_id=WorkspaceId.default(),
             arguments={"command": _echo("never")},
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     cancelled = engine.cancel(
         pending.execution_id,
         workspace_id=WorkspaceId.default(),
@@ -177,10 +187,10 @@ def test_cancel_running_terminal_process(tmp_path: Path) -> None:
             continue
         if current.status is CapabilityExecutionStatus.EXECUTING:
             cancelled = engine.cancel(
-            execution_id,
-            workspace_id=WorkspaceId.default(),
-            context=make_auth_context(),
-        )
+                execution_id,
+                workspace_id=WorkspaceId.default(),
+                context=make_auth_context(),
+            )
             assert cancelled.status is CapabilityExecutionStatus.CANCELLED
             break
         if current.status in {

@@ -102,9 +102,7 @@ class TerminalCapabilityConfig:
         allowed = None
         if self.allowed_executables is not None:
             allowed = frozenset(
-                item.strip().lower()
-                for item in self.allowed_executables
-                if str(item).strip()
+                item.strip().lower() for item in self.allowed_executables if str(item).strip()
             )
         denied = frozenset(
             item.strip().lower() for item in self.denied_executables if str(item).strip()
@@ -115,9 +113,7 @@ class TerminalCapabilityConfig:
             if str(item).strip()
         )
         patterns = tuple(
-            pattern.strip()
-            for pattern in self.denied_argument_patterns
-            if str(pattern).strip()
+            pattern.strip() for pattern in self.denied_argument_patterns if str(pattern).strip()
         )
         try:
             compile_denied_argument_patterns(patterns)

@@ -235,9 +235,7 @@ class SqlAlchemyWorkflowLibrary:
         record.workspace_id = definition.workspace_id
         record.name = definition.name
         record.description = definition.description
-        record.version = (
-            record.version + 1 if bump_version else definition.version
-        )
+        record.version = record.version + 1 if bump_version else definition.version
         record.steps = [serialize_step(step) for step in definition.steps]  # type: ignore[assignment]
         record.variables = [serialize_variable(variable) for variable in definition.variables]  # type: ignore[assignment]
         record.expected_outputs = list(definition.expected_outputs)

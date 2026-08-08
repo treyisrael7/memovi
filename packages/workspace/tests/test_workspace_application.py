@@ -77,8 +77,7 @@ class InMemoryMembershipRepository:
     def update(self, membership: WorkspaceMembership) -> None:
         for index, item in enumerate(self.memberships):
             if item.id == membership.id or (
-                item.user_id == membership.user_id
-                and item.workspace_id == membership.workspace_id
+                item.user_id == membership.user_id and item.workspace_id == membership.workspace_id
             ):
                 self.memberships[index] = membership
                 return

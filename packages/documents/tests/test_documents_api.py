@@ -192,9 +192,11 @@ def test_reprocess_document_queues_new_pending_job(
     assert payload["processing_status"] == ProcessingStatus.PENDING.value
 
     with Session(engine) as session:
-        jobs = session.query(ProcessingJobRecord).filter(
-            ProcessingJobRecord.document_id == document_id
-        ).all()
+        jobs = (
+            session.query(ProcessingJobRecord)
+            .filter(ProcessingJobRecord.document_id == document_id)
+            .all()
+        )
         assert len(jobs) == 2
 
 
@@ -227,9 +229,7 @@ def test_delete_document_removes_document_versions_and_jobs(
 
     with Session(engine) as session:
         version = session.scalar(
-            select(DocumentVersionRecord).where(
-                DocumentVersionRecord.document_id == document_id
-            )
+            select(DocumentVersionRecord).where(DocumentVersionRecord.document_id == document_id)
         )
         storage_key = version.storage_key
     assert object_storage.get_object(storage_key) == b"# Notes"

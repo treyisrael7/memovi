@@ -294,13 +294,9 @@ def update_workflow(
         description=body.description,
         steps=None if body.steps is None else _steps_from_write(body.steps),
         variables=None if body.variables is None else _variables_from_write(body.variables),
-        expected_outputs=(
-            None if body.expected_outputs is None else tuple(body.expected_outputs)
-        ),
+        expected_outputs=(None if body.expected_outputs is None else tuple(body.expected_outputs)),
         required_capabilities=(
-            None
-            if body.required_capabilities is None
-            else tuple(body.required_capabilities)
+            None if body.required_capabilities is None else tuple(body.required_capabilities)
         ),
         metadata=body.metadata,
         bump_version=True,

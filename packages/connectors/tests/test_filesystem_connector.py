@@ -136,8 +136,7 @@ def test_filesystem_incremental_sync_detects_update_delete_and_rename(
     assert any(item.name == "keep.txt" for item in document_import.imported)
     assert any(item.name == "renamed.md" for item in document_import.imported)
     assert any(
-        external_id.endswith(":a.md")
-        for external_id in document_import.deleted_external_ids
+        external_id.endswith(":a.md") for external_id in document_import.deleted_external_ids
     )
 
 

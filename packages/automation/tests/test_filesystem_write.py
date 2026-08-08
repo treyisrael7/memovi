@@ -404,7 +404,9 @@ def test_engine_write_audit_redacts_content(sandbox: Path) -> None:
                 "content": "super-secret-body",
             },
             source="test",
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert result.status.value == "completed"
 
     entries = engine.list_audit(workspace_id=WorkspaceId.default())
@@ -437,7 +439,9 @@ def test_engine_ask_then_approve_write(sandbox: Path) -> None:
                 "content": "via-engine",
             },
             source="test",
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert pending.status.value == "pending_approval"
     assert pending.metadata["operation_summary"]["operation"] == "create_file"
 

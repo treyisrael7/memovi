@@ -313,9 +313,7 @@ def test_5_intentional_failure_stops_with_structured_error(tmp_path: Path) -> No
         workflow_id="fail-after-list",
         name="Fail After List",
         description="Succeeds listing then fails reading a missing file.",
-        variables=(
-            WorkflowVariable(name="source_folder", type="path", description="Folder"),
-        ),
+        variables=(WorkflowVariable(name="source_folder", type="path", description="Folder"),),
         steps=(
             WorkflowStep(
                 step_id="list",

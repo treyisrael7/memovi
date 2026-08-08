@@ -228,16 +228,8 @@ class CapabilityExecutionEngine:
                     "user_id": auth_context.user_id,
                     "session_id": auth_context.session_id,
                     "request_id": auth_context.request_id,
-                    **(
-                        {"command_policy": command_policy}
-                        if command_policy is not None
-                        else {}
-                    ),
-                    **(
-                        {"approval_status": "pending"}
-                        if command_policy is not None
-                        else {}
-                    ),
+                    **({"command_policy": command_policy} if command_policy is not None else {}),
+                    **({"approval_status": "pending"} if command_policy is not None else {}),
                 },
             )
             with self._lock:
@@ -756,9 +748,7 @@ class CapabilityExecutionEngine:
                     summary["url"] = result.output["url"]
                 if "query" in result.output and isinstance(result.output["query"], str):
                     summary["query"] = result.output["query"]
-                if "destination" in result.output and isinstance(
-                    result.output["destination"], str
-                ):
+                if "destination" in result.output and isinstance(result.output["destination"], str):
                     summary["destination"] = result.output["destination"]
                 if "sha256" in result.output:
                     summary["sha256"] = result.output["sha256"]
@@ -773,9 +763,7 @@ class CapabilityExecutionEngine:
                     if "clean" in output_meta:
                         summary["clean"] = output_meta["clean"]
                     if "filesystem_integrated" in output_meta:
-                        summary["filesystem_integrated"] = output_meta[
-                            "filesystem_integrated"
-                        ]
+                        summary["filesystem_integrated"] = output_meta["filesystem_integrated"]
 
         operation = summary.get("operation")
         entry = ExecutionAuditEntry(

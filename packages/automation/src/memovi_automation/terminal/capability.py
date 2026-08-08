@@ -137,9 +137,7 @@ class TerminalCapability:
             parsed,
             allowed_executables=self._config.allowed_executables,
             denied_executables=self._config.denied_executables,
-            confirmation_required_executables=(
-                self._config.confirmation_required_executables
-            ),
+            confirmation_required_executables=(self._config.confirmation_required_executables),
             denied_argument_patterns=self._config.compiled_denied_argument_patterns(),
         )
         if decision.effect is CommandPolicyEffect.DENY:
@@ -180,9 +178,7 @@ class TerminalCapability:
             parsed,
             allowed_executables=self._config.allowed_executables,
             denied_executables=self._config.denied_executables,
-            confirmation_required_executables=(
-                self._config.confirmation_required_executables
-            ),
+            confirmation_required_executables=(self._config.confirmation_required_executables),
             denied_argument_patterns=self._config.compiled_denied_argument_patterns(),
         )
         if policy.effect is CommandPolicyEffect.DENY:
@@ -237,9 +233,11 @@ class TerminalCapability:
             tags={"executable": parsed.executable_basename},
         )
         metrics.increment(
-            "memovi.terminal.execution.completed"
-            if success
-            else "memovi.terminal.execution.nonzero_exit",
+            (
+                "memovi.terminal.execution.completed"
+                if success
+                else "memovi.terminal.execution.nonzero_exit"
+            ),
             tags={"executable": parsed.executable_basename},
         )
         log_operation(

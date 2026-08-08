@@ -115,9 +115,7 @@ def serialize_history_entry(entry: WorkflowHistoryEntry) -> dict[str, object]:
         "audit_references": list(entry.audit_references),
         "user_id": entry.user_id,
         "completed_at": (
-            None
-            if entry.completed_at is None
-            else entry.completed_at.astimezone(UTC).isoformat()
+            None if entry.completed_at is None else entry.completed_at.astimezone(UTC).isoformat()
         ),
         "executed_steps": list(entry.executed_steps),
         "failed_steps": list(entry.failed_steps),
@@ -167,9 +165,7 @@ def serialize_execution_result(result: WorkflowExecutionResult) -> dict[str, obj
         "audit_references": list(result.audit_references),
         "started_at": result.started_at.astimezone(UTC).isoformat(),
         "finished_at": (
-            None
-            if result.finished_at is None
-            else result.finished_at.astimezone(UTC).isoformat()
+            None if result.finished_at is None else result.finished_at.astimezone(UTC).isoformat()
         ),
         "metadata": json_safe(dict(result.metadata)),
     }
@@ -192,9 +188,7 @@ def deserialize_execution_result(payload: Mapping[str, Any]) -> WorkflowExecutio
         audit_references=tuple(str(item) for item in (payload.get("audit_references") or ())),
         started_at=_parse_datetime(payload.get("started_at") or datetime.now(UTC)),
         finished_at=(
-            None
-            if payload.get("finished_at") is None
-            else _parse_datetime(payload["finished_at"])
+            None if payload.get("finished_at") is None else _parse_datetime(payload["finished_at"])
         ),
         metadata=dict(payload.get("metadata") or {}),
     )

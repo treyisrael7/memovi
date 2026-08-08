@@ -101,8 +101,7 @@ def _build_openai_client(
 def _to_vector(values: list[float], expected_dimensions: int) -> EmbeddingVector:
     if len(values) != expected_dimensions:
         raise EmbeddingProviderError(
-            f"OpenAI embedding dimensions must be {expected_dimensions} "
-            f"(got {len(values)}).",
+            f"OpenAI embedding dimensions must be {expected_dimensions} " f"(got {len(values)}).",
         )
     return EmbeddingVector(values=values, dimensions=expected_dimensions)
 

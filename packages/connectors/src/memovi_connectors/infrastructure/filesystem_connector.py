@@ -138,9 +138,7 @@ class FilesystemConnector:
                 connector_id=CONNECTOR_FILESYSTEM,
                 sync_mode=context.sync_mode,
                 error_code="not_configured",
-                error_message=(
-                    "Filesystem connector runtime dependencies are not configured."
-                ),
+                error_message=("Filesystem connector runtime dependencies are not configured."),
             )
 
         folder_id = context.metadata.get("folder_id")

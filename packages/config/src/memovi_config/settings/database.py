@@ -115,4 +115,3 @@ def redact_database_url(url: str) -> str:
     return urlunparse(
         (parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment)
     )
-

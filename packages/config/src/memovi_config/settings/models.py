@@ -77,11 +77,14 @@ class ModelsSettings:
 
     @classmethod
     def from_environ(cls, environ: Environ) -> ModelsSettings:
-        provider = get_str(
-            environ,
-            "INTELLIGENCE_PROVIDER",
-            default=ReasoningProviderKind.FAKE.value,
-        ) or ReasoningProviderKind.FAKE.value
+        provider = (
+            get_str(
+                environ,
+                "INTELLIGENCE_PROVIDER",
+                default=ReasoningProviderKind.FAKE.value,
+            )
+            or ReasoningProviderKind.FAKE.value
+        )
         model = get_str(environ, "INTELLIGENCE_MODEL", default=None)
         if model is None and provider.strip().lower() == ReasoningProviderKind.OPENAI.value:
             model = get_str(environ, "OPENAI_MODEL", default=None)

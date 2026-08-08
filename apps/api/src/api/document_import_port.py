@@ -40,7 +40,7 @@ class DocumentsDocumentImportPort:
                     change_kind=item.change_kind,
                 ),
             )
-        except (EmptyUploadError, UnsupportedMimeTypeError):
+        except EmptyUploadError, UnsupportedMimeTypeError:
             if item.change_kind == "upsert":
                 raise
             return ""

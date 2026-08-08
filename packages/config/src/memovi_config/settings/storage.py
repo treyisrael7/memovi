@@ -61,11 +61,14 @@ class StorageSettings:
 
     @classmethod
     def from_environ(cls, environ: Environ) -> StorageSettings:
-        endpoint_url = get_str(
-            environ,
-            "MINIO_SERVER_URL",
-            default=DEFAULT_MINIO_ENDPOINT,
-        ) or DEFAULT_MINIO_ENDPOINT
+        endpoint_url = (
+            get_str(
+                environ,
+                "MINIO_SERVER_URL",
+                default=DEFAULT_MINIO_ENDPOINT,
+            )
+            or DEFAULT_MINIO_ENDPOINT
+        )
         access_key = get_secret(
             environ,
             "MINIO_ROOT_USER",
@@ -78,16 +81,22 @@ class StorageSettings:
         )
         if access_key is None or secret_key is None:
             raise ConfigurationError("MinIO credentials are required.")
-        bucket_name = get_str(
-            environ,
-            "MINIO_BUCKET",
-            default=DEFAULT_MINIO_BUCKET,
-        ) or DEFAULT_MINIO_BUCKET
-        region_name = get_str(
-            environ,
-            "MINIO_REGION_NAME",
-            default=DEFAULT_MINIO_REGION,
-        ) or DEFAULT_MINIO_REGION
+        bucket_name = (
+            get_str(
+                environ,
+                "MINIO_BUCKET",
+                default=DEFAULT_MINIO_BUCKET,
+            )
+            or DEFAULT_MINIO_BUCKET
+        )
+        region_name = (
+            get_str(
+                environ,
+                "MINIO_REGION_NAME",
+                default=DEFAULT_MINIO_REGION,
+            )
+            or DEFAULT_MINIO_REGION
+        )
         return cls(
             endpoint_url=endpoint_url,
             access_key=access_key,

@@ -204,12 +204,7 @@ def _spawn(
 
     Returns ``(process, used_shell)``.
     """
-    use_argv = (
-        prefer_argv
-        and argv is not None
-        and len(argv) > 0
-        and not needs_shell
-    )
+    use_argv = prefer_argv and argv is not None and len(argv) > 0 and not needs_shell
     if use_argv:
         try:
             return (
@@ -384,7 +379,7 @@ class _OutputCollector:
         while True:
             try:
                 chunk = read(4096)
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 break
             if not chunk:
                 break

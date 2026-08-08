@@ -43,7 +43,7 @@ def _git_available() -> bool:
     try:
         subprocess.run(["git", "--version"], check=True, capture_output=True, text=True)
         return True
-    except (OSError, subprocess.CalledProcessError):
+    except OSError, subprocess.CalledProcessError:
         return False
 
 
@@ -94,7 +94,9 @@ def _submit(
             workspace_id=WorkspaceId.default(),
             arguments=arguments,
             source=source,
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
 
 
 def test_1_detect_repository_returns_metadata(repo: Path) -> None:
@@ -336,8 +338,7 @@ def test_10_every_git_operation_creates_audit_entry(repo: Path) -> None:
     completed = [
         entry
         for entry in audit
-        if entry.capability_id == "git"
-        and entry.status is CapabilityExecutionStatus.COMPLETED
+        if entry.capability_id == "git" and entry.status is CapabilityExecutionStatus.COMPLETED
     ]
     completed_ops = {entry.arguments.get("operation") for entry in completed}
     assert completed_ops >= {

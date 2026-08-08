@@ -112,9 +112,7 @@ class FilesystemCapability:
                 CapabilityParameter(
                     name="destination",
                     type="string",
-                    description=(
-                        "Destination path for copy, move, and rename operations."
-                    ),
+                    description=("Destination path for copy, move, and rename operations."),
                     required=False,
                 ),
                 CapabilityParameter(

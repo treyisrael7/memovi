@@ -80,11 +80,7 @@ class InMemoryWorkflowHistoryStore:
         status: str,
     ) -> tuple[WorkflowExecutionResult, ...]:
         with self._lock:
-            return tuple(
-                result
-                for result in self._results.values()
-                if result.status == status
-            )
+            return tuple(result for result in self._results.values() if result.status == status)
 
     def fail_interrupted_executions(
         self,
@@ -153,9 +149,7 @@ def _entry_from_result(
         },
         executed_capabilities=tuple(
             dict.fromkeys(
-                step.capability_id
-                for step in result.step_results
-                if step.execution_id is not None
+                step.capability_id for step in result.step_results if step.execution_id is not None
             )
         ),
         audit_references=result.audit_references,

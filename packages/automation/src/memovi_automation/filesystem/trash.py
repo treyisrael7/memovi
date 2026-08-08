@@ -77,9 +77,7 @@ def _trash_windows(path: Path) -> dict[str, object]:
         "delete_mode": "trash",
         "trash_backend": "windows_recycle_bin",
         "undo_available": True,
-        "undo_message": (
-            "Moved to the Recycle Bin. Restore from the Recycle Bin if needed."
-        ),
+        "undo_message": ("Moved to the Recycle Bin. Restore from the Recycle Bin if needed."),
     }
 
 
@@ -130,9 +128,12 @@ def _trash_xdg(path: Path) -> dict[str, object]:
                 "undo_message": "Moved to Trash. Restore from Trash if needed.",
             }
 
-    trash_home = Path(
-        os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"),
-    ) / "Trash"
+    trash_home = (
+        Path(
+            os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"),
+        )
+        / "Trash"
+    )
     files_dir = trash_home / "files"
     info_dir = trash_home / "info"
     try:
@@ -155,11 +156,7 @@ def _trash_xdg(path: Path) -> dict[str, object]:
     from datetime import UTC, datetime
 
     deletion_date = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
-    info_body = (
-        "[Trash Info]\n"
-        f"Path={path.resolve()}\n"
-        f"DeletionDate={deletion_date}\n"
-    )
+    info_body = "[Trash Info]\n" f"Path={path.resolve()}\n" f"DeletionDate={deletion_date}\n"
     try:
         info_path.write_text(info_body, encoding="utf-8")
         shutil.move(str(path), str(destination))

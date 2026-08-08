@@ -34,9 +34,7 @@ class DocumentDto:
             source_type=document.source_type.value,
             created_at=document.created_at,
             processing_status=processing_job.status.value if processing_job else None,
-            processing_failure_reason=(
-                processing_job.failure_reason if processing_job else None
-            ),
+            processing_failure_reason=(processing_job.failure_reason if processing_job else None),
             processing_updated_at=processing_job.updated_at if processing_job else None,
             processing_attempt=processing_job.attempt if processing_job else None,
             processing_started_at=processing_job.started_at if processing_job else None,

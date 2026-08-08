@@ -41,9 +41,7 @@ SEARCH_OPERATIONS: Final[frozenset[str]] = frozenset({"search_web"})
 
 DOWNLOAD_OPERATIONS: Final[frozenset[str]] = frozenset({"download_file"})
 
-_ALL_OPERATIONS: Final[frozenset[str]] = (
-    READ_OPERATIONS | SEARCH_OPERATIONS | DOWNLOAD_OPERATIONS
-)
+_ALL_OPERATIONS: Final[frozenset[str]] = READ_OPERATIONS | SEARCH_OPERATIONS | DOWNLOAD_OPERATIONS
 
 _BROWSER_PERMISSIONS: Final[tuple[CapabilityPermission, ...]] = (
     BROWSER_READ,
@@ -223,9 +221,7 @@ class BrowserCapability:
         if operation == "download_file":
             return operations.download_file(
                 _require_string(request.arguments, "url", code=INVALID_URL),
-                _require_string(
-                    request.arguments, "destination", code=INVALID_DESTINATION
-                ),
+                _require_string(request.arguments, "destination", code=INVALID_DESTINATION),
                 provider=self._provider,
                 config=self._config,
                 timeout_seconds=timeout_seconds,

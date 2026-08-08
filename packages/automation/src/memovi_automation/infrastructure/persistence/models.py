@@ -120,4 +120,3 @@ class WorkflowHistoryRecord(Base):
     error_details: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     audit_references: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     full_result: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-

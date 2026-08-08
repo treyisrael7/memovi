@@ -177,7 +177,9 @@ def _submit(
             arguments=arguments,
             policy=policy,
             source="acceptance",
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
 
 
 def test_1_open_webpage_returns_title_and_metadata(tmp_path: Path) -> None:
@@ -313,10 +315,10 @@ def test_5_cancel_in_progress_download_cleans_up(tmp_path: Path) -> None:
     assert staging.exists()
 
     cancelled = engine.cancel(
-            request.id,
-            workspace_id=WorkspaceId.default(),
-            context=make_auth_context(),
-        )
+        request.id,
+        workspace_id=WorkspaceId.default(),
+        context=make_auth_context(),
+    )
     assert cancelled.status is CapabilityExecutionStatus.CANCELLED
     worker.join(timeout=15)
 
@@ -397,7 +399,9 @@ def test_8_download_integrates_with_filesystem_capability(tmp_path: Path) -> Non
             workspace_id=WorkspaceId.default(),
             arguments={"operation": "read_file", "path": "shared/notes.txt"},
             source="acceptance",
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert fs_read.status is CapabilityExecutionStatus.COMPLETED
     assert fs_read.output is not None
     assert fs_read.output["content"] == "filesystem integration payload"
@@ -408,7 +412,9 @@ def test_8_download_integrates_with_filesystem_capability(tmp_path: Path) -> Non
             workspace_id=WorkspaceId.default(),
             arguments={"operation": "exists", "path": "shared/notes.txt"},
             source="acceptance",
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert fs_exists.status is CapabilityExecutionStatus.COMPLETED
     assert fs_exists.output["exists"] is True
 
@@ -451,8 +457,7 @@ def test_9_every_browser_operation_creates_audit_entry(tmp_path: Path) -> None:
     completed_ops = {
         entry.arguments.get("operation")
         for entry in audit
-        if entry.capability_id == "browser"
-        and entry.status is CapabilityExecutionStatus.COMPLETED
+        if entry.capability_id == "browser" and entry.status is CapabilityExecutionStatus.COMPLETED
     }
     expected = {
         "open_url",

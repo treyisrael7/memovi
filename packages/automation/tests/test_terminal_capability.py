@@ -140,9 +140,10 @@ def test_execute_in_working_directory(sandbox: Path) -> None:
     assert result.success is True
     assert result.output is not None
     assert Path(result.output["working_directory"]) == nested.resolve()
-    assert str(nested.resolve()) in result.output["stdout"].replace("/", "\\") or str(
-        nested.resolve()
-    ) in result.output["stdout"]
+    assert (
+        str(nested.resolve()) in result.output["stdout"].replace("/", "\\")
+        or str(nested.resolve()) in result.output["stdout"]
+    )
 
 
 def test_non_zero_exit_is_completed_capability_with_success_false(sandbox: Path) -> None:

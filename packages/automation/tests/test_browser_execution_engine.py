@@ -80,7 +80,9 @@ def test_always_allow_executes_browser_through_engine(tmp_path: Path) -> None:
             workspace_id=WorkspaceId.default(),
             arguments={"operation": "open_url", "url": url},
             source="test",
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert result.status is CapabilityExecutionStatus.COMPLETED
     assert result.output["title"] == "Hi"
     audit = engine.list_audit(workspace_id=WorkspaceId.default())
@@ -112,7 +114,9 @@ def test_ask_every_time_requires_approval_for_download(tmp_path: Path) -> None:
                 "url": url,
                 "destination": "a.bin",
             },
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
     assert pending.metadata["operation_summary"]["operation"] == "download_file"
 
@@ -134,7 +138,9 @@ def test_deny_blocks_browser(tmp_path: Path) -> None:
             capability_id="browser",
             workspace_id=WorkspaceId.default(),
             arguments={"operation": "search_web", "query": "x"},
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert result.status is CapabilityExecutionStatus.FAILED
     assert result.error is not None
     assert result.error.code == "permission_denied"
@@ -160,7 +166,9 @@ def test_audit_redacts_sensitive_url_query_params(tmp_path: Path) -> None:
             capability_id="browser",
             workspace_id=WorkspaceId.default(),
             arguments={"operation": "open_url", "url": raw_url},
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert result.status is CapabilityExecutionStatus.COMPLETED
     audit = engine.list_audit(workspace_id=WorkspaceId.default())
     completed = [e for e in audit if e.status is CapabilityExecutionStatus.COMPLETED][-1]

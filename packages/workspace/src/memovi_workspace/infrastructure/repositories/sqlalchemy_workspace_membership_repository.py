@@ -66,8 +66,7 @@ class SqlAlchemyWorkspaceMembershipRepository:
                     self._session.query(WorkspaceMembershipRecord)
                     .filter(
                         WorkspaceMembershipRecord.user_id == membership.user_id,
-                        WorkspaceMembershipRecord.workspace_id
-                        == membership.workspace_id.value,
+                        WorkspaceMembershipRecord.workspace_id == membership.workspace_id.value,
                     )
                     .one_or_none()
                 )

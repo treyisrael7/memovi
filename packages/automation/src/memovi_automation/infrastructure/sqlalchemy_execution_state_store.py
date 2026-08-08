@@ -59,13 +59,9 @@ class SqlAlchemyExecutionStateStore:
             session_id = _meta_str(result.metadata, "session_id")
             source = _meta_str(result.metadata, "source") or "api"
             started_at = (
-                result.created_at
-                if result.status is CapabilityExecutionStatus.EXECUTING
-                else None
+                result.created_at if result.status is CapabilityExecutionStatus.EXECUTING else None
             )
-            completed_at = (
-                result.updated_at if result.status.value in _TERMINAL else None
-            )
+            completed_at = result.updated_at if result.status.value in _TERMINAL else None
             failure_details = None if result.error is None else result.error.message
 
             if record is None:
@@ -228,8 +224,7 @@ class SqlAlchemyExecutionStateStore:
             records = (
                 session.query(CapabilityExecutionRecord)
                 .filter(
-                    CapabilityExecutionRecord.status
-                    == CapabilityExecutionStatus.EXECUTING.value,
+                    CapabilityExecutionRecord.status == CapabilityExecutionStatus.EXECUTING.value,
                 )
                 .all()
             )

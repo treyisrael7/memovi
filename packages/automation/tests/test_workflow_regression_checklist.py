@@ -193,7 +193,9 @@ def test_individual_capability_execution_unchanged(tmp_path: Path) -> None:
             workspace_id=WORKSPACE,
             arguments={"operation": "read_file", "path": "note.txt"},
             source="regression",
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert result.status.value == "completed"
     assert result.output["content"] == "solo"
 
@@ -362,11 +364,7 @@ def test_workflow_ids_in_structured_logs_and_request_id_propagation(
     assert records
     assert any(getattr(r, "workflow_id", None) == "download-and-verify" for r in records)
     assert any(getattr(r, "operation", None) == "workflow.execute.start" for r in records)
-    step_logs = [
-        r
-        for r in records
-        if getattr(r, "operation", None) == "workflow.step.execute"
-    ]
+    step_logs = [r for r in records if getattr(r, "operation", None) == "workflow.step.execute"]
     assert len(step_logs) == 2
     for record in step_logs:
         assert getattr(record, "request_id", None) == "req-workflow-123"

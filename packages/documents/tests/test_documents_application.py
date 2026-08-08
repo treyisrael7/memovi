@@ -82,9 +82,9 @@ class InMemoryDocumentRepository(DocumentRepository):
                 continue
             if document.connector_id != connector_id.strip().lower():
                 continue
-            if external_id_prefix is not None and not (
-                document.external_id or ""
-            ).startswith(external_id_prefix):
+            if external_id_prefix is not None and not (document.external_id or "").startswith(
+                external_id_prefix
+            ):
                 continue
             count += 1
         return count

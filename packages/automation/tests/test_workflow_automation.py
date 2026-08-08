@@ -201,9 +201,7 @@ def test_custom_workflow_registration(tmp_path: Path) -> None:
         workflow_id="custom-meta",
         name="Custom Metadata",
         description="Get metadata for a path",
-        variables=(
-            WorkflowVariable(name="target", type="path", description="Path"),
-        ),
+        variables=(WorkflowVariable(name="target", type="path", description="Path"),),
         steps=(
             WorkflowStep(
                 step_id="meta",

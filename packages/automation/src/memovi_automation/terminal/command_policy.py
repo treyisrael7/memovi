@@ -192,10 +192,7 @@ def evaluate_command_policy(
             return CommandPolicyDecision(
                 effect=CommandPolicyEffect.DENY,
                 executable=parsed.executable_basename,
-                reason=(
-                    f"Executable '{parsed.executable_basename}' is not on the "
-                    "allow list."
-                ),
+                reason=(f"Executable '{parsed.executable_basename}' is not on the " "allow list."),
                 code=COMMAND_DENIED,
                 details={
                     "executable": parsed.executable_basename,
@@ -236,10 +233,7 @@ def evaluate_command_policy(
         return CommandPolicyDecision(
             effect=CommandPolicyEffect.REQUIRE_CONFIRMATION,
             executable=parsed.executable_basename,
-            reason=(
-                f"Executable '{parsed.executable_basename}' requires explicit "
-                "approval."
-            ),
+            reason=(f"Executable '{parsed.executable_basename}' requires explicit " "approval."),
             details={
                 "executable": parsed.executable_basename,
                 "policy": "confirmation_required",

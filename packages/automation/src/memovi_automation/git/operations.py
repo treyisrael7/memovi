@@ -139,10 +139,7 @@ def status(
         cancellation=cancellation,
     )
     clean = not (
-        parsed["staged"]
-        or parsed["modified"]
-        or parsed["untracked"]
-        or parsed["conflicted"]
+        parsed["staged"] or parsed["modified"] or parsed["untracked"] or parsed["conflicted"]
     )
     return {
         "operation": "status",

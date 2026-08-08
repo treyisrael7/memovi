@@ -56,9 +56,7 @@ class InMemoryCollectionRepository:
             if membership.collection_id != collection_id
         }
         self.activities = [
-            activity
-            for activity in self.activities
-            if activity.collection_id != collection_id
+            activity for activity in self.activities if activity.collection_id != collection_id
         ]
         return True
 
@@ -80,9 +78,7 @@ class InMemoryCollectionRepository:
     ) -> CollectionMembership | None:
         if self.get_by_id(collection_id, workspace_id=workspace_id) is None:
             return None
-        return self.memberships.get(
-            self._membership_key(collection_id, member_kind, member_id)
-        )
+        return self.memberships.get(self._membership_key(collection_id, member_kind, member_id))
 
     def list_memberships(
         self,
@@ -129,9 +125,7 @@ class InMemoryCollectionRepository:
         )
         if membership is None:
             return None
-        del self.memberships[
-            self._membership_key(collection_id, member_kind, member_id)
-        ]
+        del self.memberships[self._membership_key(collection_id, member_kind, member_id)]
         return membership
 
     def count_memberships_by_kind(
@@ -142,9 +136,7 @@ class InMemoryCollectionRepository:
     ) -> dict[str, int]:
         counts: dict[str, int] = {}
         for membership in self.list_memberships(collection_id, workspace_id=workspace_id):
-            counts[membership.member_kind.value] = (
-                counts.get(membership.member_kind.value, 0) + 1
-            )
+            counts[membership.member_kind.value] = counts.get(membership.member_kind.value, 0) + 1
         return counts
 
     def member_ids_for_kinds(
@@ -175,8 +167,7 @@ class InMemoryCollectionRepository:
         items = [
             activity
             for activity in self.activities
-            if activity.collection_id == collection_id
-            and activity.workspace_id == workspace_id
+            if activity.collection_id == collection_id and activity.workspace_id == workspace_id
         ]
         items.sort(key=lambda item: item.occurred_at, reverse=True)
         return items[: max(1, limit)]

@@ -36,8 +36,7 @@ class GitCapabilityConfig:
             )
         if self.default_timeout_seconds > self.max_timeout_seconds:
             raise InvalidCapabilityError(
-                "GitCapabilityConfig.default_timeout_seconds cannot exceed "
-                "max_timeout_seconds.",
+                "GitCapabilityConfig.default_timeout_seconds cannot exceed " "max_timeout_seconds.",
             )
         if self.max_diff_bytes <= 0:
             raise InvalidCapabilityError(

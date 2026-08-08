@@ -116,8 +116,7 @@ def redact_url_for_audit(url: str) -> str:
     for key, value in parse_qsl(parts.query, keep_blank_values=True):
         lowered = key.lower()
         if lowered in _SENSITIVE_QUERY_KEYS or any(
-            fragment in lowered
-            for fragment in ("token", "secret", "password", "apikey", "api_key")
+            fragment in lowered for fragment in ("token", "secret", "password", "apikey", "api_key")
         ):
             redacted_pairs.append((key, "REDACTED"))
         else:

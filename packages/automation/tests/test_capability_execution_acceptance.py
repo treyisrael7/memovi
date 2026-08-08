@@ -117,7 +117,9 @@ def test_2_readonly_mock_capability_returns_structured_success() -> None:
             workspace_id=WorkspaceId.default(),
             arguments={"query": "memovi"},
             source="test",
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
 
     assert result.status is CapabilityExecutionStatus.COMPLETED
     assert result.error is None
@@ -184,7 +186,9 @@ def test_4_ask_every_time_pauses_until_approval() -> None:
             capability_id="mock.readonly",
             workspace_id=WorkspaceId.default(),
             arguments={"query": "awaiting"},
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
     assert pending.output is None
 
@@ -209,7 +213,9 @@ def test_5_deny_blocks_with_structured_error() -> None:
             capability_id="mock.readonly",
             workspace_id=WorkspaceId.default(),
             arguments={"query": "blocked"},
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
 
     assert result.status is CapabilityExecutionStatus.FAILED
     assert result.output is None
@@ -228,7 +234,9 @@ def test_6_successful_execution_creates_audit_entry() -> None:
             workspace_id=WorkspaceId.default(),
             arguments={"query": "audit-me"},
             source="verification",
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert result.status is CapabilityExecutionStatus.COMPLETED
 
     audit = engine.list_audit(workspace_id=WorkspaceId.default())

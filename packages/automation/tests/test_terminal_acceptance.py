@@ -83,7 +83,9 @@ def _submit(
             arguments=arguments,
             policy=policy,
             source=source,
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
 
 
 def _pwd_command() -> str:
@@ -109,7 +111,7 @@ def _sleep_command(seconds: float) -> str:
 
 def _stderr_command() -> str:
     if sys.platform == "win32":
-        return "cmd /c \"echo out-ok & echo err-ok 1>&2\""
+        return 'cmd /c "echo out-ok & echo err-ok 1>&2"'
     return "sh -c 'echo out-ok; echo err-ok 1>&2'"
 
 
@@ -120,9 +122,10 @@ def test_1_pwd_returns_working_directory(sandbox: Path) -> None:
     assert result.status is CapabilityExecutionStatus.COMPLETED
     assert result.output is not None
     assert Path(result.output["working_directory"]) == sandbox.resolve()
-    assert str(sandbox.resolve()) in result.output["stdout"].replace("/", "\\") or str(
-        sandbox.resolve()
-    ) in result.output["stdout"]
+    assert (
+        str(sandbox.resolve()) in result.output["stdout"].replace("/", "\\")
+        or str(sandbox.resolve()) in result.output["stdout"]
+    )
 
 
 def test_2_list_directory_returns_contents(sandbox: Path) -> None:
@@ -179,10 +182,10 @@ def test_4_long_running_command_cancellation(sandbox: Path) -> None:
             continue
         if current.status is CapabilityExecutionStatus.EXECUTING:
             cancelled = engine.cancel(
-            request.id,
-            workspace_id=WorkspaceId.default(),
-            context=make_auth_context(),
-        )
+                request.id,
+                workspace_id=WorkspaceId.default(),
+                context=make_auth_context(),
+            )
             break
         if current.status in {
             CapabilityExecutionStatus.COMPLETED,
@@ -222,9 +225,10 @@ def test_5_specified_working_directory(sandbox: Path) -> None:
     assert result.status is CapabilityExecutionStatus.COMPLETED
     assert result.output is not None
     assert Path(result.output["working_directory"]) == nested.resolve()
-    assert str(nested.resolve()) in result.output["stdout"].replace("/", "\\") or str(
-        nested.resolve()
-    ) in result.output["stdout"]
+    assert (
+        str(nested.resolve()) in result.output["stdout"].replace("/", "\\")
+        or str(nested.resolve()) in result.output["stdout"]
+    )
 
 
 def test_6_stdout_stderr_exit_code_duration(sandbox: Path) -> None:

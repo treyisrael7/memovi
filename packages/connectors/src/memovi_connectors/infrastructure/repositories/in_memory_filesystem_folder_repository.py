@@ -23,11 +23,7 @@ class InMemoryFilesystemFolderRepository:
         return folder
 
     def list_by_workspace(self, *, workspace_id: WorkspaceId) -> list[FilesystemFolderConnection]:
-        return [
-            folder
-            for folder in self.folders.values()
-            if folder.workspace_id == workspace_id
-        ]
+        return [folder for folder in self.folders.values() if folder.workspace_id == workspace_id]
 
     def add(self, folder: FilesystemFolderConnection) -> None:
         self.folders[folder.id] = folder

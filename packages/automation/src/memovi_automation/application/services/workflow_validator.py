@@ -75,8 +75,7 @@ class WorkflowValidator:
                     dep_step = parts[1]
                     if dep_step not in known_steps:
                         raise InvalidWorkflowError(
-                            f"Step '{step.step_id}' references unavailable step "
-                            f"'{dep_step}'.",
+                            f"Step '{step.step_id}' references unavailable step " f"'{dep_step}'.",
                             code="invalid_reference",
                             details={
                                 "step_id": step.step_id,
@@ -86,8 +85,7 @@ class WorkflowValidator:
                         )
                 elif ref not in declared_vars:
                     raise InvalidWorkflowError(
-                        f"Step '{step.step_id}' references undeclared variable "
-                        f"'{ref}'.",
+                        f"Step '{step.step_id}' references undeclared variable " f"'{ref}'.",
                         code="undeclared_variable",
                         details={"step_id": step.step_id, "variable": ref},
                     )

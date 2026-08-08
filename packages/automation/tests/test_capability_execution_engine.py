@@ -48,7 +48,9 @@ def test_always_allow_executes_filesystem_capability(tmp_path: Path) -> None:
                 "path": str(target),
             },
             source="test",
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
 
     assert result.status is CapabilityExecutionStatus.COMPLETED
     assert result.output is not None
@@ -67,7 +69,9 @@ def test_ask_every_time_requires_approval(tmp_path: Path) -> None:
             capability_id="filesystem",
             workspace_id=WorkspaceId.default(),
             arguments={"operation": "read_file", "path": str(target)},
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert pending.status is CapabilityExecutionStatus.PENDING_APPROVAL
 
     completed = engine.approve(
@@ -85,7 +89,9 @@ def test_deny_policy_blocks_execution(tmp_path: Path) -> None:
             capability_id="filesystem",
             workspace_id=WorkspaceId.default(),
             arguments={"operation": "exists", "path": str(tmp_path)},
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     assert result.status is CapabilityExecutionStatus.FAILED
     assert result.error is not None
     assert result.error.code == "permission_denied"
@@ -118,7 +124,9 @@ def test_cancel_pending_execution(tmp_path: Path) -> None:
             capability_id="filesystem",
             workspace_id=WorkspaceId.default(),
             arguments={"operation": "exists", "path": str(tmp_path)},
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     cancelled = engine.cancel(
         pending.execution_id,
         workspace_id=WorkspaceId.default(),
@@ -138,6 +146,8 @@ def test_audit_redacts_sensitive_arguments(tmp_path: Path) -> None:
                 "path": str(tmp_path),
                 "api_token": "super-secret",
             },
-        ), make_auth_context())
+        ),
+        make_auth_context(),
+    )
     entries = engine.list_audit(workspace_id=WorkspaceId.default())
     assert any(entry.arguments.get("api_token") == "[REDACTED]" for entry in entries)

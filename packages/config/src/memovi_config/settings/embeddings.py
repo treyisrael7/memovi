@@ -109,11 +109,14 @@ class EmbeddingsSettings:
 
     @classmethod
     def from_environ(cls, environ: Environ) -> EmbeddingsSettings:
-        provider = get_str(
-            environ,
-            "SEARCH_EMBEDDING_PROVIDER",
-            default=EmbeddingProviderKind.FAKE.value,
-        ) or EmbeddingProviderKind.FAKE.value
+        provider = (
+            get_str(
+                environ,
+                "SEARCH_EMBEDDING_PROVIDER",
+                default=EmbeddingProviderKind.FAKE.value,
+            )
+            or EmbeddingProviderKind.FAKE.value
+        )
         model = get_str(environ, "SEARCH_EMBEDDING_MODEL", default=None)
         dimensions = get_int(
             environ,

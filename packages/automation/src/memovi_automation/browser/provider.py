@@ -133,9 +133,8 @@ class HttpBrowserProvider:
     ) -> ProviderSearchResults:
         _check_cancelled(cancellation)
         # DuckDuckGo Instant Answer API — no API key required.
-        endpoint = (
-            "https://api.duckduckgo.com/?"
-            + urlencode({"q": query, "format": "json", "no_redirect": "1", "no_html": "1"})
+        endpoint = "https://api.duckduckgo.com/?" + urlencode(
+            {"q": query, "format": "json", "no_redirect": "1", "no_html": "1"}
         )
         result = self._request(
             endpoint,

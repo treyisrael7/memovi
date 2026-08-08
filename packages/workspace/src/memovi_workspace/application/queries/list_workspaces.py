@@ -25,8 +25,7 @@ class ListWorkspaces:
     def execute(self, query: ListWorkspacesQuery | None = None) -> list[WorkspaceDto]:
         if query is None:
             return [
-                WorkspaceDto.from_workspace(workspace)
-                for workspace in self._workspaces.list_all()
+                WorkspaceDto.from_workspace(workspace) for workspace in self._workspaces.list_all()
             ]
         memberships = self._memberships.list_for_user(query.user_id)
         results: list[WorkspaceDto] = []

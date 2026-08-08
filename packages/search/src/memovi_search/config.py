@@ -17,9 +17,9 @@ from memovi_config.settings.embeddings import (
 from memovi_search.application.exceptions import InvalidEmbeddingConfigError
 from memovi_search.infrastructure.persistence.vector import EMBEDDING_VECTOR_DIMENSIONS
 
-assert CONFIG_EMBEDDING_DIMENSIONS == EMBEDDING_VECTOR_DIMENSIONS, (
-    "memovi_config embedding dimensions must match pgvector schema constant"
-)
+assert (
+    CONFIG_EMBEDDING_DIMENSIONS == EMBEDDING_VECTOR_DIMENSIONS
+), "memovi_config embedding dimensions must match pgvector schema constant"
 
 
 @dataclass(frozen=True, slots=True)

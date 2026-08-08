@@ -26,7 +26,7 @@ def _git_available() -> bool:
             text=True,
         )
         return True
-    except (OSError, subprocess.CalledProcessError):
+    except OSError, subprocess.CalledProcessError:
         return False
 
 
@@ -80,9 +80,7 @@ def _invoke(invoker: CapabilityInvoker, *, arguments: dict, granted=None):
     return invoker.invoke(
         CapabilityRequest.create(capability_id=CAPABILITY_ID, arguments=arguments),
         _context(
-            granted=frozenset({GIT_READ, GIT_WRITE, GIT_NETWORK})
-            if granted is None
-            else granted
+            granted=frozenset({GIT_READ, GIT_WRITE, GIT_NETWORK}) if granted is None else granted
         ),
     )
 
