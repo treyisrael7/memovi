@@ -44,7 +44,7 @@ class WorkspaceMembership:
     def is_owner(self) -> bool:
         return self.role == OWNER_ROLE
 
-    def with_role(self, role: str) -> "WorkspaceMembership":
+    def with_role(self, role: str) -> WorkspaceMembership:
         return WorkspaceMembership(
             id=self.id,
             workspace_id=self.workspace_id,

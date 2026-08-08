@@ -7,7 +7,6 @@ from api.document_processing import configure_document_processing
 from api.documents_session import build_documents_database_session
 from api.events import InProcessEventDispatcher
 from api.search_integration import build_retrieve_knowledge
-from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from auth.api.dependencies import get_database_session as get_auth_database_session
 from auth.infrastructure.persistence import Base as AuthBase
 from documents.api.dependencies import get_database_session as get_documents_database_session
@@ -23,6 +22,7 @@ from memovi_search.application.queries import RetrieveKnowledgeQuery
 from memovi_search.application.services import RetrievalMode
 from memovi_search.infrastructure.persistence.models import Base as SearchBase
 from memovi_search.infrastructure.persistence.models import SearchDocumentRecord
+from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from memovi_shared import WorkspaceId
 from postgres_support import ensure_pgvector_extension, postgres_available, postgres_database_url
 from sqlalchemy import Engine, create_engine, select

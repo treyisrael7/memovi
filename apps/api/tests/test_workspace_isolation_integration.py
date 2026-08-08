@@ -12,7 +12,6 @@ from api.database import database_session as api_database_session
 from api.document_processing import configure_document_processing
 from api.documents_session import build_documents_database_session
 from api.search_integration import build_retrieve_knowledge
-from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from auth.api.dependencies import get_database_session as get_auth_database_session
 from auth.infrastructure.persistence import Base as AuthBase
 from documents.api.dependencies import get_database_session as get_documents_database_session
@@ -36,6 +35,7 @@ from memovi_search.application.queries import RetrieveKnowledgeQuery
 from memovi_search.application.services import RetrievalMode
 from memovi_search.infrastructure.persistence.models import Base as SearchBase
 from memovi_search.infrastructure.persistence.models import SearchDocumentRecord
+from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from memovi_shared import DEFAULT_WORKSPACE_ID, WorkspaceId
 from memovi_workspace.api.dependencies import get_database_session as get_workspace_database_session
 from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase

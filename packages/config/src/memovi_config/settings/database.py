@@ -111,10 +111,7 @@ def redact_database_url(url: str) -> str:
     hostname = parsed.hostname or ""
     port = f":{parsed.port}" if parsed.port else ""
     username = parsed.username or ""
-    if username:
-        netloc = f"{username}:***@{hostname}{port}"
-    else:
-        netloc = f"***@{hostname}{port}"
+    netloc = f"{username}:***@{hostname}{port}" if username else f"***@{hostname}{port}"
     return urlunparse(
         (parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment)
     )

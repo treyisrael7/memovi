@@ -108,7 +108,7 @@ class InMemoryWorkflowHistoryStore:
                     step_results=result.step_results,
                     duration=result.duration,
                     outputs=dict(result.outputs),
-                    errors=tuple([*result.errors, reason]),
+                    errors=(*result.errors, reason),
                     audit_references=result.audit_references,
                     started_at=result.started_at,
                     finished_at=now,

@@ -12,7 +12,6 @@ import pytest
 from api.database import database_session as api_database_session
 from api.events import InProcessEventDispatcher
 from api.health import _check_embedding_provider
-from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from api.middleware import CORRELATION_ID_HEADER, REQUEST_ID_HEADER
 from api.observability_bridge import register_observability_event_bridge
 from api.workspace_context import (
@@ -36,6 +35,7 @@ from memovi_observability import (
     set_metrics_recorder,
 )
 from memovi_search.domain.events import SearchIndexed
+from memovi_search.infrastructure.providers import FakeEmbeddingProvider
 from memovi_shared import DEFAULT_WORKSPACE_ID, WorkspaceId
 from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
 from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -247,10 +248,8 @@ class IngestConnectorDocument:
         version = self._documents.get_latest_version(existing.id)
         self._documents.delete(DocumentId(existing.id.value))
         if version is not None:
-            try:
+            with contextlib.suppress(Exception):
                 self._object_storage.delete_object(version.storage_key)
-            except Exception:
-                pass
 
         return IngestConnectorDocumentResult(
             document_id=existing.id.value,

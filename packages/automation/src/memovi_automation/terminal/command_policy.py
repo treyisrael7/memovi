@@ -11,7 +11,7 @@ import shlex
 import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 from memovi_automation.domain.exceptions import CapabilityExecutionError
@@ -74,7 +74,7 @@ _DEFAULT_DENIED_ARGUMENT_PATTERNS: tuple[str, ...] = (
 _SHELL_METACHAR_RE = re.compile(r"[|&;<>`$(){}\n]|\s&&\s|\s\|\|\s")
 
 
-class CommandPolicyEffect(str, Enum):
+class CommandPolicyEffect(StrEnum):
     ALLOW = "allow"
     DENY = "deny"
     REQUIRE_CONFIRMATION = "require_confirmation"

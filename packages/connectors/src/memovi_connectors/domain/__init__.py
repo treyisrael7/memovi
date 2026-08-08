@@ -4,8 +4,8 @@ from memovi_connectors.domain.events import (
     ImportCompleted,
 )
 from memovi_connectors.domain.exceptions import (
-    ConnectorSyncError,
     ConnectorsDomainError,
+    ConnectorSyncError,
     InvalidConnectorError,
     UnknownConnectorError,
 )

@@ -21,12 +21,17 @@ from memovi_automation.api.workflow_router import router as workflows_router
 from memovi_automation.domain.value_objects.authenticated_execution_context import (
     AuthenticatedExecutionContext,
 )
-from memovi_connectors.api.dependencies import get_active_workspace_id as get_connectors_workspace_id
-from memovi_connectors.api.dependencies import get_database_session as get_connectors_database_session
+from memovi_connectors.api.dependencies import (
+    get_active_workspace_id as get_connectors_workspace_id,
+)
+from memovi_connectors.api.dependencies import (
+    get_database_session as get_connectors_database_session,
+)
 from memovi_connectors.api.dependencies import (
     get_filesystem_folder_service as get_connectors_filesystem_folder_service,
 )
 from memovi_connectors.api.router import router as connectors_router
+from memovi_connectors.application.services.filesystem_folder_service import FilesystemFolderService
 from memovi_intelligence.api.dependencies import (
     get_active_workspace_id as get_intelligence_workspace_id,
 )
@@ -56,7 +61,6 @@ from memovi_workspace.api.dependencies import get_authenticated_user_id
 from memovi_workspace.api.dependencies import get_database_session as get_workspace_database_session
 from memovi_workspace.api.dependencies import get_user_directory as get_workspace_user_directory
 from memovi_workspace.api.router import router as workspace_router
-from memovi_connectors.application.services.filesystem_folder_service import FilesystemFolderService
 from sqlalchemy.orm import Session as OrmSession
 
 from api.auth_context import (

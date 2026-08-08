@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 
 from memovi_config.settings.models import ModelsSettings
+
 from memovi_intelligence.config import IntelligenceConfig
 from memovi_intelligence.domain.exceptions import (
     InvalidIntelligenceConfigError,

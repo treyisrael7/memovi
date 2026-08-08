@@ -37,8 +37,12 @@ class AuthCredentialRef:
             raise InvalidConnectorError(
                 f"Auth credential method must be one of: {', '.join(sorted(_AUTH_METHODS))}.",
             )
-        secret_env = self.secret_env.strip() if isinstance(self.secret_env, str) else self.secret_env
-        secret_ref = self.secret_ref.strip() if isinstance(self.secret_ref, str) else self.secret_ref
+        secret_env = (
+            self.secret_env.strip() if isinstance(self.secret_env, str) else self.secret_env
+        )
+        secret_ref = (
+            self.secret_ref.strip() if isinstance(self.secret_ref, str) else self.secret_ref
+        )
         if isinstance(secret_env, str) and not secret_env:
             raise InvalidConnectorError("Auth credential secret_env cannot be blank when set.")
         if isinstance(secret_ref, str) and not secret_ref:

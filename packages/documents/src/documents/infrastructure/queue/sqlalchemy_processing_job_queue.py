@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -80,13 +81,15 @@ class SqlAlchemyProcessingJobQueue:
             record.workspace_id = workspace_id
             record.available_at = now
             record.claimed_at = None
-            if record.status != ProcessingStatus.PENDING.value:
-                # Retries reset via domain before enqueue; tolerate pending-only.
-                if record.status in _INTERRUPTED_STATUSES:
-                    record.status = ProcessingStatus.PENDING.value
-                    record.started_at = None
-                    record.completed_at = None
-                    record.failure_reason = None
+            # Retries reset via domain before enqueue; tolerate pending-only.
+            if (
+                record.status != ProcessingStatus.PENDING.value
+                and record.status in _INTERRUPTED_STATUSES
+            ):
+                record.status = ProcessingStatus.PENDING.value
+                record.started_at = None
+                record.completed_at = None
+                record.failure_reason = None
             record.updated_at = now
             session.commit()
         except Exception:
@@ -109,13 +112,11 @@ class SqlAlchemyProcessingJobQueue:
                 return claimed
 
             self._wakeup.clear()
-            try:
+            with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(
                     self._wakeup.wait(),
                     timeout=self._poll_interval_seconds,
                 )
-            except TimeoutError:
-                pass
 
         return None
 

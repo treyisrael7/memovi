@@ -43,8 +43,9 @@ class FilesystemFolderConnection:
         if not display_name:
             raise InvalidConnectorError("Filesystem folder display_name is required.")
         if sync_status not in _SYNC_STATUSES:
+            allowed = ", ".join(sorted(_SYNC_STATUSES))
             raise InvalidConnectorError(
-                f"Filesystem folder sync_status must be one of: {', '.join(sorted(_SYNC_STATUSES))}.",
+                f"Filesystem folder sync_status must be one of: {allowed}.",
             )
         if self.imported_document_count < 0:
             raise InvalidConnectorError("imported_document_count must be >= 0.")
@@ -79,7 +80,8 @@ class FilesystemFolderConnection:
     ) -> FilesystemFolderConnection:
         timestamp = now or datetime.now(tz=UTC)
         path = root_path.strip()
-        name = (display_name or path.rsplit("\\", maxsplit=1)[-1].rsplit("/", maxsplit=1)[-1]).strip()
+        fallback_name = path.rsplit("\\", maxsplit=1)[-1].rsplit("/", maxsplit=1)[-1]
+        name = (display_name or fallback_name).strip()
         return cls(
             id=str(uuid4()),
             workspace_id=workspace_id,

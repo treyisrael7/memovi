@@ -22,6 +22,7 @@ from memovi_automation.domain.value_objects.capability_execution_result import (
 from memovi_automation.domain.value_objects.capability_execution_status import (
     CapabilityExecutionStatus,
 )
+from memovi_automation.domain.value_objects.permission_mode import PermissionMode
 from memovi_automation.infrastructure.execution_state_codec import (
     deserialize_auth_context,
     deserialize_error,
@@ -32,7 +33,6 @@ from memovi_automation.infrastructure.execution_state_codec import (
     serialize_pending_request,
 )
 from memovi_automation.infrastructure.persistence.models import CapabilityExecutionRecord
-from memovi_automation.domain.value_objects.permission_mode import PermissionMode
 
 SessionFactory = Callable[[], OrmSession]
 
@@ -58,7 +58,11 @@ class SqlAlchemyExecutionStateStore:
             user_id = _meta_str(result.metadata, "user_id")
             session_id = _meta_str(result.metadata, "session_id")
             source = _meta_str(result.metadata, "source") or "api"
-            started_at = result.created_at if result.status is CapabilityExecutionStatus.EXECUTING else None
+            started_at = (
+                result.created_at
+                if result.status is CapabilityExecutionStatus.EXECUTING
+                else None
+            )
             completed_at = (
                 result.updated_at if result.status.value in _TERMINAL else None
             )
@@ -90,7 +94,10 @@ class SqlAlchemyExecutionStateStore:
                 )
                 session.add(record)
             else:
-                if record.started_at is None and result.status is CapabilityExecutionStatus.EXECUTING:
+                if (
+                    record.started_at is None
+                    and result.status is CapabilityExecutionStatus.EXECUTING
+                ):
                     record.started_at = result.updated_at
                 record.workspace_id = result.workspace_id
                 record.user_id = user_id or record.user_id

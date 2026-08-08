@@ -31,8 +31,6 @@ from memovi_automation.terminal.errors import (
 __all__ = [
     "CAPABILITY_ID",
     "COMMAND_DENIED",
-    "CommandPolicyDecision",
-    "CommandPolicyEffect",
     "EMPTY_COMMAND",
     "EXECUTE_OPERATION",
     "INVALID_ARGUMENTS",
@@ -44,6 +42,8 @@ __all__ = [
     "PROCESS_FAILED",
     "TIMEOUT",
     "UNSUPPORTED_OPERATION",
+    "CommandPolicyDecision",
+    "CommandPolicyEffect",
     "TerminalCapability",
     "TerminalCapabilityConfig",
     "evaluate_command_policy",

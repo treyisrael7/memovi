@@ -1,4 +1,4 @@
-from typing import Annotated, cast
+from typing import cast
 
 from fastapi import Request
 from memovi_shared.fastapi import get_default_active_workspace_id

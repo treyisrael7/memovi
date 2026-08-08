@@ -207,7 +207,7 @@ class SqlAlchemyWorkflowHistoryStore:
                 if record.full_result is None:
                     record.status = "failed"
                     record.completed_at = now
-                    record.error_details = list(record.error_details or []) + [reason]
+                    record.error_details = [*list(record.error_details or []), reason]
                     continue
                 result = deserialize_execution_result(record.full_result)
                 updated = WorkflowExecutionResult(
@@ -221,7 +221,7 @@ class SqlAlchemyWorkflowHistoryStore:
                     step_results=result.step_results,
                     duration=result.duration,
                     outputs=dict(result.outputs),
-                    errors=tuple([*result.errors, reason]),
+                    errors=(*result.errors, reason),
                     audit_references=result.audit_references,
                     started_at=result.started_at,
                     finished_at=now,

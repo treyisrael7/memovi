@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from memovi_automation import (
+    TERMINAL_EXECUTE,
     CapabilityExecutionEngine,
     CapabilityExecutionRequest,
     CapabilityExecutionStatus,
@@ -15,7 +16,6 @@ from memovi_automation import (
     InMemoryExecutionAuditStore,
     InMemoryPermissionPolicyStore,
     PermissionMode,
-    TERMINAL_EXECUTE,
     TerminalCapabilityConfig,
     register_terminal_capability,
 )

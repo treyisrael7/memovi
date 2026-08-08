@@ -6,9 +6,12 @@ from dataclasses import dataclass
 from memovi_config.exceptions import ConfigurationError
 from memovi_config.settings.models import (
     DEFAULT_MODELS as CONFIG_DEFAULT_MODELS,
+)
+from memovi_config.settings.models import (
     ModelsSettings,
     ReasoningProviderKind,
 )
+
 from memovi_intelligence.domain.exceptions import InvalidIntelligenceConfigError
 
 DEFAULT_MODELS = CONFIG_DEFAULT_MODELS

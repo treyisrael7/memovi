@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from documents.application.commands.ingest_connector_document import IngestConnectorDocument
 from documents.api.dependencies import get_object_storage
+from documents.application.commands.ingest_connector_document import IngestConnectorDocument
 from documents.infrastructure.repositories import (
     SqlAlchemyDocumentRepository,
     SqlAlchemyProcessingJobRepository,

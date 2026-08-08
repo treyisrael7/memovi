@@ -65,10 +65,7 @@ class EmbeddingsSettings:
         if self.dimensions < 1:
             raise ConfigurationError("SEARCH_EMBEDDING_DIMENSIONS must be at least 1.")
 
-        if self.model is None:
-            resolved_model = DEFAULT_MODELS[kind]
-        else:
-            resolved_model = self.model.strip()
+        resolved_model = DEFAULT_MODELS[kind] if self.model is None else self.model.strip()
         if not resolved_model:
             raise ConfigurationError("SEARCH_EMBEDDING_MODEL cannot be blank.")
         object.__setattr__(self, "model", resolved_model)

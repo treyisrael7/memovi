@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import tempfile
 from pathlib import Path
@@ -149,11 +150,9 @@ def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
         authorization=authorization,
         default_permission_mode=PermissionMode.ASK_EVERY_TIME,
     )
-    try:
+    # Local/unit app construction may run before migrations/tables exist.
+    with contextlib.suppress(Exception):
         engine.recover_interrupted_executions()
-    except Exception:
-        # Local/unit app construction may run before migrations/tables exist.
-        pass
     planner = CapabilityPlanner(registry=registry)
     plan_execution = PlanExecutionService(engine=engine, planner=planner)
     try:
@@ -173,11 +172,9 @@ def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
         history=workflow_history_store,  # type: ignore[arg-type]
         validator=WorkflowValidator(registry=registry),
     )
-    try:
+    # Local/unit app construction may run before migrations/tables exist.
+    with contextlib.suppress(Exception):
         workflow_engine.recover_interrupted_workflows()
-    except Exception:
-        # Local/unit app construction may run before migrations/tables exist.
-        pass
 
     app.state.capability_registry = registry
     app.state.capability_invoker = invoker

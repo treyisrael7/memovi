@@ -4,6 +4,7 @@ import os
 
 from memovi_config.env import get_str
 from memovi_config.settings.models import ModelsSettings
+
 from memovi_intelligence.application.ports import ReasoningProvider
 from memovi_intelligence.application.services.model_gateway import ModelGateway
 from memovi_intelligence.config import DEFAULT_MODELS, IntelligenceConfig, ReasoningProviderKind

@@ -1,9 +1,9 @@
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from types import MappingProxyType
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
-import re
 
 from memovi_automation.domain.exceptions import InvalidCapabilityError
 from memovi_automation.domain.value_objects.capability_execution_status import (

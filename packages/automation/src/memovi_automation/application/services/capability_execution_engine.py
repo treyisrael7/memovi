@@ -6,6 +6,7 @@ from threading import Lock
 from time import perf_counter
 from uuid import uuid4
 
+from memovi_observability import get_metrics_recorder
 from memovi_shared import WorkspaceId
 
 from memovi_automation.application.ports_authorization import AuthorizationService
@@ -50,7 +51,6 @@ from memovi_automation.domain.value_objects.execution_audit_entry import (
     redact_arguments,
 )
 from memovi_automation.domain.value_objects.permission_mode import PermissionMode
-from memovi_observability import get_metrics_recorder
 
 
 class _AllowAllMembership:

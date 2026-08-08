@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from memovi_config.env import Environ, get_secret, get_str, require_http_url
 from memovi_config.exceptions import ConfigurationError
@@ -25,8 +25,12 @@ class StorageSettings:
     """
 
     endpoint_url: str = DEFAULT_MINIO_ENDPOINT
-    access_key: SecretValue = SecretValue(DEFAULT_MINIO_ACCESS_KEY)
-    secret_key: SecretValue = SecretValue(DEFAULT_MINIO_SECRET_KEY)
+    access_key: SecretValue = field(
+        default_factory=lambda: SecretValue(DEFAULT_MINIO_ACCESS_KEY),
+    )
+    secret_key: SecretValue = field(
+        default_factory=lambda: SecretValue(DEFAULT_MINIO_SECRET_KEY),
+    )
     bucket_name: str = DEFAULT_MINIO_BUCKET
     region_name: str = DEFAULT_MINIO_REGION
 

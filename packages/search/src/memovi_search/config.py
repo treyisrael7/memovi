@@ -7,10 +7,13 @@ from memovi_config.exceptions import ConfigurationError
 from memovi_config.settings.embeddings import (
     DEFAULT_MODELS,
     DEFAULT_OLLAMA_ENDPOINT,
-    EMBEDDING_VECTOR_DIMENSIONS as CONFIG_EMBEDDING_DIMENSIONS,
     EmbeddingProviderKind,
     EmbeddingsSettings,
 )
+from memovi_config.settings.embeddings import (
+    EMBEDDING_VECTOR_DIMENSIONS as CONFIG_EMBEDDING_DIMENSIONS,
+)
+
 from memovi_search.application.exceptions import InvalidEmbeddingConfigError
 from memovi_search.infrastructure.persistence.vector import EMBEDDING_VECTOR_DIMENSIONS
 
@@ -57,10 +60,7 @@ class SearchEmbeddingConfig:
         if self.dimensions < 1:
             raise InvalidEmbeddingConfigError("dimensions must be at least 1.")
 
-        if self.model is None:
-            resolved_model = DEFAULT_MODELS[kind]
-        else:
-            resolved_model = self.model.strip()
+        resolved_model = DEFAULT_MODELS[kind] if self.model is None else self.model.strip()
         if not resolved_model:
             raise InvalidEmbeddingConfigError("SEARCH_EMBEDDING_MODEL cannot be blank.")
         object.__setattr__(self, "model", resolved_model)

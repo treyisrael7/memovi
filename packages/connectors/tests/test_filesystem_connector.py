@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from memovi_connectors import (
     CONNECTOR_FILESYSTEM,
+    AddFilesystemFolderCommand,
     ConnectorExecutionContext,
     ConnectorRegistry,
     ConnectorScheduler,
@@ -15,7 +16,6 @@ from memovi_connectors import (
     FilesystemFolderService,
     InMemoryDocumentImportPort,
     InMemoryFilesystemFolderRepository,
-    AddFilesystemFolderCommand,
     SyncFilesystemFolderCommand,
     register_filesystem_connector,
 )

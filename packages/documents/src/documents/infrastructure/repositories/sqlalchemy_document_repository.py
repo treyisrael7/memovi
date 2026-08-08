@@ -1,14 +1,4 @@
-from datetime import UTC, datetime
-
-from memovi_observability import timed_operation
-from memovi_shared import WorkspaceId
-from sqlalchemy.orm import Session as OrmSession
-
-from documents.domain.entities import Document, DocumentVersion
-from documents.domain.value_objects import DocumentId, DocumentName, MimeType, SourceType
-from documents.infrastructure.persistence.models import DocumentRecord, DocumentVersionRecord
-
-_REPO = "SqlAlchemyDocumentRepository"
+from datetime import UTC, datetimefrom memovi_observability import timed_operationfrom memovi_shared import WorkspaceIdfrom sqlalchemy.orm import Session as OrmSessionfrom documents.domain.entities import Document, DocumentVersionfrom documents.domain.value_objects import DocumentId, DocumentName, MimeType, SourceTypefrom documents.infrastructure.persistence.models import DocumentRecord, DocumentVersionRecord_REPO = "SqlAlchemyDocumentRepository"
 
 
 class SqlAlchemyDocumentRepository:
