@@ -193,14 +193,22 @@ def update_tag(
     service: Annotated[TagService, Depends(get_tag_service)],
     workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
 ) -> TagResponse:
-    update_kwargs: dict[str, object] = {
-        "name": body.name,
-        "description": body.description,
-    }
-    if "color" in body.model_fields_set:
-        update_kwargs["color"] = body.color
     try:
-        updated = service.update(tag_id, workspace_id=workspace_id, **update_kwargs)
+        if "color" in body.model_fields_set:
+            updated = service.update(
+                tag_id,
+                workspace_id=workspace_id,
+                name=body.name,
+                description=body.description,
+                color=body.color,
+            )
+        else:
+            updated = service.update(
+                tag_id,
+                workspace_id=workspace_id,
+                name=body.name,
+                description=body.description,
+            )
     except TagNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except DuplicateTagNameError as exc:

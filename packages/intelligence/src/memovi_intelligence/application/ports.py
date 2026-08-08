@@ -1,4 +1,3 @@
-from collections.abc import Iterator
 from typing import Protocol
 
 from memovi_shared import WorkspaceId
@@ -29,14 +28,6 @@ class ReasoningProvider(Protocol):
     """Produces reasoning output from a provider-agnostic prompt."""
 
     def reason(self, prompt: Prompt, *, model: str | None = None) -> ReasoningResult:
-        raise NotImplementedError
-
-
-class StreamingReasoningProvider(Protocol):
-    """Optional streaming extension for providers that can emit token deltas."""
-
-    def reason_stream(self, prompt: Prompt, *, model: str | None = None) -> Iterator[str]:
-        """Yield content deltas for a prompt."""
         raise NotImplementedError
 
 
@@ -97,7 +88,11 @@ class ConversationRepository(Protocol):
 
 
 class Tool(Protocol):
-    """Executable capability that can be discovered and invoked by Intelligence."""
+    """Frozen: future LLM tool-calling port (not wired into conversation Reason).
+
+    Host actions use the Automation Capability Framework. Do not expand this
+    surface until product tool-calling is an intentional post-V1 feature.
+    """
 
     def name(self) -> str:
         raise NotImplementedError

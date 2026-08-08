@@ -8,7 +8,7 @@ from memovi_intelligence.domain.exceptions import InvalidToolError
 
 @dataclass(frozen=True, slots=True)
 class ToolCall:
-    """Immutable request to execute a named tool with arguments."""
+    """Frozen: immutable request for future LLM tool-calling (not product-supported)."""
 
     name: str
     arguments: Mapping[str, object]

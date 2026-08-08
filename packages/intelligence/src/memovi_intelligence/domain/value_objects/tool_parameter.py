@@ -16,7 +16,7 @@ _SUPPORTED_TYPES = frozenset(
 
 @dataclass(frozen=True, slots=True)
 class ToolParameter:
-    """Immutable description of a single tool argument."""
+    """Frozen: immutable tool argument schema for future LLM tool-calling."""
 
     name: str
     type: str

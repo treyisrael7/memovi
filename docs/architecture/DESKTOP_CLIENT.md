@@ -411,6 +411,5 @@ pnpm --filter @memovi/desktop tauri:dev
 * [`repository-architecture.md`](repository-architecture.md) — monorepo layout
 * [`intelligence-architecture.md`](intelligence-architecture.md) — reasoning and conversations
 * [`KNOWLEDGE_EXPLORER.md`](KNOWLEDGE_EXPLORER.md) — knowledge inspection surface
-* [`MODEL_PROVIDER_FRAMEWORK.md`](MODEL_PROVIDER_FRAMEWORK.md) — model abstractions
 * [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) — future desktop capabilities
 * [`AUTHORIZATION.md`](AUTHORIZATION.md) — server session and authorization model

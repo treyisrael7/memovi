@@ -7,7 +7,7 @@ from memovi_intelligence.domain.exceptions import InvalidToolError
 
 @dataclass(frozen=True, slots=True)
 class ToolResult:
-    """Immutable outcome of a single tool execution."""
+    """Frozen: immutable tool outcome for future LLM tool-calling (not product-supported)."""
 
     call_id: str
     name: str

@@ -1,7 +1,8 @@
-from datetime import timedelta
+import os
 from typing import Annotated
 
 from fastapi import Cookie, Depends, HTTPException, Request, status
+from memovi_config.settings.auth import AuthSettings
 from sqlalchemy.orm import Session as OrmSession
 
 from auth.application.commands import LoginUser, LogoutUser, RegisterUser
@@ -11,8 +12,9 @@ from auth.application.queries import GetCurrentUser, ResolveAuthenticatedPrincip
 from auth.infrastructure.repositories import SqlAlchemySessionRepository, SqlAlchemyUserRepository
 from auth.infrastructure.security import Argon2idPasswordHasher, SecureSessionTokenService
 
-SESSION_COOKIE_NAME = "memovi_session"
-SESSION_TTL = timedelta(days=30)
+_AUTH_SETTINGS = AuthSettings.from_environ(os.environ)
+SESSION_COOKIE_NAME = _AUTH_SETTINGS.session_cookie_name
+SESSION_TTL = _AUTH_SETTINGS.session_ttl
 
 
 def get_database_session() -> OrmSession:

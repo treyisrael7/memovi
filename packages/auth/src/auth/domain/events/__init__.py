@@ -1,7 +1,8 @@
-from auth.domain.events.user_logged_in import UserLoggedIn
-from auth.domain.events.user_registered import UserRegistered
+"""Auth domain events.
 
-__all__ = [
-    "UserLoggedIn",
-    "UserRegistered",
-]
+Event types are added here when auth publishes durable domain facts. Registration
+and login currently use application callbacks / session state rather than event
+types in this package.
+"""
+
+__all__: list[str] = []

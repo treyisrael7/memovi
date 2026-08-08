@@ -83,9 +83,9 @@ Events describe something that has already happened.
 Examples include:
 
 * `DocumentUploaded`
-* `ConnectorSynchronized`
 * `EmbeddingsGenerated`
 * `KnowledgeIndexed`
+* `KnowledgeMaterialized`
 
 Events should never represent commands. Past-tense naming reflects completed business actions.
 
@@ -159,7 +159,7 @@ Multiple consumers may subscribe.
 | `OCRCompleted` | Processing | Processing |
 | `EmbeddingsGenerated` | Processing | Search, Memory |
 | `MemoryUpdated` | Memory | Intelligence |
-| `ConnectorSynchronized` | Connectors | Documents |
+| `KnowledgeMaterialized` | Memory | Search / explorers |
 
 Clear ownership prevents conflicting event definitions.
 
@@ -188,13 +188,10 @@ Examples:
 
 ## Integration Events
 
-Represent communication with external systems.
+Represent communication with external systems when those facts are published.
 
-Examples:
-
-* `ConnectorAuthorized`
-* `ConnectorSynchronized`
-* `ImportCompleted`
+Connectors currently hand off into Documents synchronously; durable connector
+domain events are not defined yet.
 
 ## System Events
 

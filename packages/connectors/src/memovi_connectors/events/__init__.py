@@ -1,11 +1,3 @@
-from memovi_connectors.domain.events import (
-    ConnectorAuthorized,
-    ConnectorSynchronized,
-    ImportCompleted,
-)
+"""Public re-exports for connector events (none defined yet)."""
 
-__all__ = [
-    "ConnectorAuthorized",
-    "ConnectorSynchronized",
-    "ImportCompleted",
-]
+__all__: list[str] = []

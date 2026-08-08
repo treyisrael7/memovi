@@ -14,11 +14,9 @@ members = [
     "memovi-automation",
     "memovi-config",
     "memovi-connectors",
-    "memovi-contracts",
     "memovi-documents",
     "memovi-intelligence",
     "memovi-memory",
-    "memovi-models",
     "memovi-observability",
     "memovi-search",
     "memovi-shared",
@@ -941,6 +939,7 @@ source = { editable = "packages/auth" }
 dependencies = [
     { name = "argon2-cffi" },
     { name = "fastapi" },
+    { name = "memovi-config" },
     { name = "sqlalchemy" },
 ]
 
@@ -948,6 +947,7 @@ dependencies = [
 requires-dist = [
     { name = "argon2-cffi" },
     { name = "fastapi" },
+    { name = "memovi-config", editable = "packages/config" },
     { name = "sqlalchemy", specifier = ">=2" },
 ]
 
@@ -989,11 +989,6 @@ requires-dist = [
     { name = "memovi-shared", editable = "packages/shared" },
     { name = "sqlalchemy", specifier = ">=2" },
 ]
-
-[[package]]
-name = "memovi-contracts"
-version = "0.1.0"
-source = { editable = "packages/contracts" }
 
 [[package]]
 name = "memovi-documents"
@@ -1063,11 +1058,6 @@ requires-dist = [
     { name = "memovi-shared", editable = "packages/shared" },
     { name = "sqlalchemy", specifier = ">=2" },
 ]
-
-[[package]]
-name = "memovi-models"
-version = "0.1.0"
-source = { editable = "packages/models" }
 
 [[package]]
 name = "memovi-observability"

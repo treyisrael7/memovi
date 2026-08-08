@@ -11,11 +11,7 @@ from memovi_intelligence.config import IntelligenceConfig
 from memovi_intelligence.domain.entities import ReasoningContext, ReasoningRequest, ReasoningResult
 from memovi_intelligence.domain.exceptions import NoRetrievedKnowledgeError
 from memovi_intelligence.domain.value_objects import RetrievedKnowledge
-from memovi_intelligence.infrastructure import (
-    FakeReasoningProvider,
-    PlaceholderKnowledgeRetriever,
-    PlaceholderReasoningProvider,
-)
+from memovi_intelligence.infrastructure import FakeReasoningProvider
 
 
 class StubKnowledgeRetriever:
@@ -33,8 +29,8 @@ class StubKnowledgeRetriever:
 
 def test_reasoning_service_initializes_with_ports_and_default_config() -> None:
     service = ReasoningService(
-        knowledge_retriever=PlaceholderKnowledgeRetriever(),
-        reasoning_provider=PlaceholderReasoningProvider(),
+        knowledge_retriever=StubKnowledgeRetriever(),
+        reasoning_provider=FakeReasoningProvider(),
     )
 
     assert service.config == IntelligenceConfig()
@@ -44,8 +40,8 @@ def test_reasoning_service_initializes_with_ports_and_default_config() -> None:
 def test_reasoning_service_accepts_explicit_config() -> None:
     config = IntelligenceConfig(default_retrieval_limit=2, max_chunks=4, provider="fake")
     service = ReasoningService(
-        knowledge_retriever=PlaceholderKnowledgeRetriever(),
-        reasoning_provider=PlaceholderReasoningProvider(),
+        knowledge_retriever=StubKnowledgeRetriever(),
+        reasoning_provider=FakeReasoningProvider(),
         config=config,
     )
 
@@ -61,7 +57,7 @@ def test_reasoning_service_prepare_context_uses_assembler() -> None:
     )
     service = ReasoningService(
         knowledge_retriever=StubKnowledgeRetriever((item,)),
-        reasoning_provider=PlaceholderReasoningProvider(),
+        reasoning_provider=FakeReasoningProvider(),
     )
     request = ReasoningRequest.create(query="Prepare context for this question.")
 
@@ -91,27 +87,6 @@ def test_reasoning_service_reason_delegates_to_reason_command() -> None:
     assert result.provider == "fake"
     assert result.metadata["model"] == "fake-reasoning-v1"
     assert "Service delegates successfully." in result.answer
-
-
-def test_placeholder_adapters_raise_not_implemented() -> None:
-    request = ReasoningRequest.create(query="Adapter placeholder behavior.")
-    retriever = PlaceholderKnowledgeRetriever()
-    provider = PlaceholderReasoningProvider()
-    item = RetrievedKnowledge(
-        chunk_id="chunk-1",
-        document_id="doc-1",
-        text="Enough knowledge to build a prompt.",
-        score=0.5,
-    )
-    prompt = PromptBuilder().build(
-        ContextAssembler(knowledge_retriever=StubKnowledgeRetriever((item,))).assemble(request),
-    )
-
-    with pytest.raises(NotImplementedError, match="Search"):
-        retriever.retrieve(request, limit=3)
-
-    with pytest.raises(NotImplementedError, match="provider"):
-        provider.reason(prompt)
 
 
 def test_context_assembler_prompt_builder_gateway_and_reason_are_exported() -> None:

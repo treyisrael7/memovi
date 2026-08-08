@@ -9,15 +9,11 @@ from memovi_intelligence.infrastructure.providers.openai_reasoning_provider impo
     OpenAIReasoningProvider,
     serialize_prompt_messages,
 )
-from memovi_intelligence.infrastructure.providers.placeholder_reasoning_provider import (
-    PlaceholderReasoningProvider,
-)
 
 __all__ = [
     "FakeReasoningProvider",
     "OpenAIProviderSettings",
     "OpenAIReasoningProvider",
-    "PlaceholderReasoningProvider",
     "build_model_gateway",
     "serialize_prompt_messages",
 ]

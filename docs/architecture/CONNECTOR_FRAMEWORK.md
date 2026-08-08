@@ -110,7 +110,6 @@ Connectors import knowledge. They do not interpret it.
 * `NormalizedSourceMetadata` / `NormalizedImportItem`
 * `DocumentImportPort`
 * `ConnectorScheduler` foundation
-* Domain events: `ConnectorAuthorized`, `ConnectorSynchronized`, `ImportCompleted`
 * Production `FilesystemConnector` + filesystem folder connections
 
 Concrete provider adapters register explicitly at the composition root. There is
@@ -162,8 +161,7 @@ Documents processing → Memory → Search
 
 1. **Register** — composition root calls `ConnectorRegistry.register(...)`.
 2. **Configure** — settings carry `AuthCredentialRef`, never raw tokens.
-3. **Authorize** — infrastructure resolves the credential ref; may publish
-   `ConnectorAuthorized`.
+3. **Authorize** — infrastructure resolves the credential ref when required.
 4. **Sync** — `Connector.sync(context)` runs initial or incremental import.
 5. **Normalize** — external records become `NormalizedImportItem` values.
 6. **Handoff** — `DocumentImportPort.import_item(...)` creates/updates Documents
@@ -359,14 +357,9 @@ redesign navigation beyond adding the Connectors surface.
 
 # Events
 
-Meaningful connector facts may publish:
-
-* `ConnectorAuthorized`
-* `ConnectorSynchronized`
-* `ImportCompleted`
-
-These describe domain facts, not commands for Documents. Sync completion can
-trigger document import and the existing downstream pipeline.
+The filesystem connector returns sync results synchronously today and does not
+publish connector domain events. Future providers may add durable events when
+async sync/import facts need bus-level consumers.
 
 # Composition Root
 

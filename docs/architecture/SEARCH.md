@@ -105,5 +105,4 @@ Secrets and raw prompt text are not logged by the provider adapters.
 
 * [`search-architecture.md`](search-architecture.md) — retrieval ownership and indexes
 * [`../STATUS.md`](../STATUS.md) — milestone progress
-* [`MODEL_PROVIDER_FRAMEWORK.md`](MODEL_PROVIDER_FRAMEWORK.md) — optional future
-  convergence of Search embeddings onto the shared model framework
+* [`intelligence-architecture.md`](intelligence-architecture.md) — reasoning providers and gateway

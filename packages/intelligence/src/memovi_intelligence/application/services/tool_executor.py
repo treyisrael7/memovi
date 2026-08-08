@@ -30,7 +30,10 @@ _TYPE_CHECKS: dict[str, type | tuple[type, ...]] = {
 
 
 class ToolExecutor:
-    """Validates and executes tool calls resolved through a ToolRegistry."""
+    """Frozen: future LLM tool executor (not wired into conversation Reason).
+
+    Validates and executes tool calls resolved through a ToolRegistry.
+    """
 
     def __init__(
         self,

@@ -29,13 +29,11 @@ memovi/
 ├── packages/
 │   ├── auth/                # memovi-auth
 │   ├── automation/          # memovi-automation
-│   ├── config/              # memovi-config (scaffold)
-│   ├── connectors/          # memovi-connectors (scaffold)
-│   ├── contracts/           # memovi-contracts (scaffold)
+│   ├── config/              # memovi-config
+│   ├── connectors/          # memovi-connectors
 │   ├── documents/           # memovi-documents
 │   ├── intelligence/        # memovi-intelligence
 │   ├── memory/              # memovi-memory
-│   ├── models/              # memovi-models (framework only)
 │   ├── observability/       # memovi-observability
 │   ├── search/              # memovi-search
 │   ├── shared/              # memovi-shared
@@ -78,10 +76,8 @@ memovi/
 | intelligence | `memovi-intelligence` | `memovi_intelligence` | Implemented |
 | automation | `memovi-automation` | `memovi_automation` | Implemented |
 | workspace | `memovi-workspace` | `memovi_workspace` | Implemented |
-| models | `memovi-models` | `memovi_models` | Framework only (not wired to API) |
 | config | `memovi-config` | `memovi_config` | Typed settings + startup validation |
-| connectors | `memovi-connectors` | `memovi_connectors` | Scaffold only |
-| contracts | `memovi-contracts` | `memovi_contracts` | Scaffold only |
+| connectors | `memovi-connectors` | `memovi_connectors` | Filesystem connector + framework |
 | observability | `memovi-observability` | `memovi_observability` | RequestContext, structured logs, metrics, diagnostic events, OTel spans |
 | shared | `memovi-shared` | `memovi_shared` | `WorkspaceId`, workspace header parsing, FastAPI workspace dependency |
 
@@ -96,8 +92,9 @@ memovi/
 ## Shared libraries
 
 * `packages/shared` — `WorkspaceId`, workspace header constants, parsing helpers, and package-default FastAPI workspace dependency
-* `packages/contracts` — empty `events/`, `messages/`, `schemas/`
 * `packages/config` — typed settings, env parsing, secrets, startup validation
+  (auth session cookie/TTL via `AuthSettings`)
+* `packages/models` and `packages/contracts` — removed in Milestone 46
 * `packages/observability` — RequestContext, structured JSON logging, MetricsRecorder, diagnostic emitter, OTel-API tracing
 
 Cross-domain coupling is composed only in `apps/api`, not via shared packages.
@@ -1062,7 +1059,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 | 1 Complete V1 Platform | **In Progress** | Core pipeline + ownership + observability foundation exist; hardening and API stability remain |
 | 2 Desktop Client | **In Progress** | Tauri shell foundation in `apps/desktop`; product pages not built yet |
 | 3 Capability Framework | **In Progress** | Framework + read-only FilesystemCapability; terminal/git/plugins/approval UX remain |
-| Model Provider Framework (M17) | **Complete (foundation)** | `packages/models` contracts/registry/fake; vendor adapters + Intelligence migration remain |
+| Model Provider Framework (M17) | **Removed (M46)** | Unused `packages/models` deleted; live path is Intelligence `ModelGateway` |
 | 4 Automation | **Not Started** | No approval workflow or capability orchestration product path |
 | 5 Knowledge Evolution | **Not Started** | Summaries, long-term memory, graph, reasoning cache absent |
 | 6 Ecosystem | **Not Started** | Optional web/mobile, cloud sync, enterprise, connector marketplace absent |

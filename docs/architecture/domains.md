@@ -329,7 +329,6 @@ Every business capability should have exactly one owner.
 | External integrations | Connectors |
 | AI reasoning | Intelligence |
 | Capability registry and environment actions | Automation |
-| Provider-neutral model contracts | `packages/models` (consumed by Intelligence) |
 
 Shared ownership should be avoided whenever practical.
 
@@ -374,5 +373,4 @@ New domains should never exist simply to separate implementation details. They s
 * [`intelligence-architecture.md`](intelligence-architecture.md)
 * [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md)
 * [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md)
-* [`MODEL_PROVIDER_FRAMEWORK.md`](MODEL_PROVIDER_FRAMEWORK.md)
 * [`CONNECTOR_FRAMEWORK.md`](CONNECTOR_FRAMEWORK.md)

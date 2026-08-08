@@ -61,10 +61,8 @@ If you are not using Task, the equivalent commands are documented in
 |-- packages/
 |   |-- auth/
 |   |-- automation/           # Capability Framework + Filesystem, Terminal, Git, Browser, workflows
-|   |-- models/               # Model Provider Framework
 |   |-- connectors/
 |   |-- config/
-|   |-- contracts/
 |   |-- documents/
 |   |-- intelligence/
 |   |-- memory/

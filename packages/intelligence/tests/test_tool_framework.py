@@ -18,7 +18,33 @@ from memovi_intelligence.domain.value_objects import (
     ToolParameter,
     ToolResult,
 )
-from memovi_intelligence.infrastructure import EchoTool
+
+
+class _EchoTool:
+    """Test double for frozen ToolRegistry/ToolExecutor coverage."""
+
+    def name(self) -> str:
+        return "echo"
+
+    def description(self) -> str:
+        return "Echo a message for tool framework tests."
+
+    def schema(self) -> ToolDefinition:
+        return ToolDefinition(
+            name="echo",
+            description=self.description(),
+            parameters=(
+                ToolParameter(
+                    name="message",
+                    type="string",
+                    description="Text to echo",
+                    required=True,
+                ),
+            ),
+        )
+
+    def execute(self, arguments: dict[str, object]) -> object:
+        return {"message": arguments["message"]}
 
 
 class _NoopTool:
@@ -35,12 +61,12 @@ class _NoopTool:
         return {"ok": True}
 
 
-class _FailingEchoTool(EchoTool):
+class _FailingEchoTool(_EchoTool):
     def execute(self, arguments: dict[str, object]) -> object:
         raise RuntimeError("echo tool failed")
 
 
-class _SlowEchoTool(EchoTool):
+class _SlowEchoTool(_EchoTool):
     def execute(self, arguments: dict[str, object]) -> object:
         sleep(0.2)
         return super().execute(arguments)
@@ -54,7 +80,7 @@ def _registry_with(*tools: Tool) -> ToolRegistry:
 
 
 def test_tool_registry_register_discover_and_resolve() -> None:
-    echo = EchoTool()
+    echo = _EchoTool()
     noop = _NoopTool()
     registry = _registry_with(echo, noop)
 
@@ -65,16 +91,16 @@ def test_tool_registry_register_discover_and_resolve() -> None:
 
 
 def test_tool_registry_rejects_duplicate_and_unknown() -> None:
-    registry = _registry_with(EchoTool())
+    registry = _registry_with(_EchoTool())
 
     with pytest.raises(InvalidToolError, match="already registered"):
-        registry.register(EchoTool())
+        registry.register(_EchoTool())
     with pytest.raises(UnknownToolError, match="Unknown tool"):
         registry.resolve("missing")
 
 
 def test_tool_executor_executes_echo_tool() -> None:
-    executor = ToolExecutor(registry=_registry_with(EchoTool()))
+    executor = ToolExecutor(registry=_registry_with(_EchoTool()))
     call = ToolCall.create(name="echo", arguments={"message": "Hello Memovi"})
 
     result = executor.execute(call)
@@ -96,7 +122,7 @@ def test_tool_executor_rejects_unknown_tool() -> None:
 
 
 def test_tool_executor_validates_arguments() -> None:
-    executor = ToolExecutor(registry=_registry_with(EchoTool()))
+    executor = ToolExecutor(registry=_registry_with(_EchoTool()))
 
     with pytest.raises(InvalidToolArgumentsError, match="Missing required"):
         executor.execute(ToolCall.create(name="echo", arguments={}))

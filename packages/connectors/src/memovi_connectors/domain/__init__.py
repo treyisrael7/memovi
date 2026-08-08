@@ -1,8 +1,3 @@
-from memovi_connectors.domain.events import (
-    ConnectorAuthorized,
-    ConnectorSynchronized,
-    ImportCompleted,
-)
 from memovi_connectors.domain.exceptions import (
     ConnectorsDomainError,
     ConnectorSyncError,
@@ -40,16 +35,13 @@ __all__ = [
     "CONNECTOR_OBSIDIAN",
     "CONNECTOR_SLACK",
     "AuthCredentialRef",
-    "ConnectorAuthorized",
     "ConnectorConfiguration",
     "ConnectorExecutionContext",
     "ConnectorHealth",
     "ConnectorMetadata",
     "ConnectorResult",
     "ConnectorSyncError",
-    "ConnectorSynchronized",
     "ConnectorsDomainError",
-    "ImportCompleted",
     "InvalidConnectorError",
     "NormalizedImportItem",
     "NormalizedSourceMetadata",

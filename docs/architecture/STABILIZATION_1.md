@@ -93,13 +93,15 @@ would be a large, cross-repo refactor with no runtime benefit.
 
 ### Scaffold packages
 
-`memovi_connectors` and `memovi_contracts` retain empty or early package
-structure for future milestones. `memovi_config` is populated (Milestone 36).
+Empty `memovi_contracts` and unused `memovi_models` packages were removed in
+Milestone 46. Connectors are live (filesystem). `memovi_config` is populated
+(Milestone 36).
 
-### Dual model provider stacks
+### Model provider boundary
 
-`memovi_models` (Model Provider Framework) and intelligence-local providers both exist.
-Intelligence still uses its own gateway; migration to `memovi_models` is tracked separately.
+Intelligence owns the live provider boundary (`ModelGateway` /
+`ReasoningProvider`). The unused parallel `packages/models` stack was removed
+in Milestone 46.
 
 ---
 
@@ -112,15 +114,14 @@ Intelligence still uses its own gateway; migration to `memovi_models` is tracked
    endpoints with consistent `limit`/`offset` parameters.
 4. **Unify error responses** — Introduce a shared error envelope and domain-to-HTTP mapping
    helper without breaking existing clients (e.g. via API versioning).
-5. **Migrate Intelligence to `memovi_models`** — Retire duplicate provider abstractions.
-6. **Import root normalization** — Consider renaming `auth`/`documents` to `memovi_auth`/
+5. **Import root normalization** — Consider renaming `auth`/`documents` to `memovi_auth`/
    `memovi_documents` in a dedicated refactor milestone.
-7. **Remove deprecated `/search/semantic`** — After confirming no clients depend on it.
-8. **Populate root integration tests** — Replace `tests/` placeholders with cross-package
+6. **Remove deprecated `/search/semantic`** — After confirming no clients depend on it.
+7. **Populate root integration tests** — Replace `tests/` placeholders with cross-package
    architecture tests.
-9. **Durable workflow history** — Replaced in-memory workflow history/library with
+8. **Durable workflow history** — Replaced in-memory workflow history/library with
    durable persistence (`WORKFLOW_ENGINE.md`, Milestone 39).
-10. **Architecture Decision Records** — Add `docs/adr/` when the team wants formal ADR tracking;
+9. **Architecture Decision Records** — Add `docs/adr/` when the team wants formal ADR tracking;
     remove references until then (done in this pass).
 
 ---

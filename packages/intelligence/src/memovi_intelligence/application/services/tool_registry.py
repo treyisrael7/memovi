@@ -4,7 +4,11 @@ from memovi_intelligence.domain.value_objects import ToolDefinition
 
 
 class ToolRegistry:
-    """Registers and resolves tools without executing them."""
+    """Frozen: future LLM tool registry (not wired into conversation Reason).
+
+    Registers and resolves tools without executing them. Prefer Capability
+    Framework for host actions until post-V1 tool-calling ships.
+    """
 
     def __init__(self) -> None:
         self._tools: dict[str, Tool] = {}

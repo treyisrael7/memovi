@@ -6,8 +6,12 @@ requires-python = ">=3.14"
 dependencies = [
     "argon2-cffi",
     "fastapi",
+    "memovi-config",
     "sqlalchemy>=2",
 ]
+
+[tool.uv.sources]
+memovi-config = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

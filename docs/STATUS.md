@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 45).
+system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 46).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -243,7 +243,6 @@ are operational. AI summaries remain.
 
 * Provider abstraction and routing (env-driven selection; broader providers reserved)
 * Prompt construction (`PromptBuilder`; no prompt library/versioning product)
-* Tool execution framework (`ToolRegistry` / `ToolExecutor` / `EchoTool`; not in conversation Reason path)
 * Cost-aware model selection (basic provider/model config only)
 
 **Remaining**
@@ -253,26 +252,26 @@ are operational. AI summaries remain.
 
 **Known Risks**
 
-* Tool framework is not yet part of the conversation path
+* None material for the shipped conversation Reason path
 
 **Next Recommended Work**
 
 * Close Phase 1 platform gaps (ownership, observability, API stability)
-* Migrate Intelligence `ModelGateway` onto `packages/models` (`ModelRegistry` / `ModelProvider`)
 
 ---
 
 # Milestone 17 — Model Provider Framework
 
-**Overall Status:** Complete (architecture foundation)
+**Overall Status:** Removed (Milestone 46)
+
+The unused `packages/models` (`memovi-models`) parallel framework was deleted.
+Live provider selection remains `ModelGateway` + `ReasoningProvider` in
+`packages/intelligence`. No migration onto a separate models package is planned
+for V1.
 
 **Completed**
 
-* `packages/models` (`memovi-models`) Model Provider Framework
-* Core contracts: `ModelProvider`, `ModelRegistry`, `ModelRequest`, `ModelResponse`, `ModelMetadata`, `ModelCapabilities`, `ProviderConfiguration`, `ProviderHealth`
-* Normalized provider error codes (authentication, unavailable, rate_limit, timeout, unsupported_capability, invalid_configuration, …)
-* `FakeModelProvider` for tests and local wiring (no production vendor SDKs)
-* Architecture reference: `docs/architecture/MODEL_PROVIDER_FRAMEWORK.md`
+* N/A — package removed; see Milestone 46
 
 **In Progress**
 
@@ -280,18 +279,15 @@ are operational. AI summaries remain.
 
 **Remaining**
 
-* Concrete adapters: OpenAI, Anthropic, Gemini, Ollama, OpenRouter, LM Studio
-* Intelligence migration from in-package `ReasoningProvider` / `ModelGateway` onto `memovi-models`
-* Optional Search embeddings convergence onto shared capability model
-* Desktop provider settings UI (consumes configuration; not owned here)
+* None
 
 **Known Risks**
 
-* Until Intelligence migrates, vendor SDK dependencies remain in `memovi-intelligence`
+* None
 
 **Next Recommended Work**
 
-* Implement the first production adapter (OpenAI or Ollama) behind `ModelProvider`, then adapt Intelligence `ModelGateway` to resolve through `ModelRegistry`
+* Keep extending `ModelGateway` / `ReasoningProvider` adapters as needed
 
 ---
 
@@ -781,7 +777,6 @@ contract. No concrete provider adapters or scheduled sync runners yet.
   `ConnectorMetadata`, `ConnectorHealth`, `ConnectorScheduler` foundation
 * `AuthCredentialRef` credential isolation (env/secret refs, no embedded secrets)
 * `NormalizedSourceMetadata` / `NormalizedImportItem` + `DocumentImportPort`
-* Domain events: `ConnectorAuthorized`, `ConnectorSynchronized`, `ImportCompleted`
 * `FakeConnector` + unit tests
 * Composition-root wiring (`configure_connector_framework`)
 * `docs/architecture/CONNECTOR_FRAMEWORK.md`
@@ -1344,6 +1339,44 @@ lightweight polymorphic resource metadata.
 **Next Recommended Work**
 
 * Keep Collections and Tags complementary in UX copy; avoid nesting tags under collections
+
+---
+
+# Milestone 46 — Dead Architecture Cleanup
+
+**Overall Status:** Complete
+
+Subtractive cleanup before public V1. Removed unused packages and dead
+abstractions; collapsed auth session settings onto `memovi_config.AuthSettings`;
+froze unwired LLM tool-calling types without product claims.
+
+**Completed**
+
+* Deleted `packages/models` and `packages/contracts` (and build/CI path refs)
+* Deleted `EchoTool`, `PlaceholderReasoningProvider`, `PlaceholderKnowledgeRetriever`,
+  `StreamingReasoningProvider`
+* Deleted unused connector, auth, and memory event types that were never published
+* Auth session cookie name/TTL now read from typed `AuthSettings` (single source)
+* Froze `ToolRegistry` / `ToolExecutor` / Tool value objects as future LLM
+  tool-calling infrastructure (not on conversation Reason path)
+* Documentation updated to match implementation (`STATUS`, `ROADMAP`,
+  `ARCHITECTURE`, `README`, related architecture notes)
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* None for this milestone
+
+**Known Risks**
+
+* None — no intentional runtime behavior changes
+
+**Next Recommended Work**
+
+* Continue Phase 1 V1 platform completion without reintroducing unused packages
 
 ---
 

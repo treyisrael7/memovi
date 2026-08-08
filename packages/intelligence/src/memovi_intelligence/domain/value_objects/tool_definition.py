@@ -6,7 +6,7 @@ from memovi_intelligence.domain.value_objects.tool_parameter import ToolParamete
 
 @dataclass(frozen=True, slots=True)
 class ToolDefinition:
-    """Immutable schema describing a callable tool."""
+    """Frozen: immutable schema for future LLM tool-calling (not product-supported)."""
 
     name: str
     description: str

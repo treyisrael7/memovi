@@ -11,7 +11,7 @@ This package establishes the memory domain foundation:
 - Value objects: `KnowledgeItemId`, `ChunkId`, and `ChunkIndex`
 - Repository contracts: `KnowledgeRepository` and `ChunkRepository`
 - Domain services: deterministic `ChunkGenerator` and `KnowledgeMaterializer`
-- Domain events: `KnowledgeConstructed`, `ChunksGenerated`, and `KnowledgeMaterialized`
+- Domain events: `KnowledgeMaterialized` (plus collection and tag events)
 - Application DTOs, ports, and layer scaffolds for future use cases
 - Application command: `MaterializeKnowledge` for persistence orchestration
 - Application handler: `MemoryProcessingCompletedHandler` for event-driven materialization
