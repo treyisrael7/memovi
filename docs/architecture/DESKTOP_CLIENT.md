@@ -395,6 +395,7 @@ pnpm --filter @memovi/desktop tauri:dev
 
 * [`../ARCHITECTURE.md`](../ARCHITECTURE.md) — platform blueprint
 * [`../PRODUCT_VISION.md`](../PRODUCT_VISION.md) — desktop-first product identity
+* [`../testing/DESKTOP_TESTING.md`](../testing/DESKTOP_TESTING.md) — CI, smoke tests, release checklist
 * [`repository-architecture.md`](repository-architecture.md) — monorepo layout
 * [`intelligence-architecture.md`](intelligence-architecture.md) — reasoning and conversations
 * [`KNOWLEDGE_EXPLORER.md`](KNOWLEDGE_EXPLORER.md) — knowledge inspection surface

@@ -1,0 +1,117 @@
+name: Desktop CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    name: Desktop build & smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter @memovi/desktop typecheck
+
+      - name: Unit tests
+        run: pnpm --filter @memovi/desktop test:unit
+
+      - name: Critical-path smoke tests
+        run: pnpm --filter @memovi/desktop test:smoke
+
+      - name: Build (Vite shell)
+        run: pnpm --filter @memovi/desktop build
+
+      - name: Upload frontend dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: memovi-desktop-dist
+          path: apps/desktop/dist
+          if-no-files-found: error
+          retention-days: 14
+
+  desktop-package:
+    name: Desktop packaging
+    runs-on: ubuntu-latest
+    needs: desktop
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install Linux Tauri dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+          cache-on-failure: true
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify packaging (Tauri build)
+        working-directory: apps/desktop
+        run: pnpm tauri build
+        env:
+          # Keep CI artifacts off the default OneDrive-synced path conventions.
+          CARGO_TARGET_DIR: ${{ github.workspace }}/apps/desktop/src-tauri/target
+
+      - name: Upload packaging artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: memovi-desktop-linux-bundle
+          path: |
+            apps/desktop/src-tauri/target/release/bundle
+            apps/desktop/src-tauri/target/release/memovi-desktop
+          if-no-files-found: warn
+          retention-days: 14

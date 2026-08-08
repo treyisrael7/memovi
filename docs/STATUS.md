@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 40).
+system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 41).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -1134,6 +1134,50 @@ observability — without redesigning the capability or execution engine.
 
 * Desktop settings UI for capability / terminal policies
 * Architecture boundary tests
+
+---
+
+# Milestone 41 — Desktop CI & Critical Path Smoke Tests
+
+**Overall Status:** Complete
+
+The flagship desktop client is a first-class CI citizen: automated Vite build,
+critical-path smoke coverage, packaging verification, and release checklist —
+without product redesign or new desktop features.
+
+**Completed**
+
+* Vitest + Testing Library smoke suite for the critical journey (startup →
+  auth → workspace → documents/upload/status → search → conversation →
+  workflow execute → settings persistence → sign-out)
+* In-memory API stub (`src/test/mockBackend.ts`) for stable workflow tests
+* Unit tests for session preferences and API client helpers
+* GitHub Actions workflow `.github/workflows/desktop.yml` (typecheck,
+  unit, smoke, Vite build artifact, Tauri packaging artifact)
+* Task commands: `desktop:test`, `desktop:smoke`, `desktop:build`,
+  `desktop:check`
+* `docs/testing/DESKTOP_TESTING.md` (CI, layers, local run, release checklist)
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Optional OS-native window launch automation beyond jsdom smoke (future)
+* Multi-platform packaging matrix (macOS / Windows) in CI when release hosts
+  are available
+
+**Known Risks**
+
+* Smoke tests stub the API; they do not replace Backend CI or live release
+  checklist validation
+* Full Tauri packaging on Linux is slower than the Vite job; Cargo cache helps
+
+**Next Recommended Work**
+
+* Keep Desktop CI green on every PR into public V1
+* Expand packaging matrix when shipping multi-OS installers
 
 ---
 

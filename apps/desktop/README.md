@@ -55,3 +55,15 @@ See [`docs/architecture/DESKTOP_CLIENT.md`](../../docs/architecture/DESKTOP_CLIE
 
 UI primitives and design tokens are documented in
 [`docs/design/DESIGN_SYSTEM.md`](../../docs/design/DESIGN_SYSTEM.md).
+
+## Testing
+
+Unit and critical-path smoke tests use Vitest (Vite-native). Desktop CI and the
+release checklist are documented in
+[`docs/testing/DESKTOP_TESTING.md`](../../docs/testing/DESKTOP_TESTING.md).
+
+```bash
+task desktop:test    # unit + smoke
+task desktop:smoke   # critical path only
+task desktop:check   # types, tests, Vite build
+```

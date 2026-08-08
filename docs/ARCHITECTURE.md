@@ -271,6 +271,8 @@ The primary product surface is the desktop application under `apps/desktop`
 (Tauri shell foundation). An optional web client, future mobile clients, browser
 extensions, CLI tools, and public APIs are additional presentation surfaces over
 the same backend. See [`architecture/DESKTOP_CLIENT.md`](architecture/DESKTOP_CLIENT.md).
+Desktop build, smoke, and packaging CI are documented in
+[`testing/DESKTOP_TESTING.md`](testing/DESKTOP_TESTING.md).
 
 Responsibilities:
 
@@ -578,6 +580,7 @@ The following documents expand this blueprint without redefining it.
 | [`architecture/WORKFLOW_AUTOMATION.md`](architecture/WORKFLOW_AUTOMATION.md) | Reusable sequential workflows over planner + execution engine |
 | [`architecture/MODEL_PROVIDER_FRAMEWORK.md`](architecture/MODEL_PROVIDER_FRAMEWORK.md) | Provider-neutral model abstractions, registry, capabilities, and health |
 | [`architecture/DESKTOP_CLIENT.md`](architecture/DESKTOP_CLIENT.md) | Flagship Tauri desktop shell, client boundaries, and API communication |
+| [`testing/DESKTOP_TESTING.md`](testing/DESKTOP_TESTING.md) | Desktop CI, critical-path smoke tests, and release validation |
 | [`architecture/observability.md`](architecture/observability.md) | Request, worker, event, AI, connector, search, error, and performance telemetry |
 | [`architecture/deployment.md`](architecture/deployment.md) | Self-hostable deployment posture, infrastructure isolation, and runtime concerns |
 | [`architecture/scaling.md`](architecture/scaling.md) | Evolution strategy, future extraction, storage scaling, workers, and operational thresholds |

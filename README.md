@@ -146,7 +146,9 @@ task test
 ```
 
 Pre-commit runs formatting, linting, type checks, and file hygiene checks before
-commits. CI validates the backend and optional web workspace through GitHub Actions.
+commits. CI validates the backend, optional web workspace, and flagship desktop
+client (build, smoke, packaging) through GitHub Actions. See
+[`docs/testing/DESKTOP_TESTING.md`](docs/testing/DESKTOP_TESTING.md).
 
 ## Task Commands
 
@@ -157,6 +159,10 @@ commits. CI validates the backend and optional web workspace through GitHub Acti
 - `task frontend` runs optional web-workspace lint, format check, typecheck, and build.
 - `task desktop` starts the flagship Tauri desktop client.
 - `task desktop:typecheck` runs TypeScript checks for the desktop client.
+- `task desktop:test` runs desktop unit and critical-path smoke tests.
+- `task desktop:smoke` runs desktop critical-path smoke tests only.
+- `task desktop:build` builds the desktop Vite shell.
+- `task desktop:check` runs desktop typecheck, tests, and Vite build.
 - `task docker-up` starts local infrastructure.
 - `task docker-down` stops local infrastructure.
 - `task db:migrate` starts PostgreSQL and applies Alembic migrations.

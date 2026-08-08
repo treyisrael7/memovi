@@ -12,7 +12,11 @@
     "tauri:build": "tauri build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run src --exclude '**/*.smoke.test.*'",
+    "test:smoke": "vitest run src/smoke"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
@@ -23,11 +27,16 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "jsdom": "^26.1.0",
     "prettier": "3",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "vitest": "^3.2.4"
   }
 }

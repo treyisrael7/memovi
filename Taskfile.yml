@@ -91,6 +91,28 @@ tasks:
     cmds:
       - pnpm --filter {{.DESKTOP_PACKAGE}} format:check
 
+  desktop:test:
+    desc: Run desktop unit and critical-path smoke tests (Vitest).
+    cmds:
+      - pnpm --filter {{.DESKTOP_PACKAGE}} test
+
+  desktop:smoke:
+    desc: Run desktop critical-path smoke tests only.
+    cmds:
+      - pnpm --filter {{.DESKTOP_PACKAGE}} test:smoke
+
+  desktop:build:
+    desc: Build the desktop Vite shell (TypeScript + Vite).
+    cmds:
+      - pnpm --filter {{.DESKTOP_PACKAGE}} build
+
+  desktop:check:
+    desc: Typecheck, test, and build the desktop client.
+    cmds:
+      - task: desktop:typecheck
+      - task: desktop:test
+      - task: desktop:build
+
   docker-up:
     desc: Start local infrastructure services.
     cmds:
