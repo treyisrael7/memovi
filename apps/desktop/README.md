@@ -34,7 +34,8 @@ pnpm install
 pnpm tauri:dev
 ```
 
-Optional API base override:
+Optional API base override (keep the same hostname as the Vite/Tauri origin so
+session cookies stay same-site; defaults match `task backend` on `127.0.0.1`):
 
 ```bash
 VITE_MEMOVI_API_BASE=http://127.0.0.1:8000 pnpm tauri:dev

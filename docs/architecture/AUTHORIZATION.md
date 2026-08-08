@@ -42,6 +42,10 @@ Every non-public HTTP endpoint executes inside an authenticated user context.
 `AuthenticatedPrincipal` (`user_id`, `session_id`, `email`) and bind
 `RequestContext.principal` for observability.
 
+Session cookies are HttpOnly and SameSite=Lax. The `Secure` attribute is set
+for HTTPS requests and omitted for local HTTP so the desktop client can persist
+sessions against `http://localhost:8000`.
+
 # Workspace Membership
 
 Workspace selection validates membership. The optional workspace header is an

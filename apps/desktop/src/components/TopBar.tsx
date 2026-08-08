@@ -37,6 +37,7 @@ export function TopBar() {
     workspaces,
     availableModels,
     activeModel,
+    user,
     setActiveWorkspaceId,
     setActiveModel,
     isRefreshing,
@@ -97,6 +98,11 @@ export function TopBar() {
       }
       right={
         <>
+          {user ? (
+            <span className="top-bar-user" title={user.email}>
+              {user.email}
+            </span>
+          ) : null}
           <span className="status-pill">
             <span
               className="status-dot"

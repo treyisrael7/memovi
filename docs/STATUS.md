@@ -102,7 +102,7 @@ APIs. Capability authorization and durable audit are covered by Milestone 28.
 
 **Known Risks**
 
-* Desktop login UI is not yet a product surface; clients must authenticate via session cookies
+* None specific — desktop now authenticates end-to-end via session cookies
 
 **Next Recommended Work**
 
@@ -623,7 +623,6 @@ validation, durable capability policies, and durable audit storage are in place.
 
 **Remaining**
 
-* Desktop authentication product surface
 * Broader non-capability ownership audit logging
 * Richer role-based authorization beyond membership + capability policy modes
 
@@ -707,6 +706,8 @@ shared UI primitives.
 * `docs/architecture/DESKTOP_CLIENT.md`
 * `docs/architecture/KNOWLEDGE_EXPLORER.md`
 * `docs/architecture/COLLECTIONS.md`
+* End-to-end desktop authentication (login/register/logout, session restore,
+  expiry handling) over existing `/auth/*` session cookies (Milestone 34)
 
 **In Progress**
 
@@ -845,6 +846,44 @@ without changing the ingestion pipeline.
 **Next Recommended Work**
 
 * Add Tags as a complementary organization primitive
+
+---
+
+# Milestone 34 — Desktop Authentication End-to-End
+
+**Overall Status:** Complete
+
+Desktop is the primary authenticated client over the existing `/auth/*` session
+cookie architecture. No JWT or alternate session mechanism was introduced.
+
+**Completed**
+
+* Login and registration screens (`AuthGate`) gated before the product shell
+* Session restore via `GET /auth/me` on startup (`authStatus: checking`)
+* Logout with confirmation (Settings → Account) and shell state cleanup
+* Session-expired dialog on protected `401` responses
+* Auth API client + `credentials: "include"` on fetch, SSE, and uploads
+* Per-user restoration of last page and active workspace; theme remains local
+* Cookie `Secure` flag follows request scheme so local HTTP desktop sessions work
+* Desktop webview + API default to `127.0.0.1` for same-site session cookies
+* `docs/architecture/DESKTOP_CLIENT.md` authentication / session lifecycle
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Optional remembered-email convenience (still no password storage)
+
+**Known Risks**
+
+* Mixing `localhost` and `127.0.0.1` origins breaks SameSite cookie attachment
+  (desktop defaults both webview and API to `127.0.0.1`)
+
+**Next Recommended Work**
+
+* Keep ecosystem clients on the same cookie session contracts
 
 ---
 

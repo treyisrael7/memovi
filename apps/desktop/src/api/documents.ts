@@ -1,3 +1,4 @@
+import { notifyUnauthorized } from "./authEvents";
 import { ApiRequestError, apiFetch, apiUrl } from "./client";
 import { WORKSPACE_ID_HEADER } from "./config";
 import type {
@@ -101,6 +102,9 @@ export function uploadDocument(
           },
         ),
       );
+      if (xhr.status === 401) {
+        notifyUnauthorized();
+      }
     };
 
     xhr.onerror = () => {

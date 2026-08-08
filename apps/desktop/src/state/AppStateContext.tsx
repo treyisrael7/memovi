@@ -10,6 +10,16 @@ import {
 } from "react";
 
 import {
+  getCurrentUser,
+  loginUser,
+  logoutUser,
+  registerUser,
+  type AuthCredentials,
+  type AuthUser,
+} from "../api/auth";
+import { onUnauthorized } from "../api/authEvents";
+import { ApiRequestError } from "../api/client";
+import {
   CONNECTION_POLL_INTERVAL_MS,
   DEFAULT_WORKSPACE_ID,
 } from "../api/config";
@@ -18,8 +28,22 @@ import { probeBackendConnection, type ConnectionSnapshot } from "../api/health";
 import type { AvailableModel } from "../api/types";
 import { listWorkspaces, resolveActiveWorkspace } from "../api/workspaces";
 import { getPage, type PageId } from "../navigation/pages";
+import {
+  readStoredPage,
+  readStoredTheme,
+  readStoredWorkspaceId,
+  writeStoredPage,
+  writeStoredTheme,
+  writeStoredWorkspaceId,
+  type ThemeMode,
+} from "./sessionPreferences";
 
-export type ThemeMode = "light" | "dark";
+export type { ThemeMode };
+export type AuthStatus =
+  | "checking"
+  | "authenticated"
+  | "anonymous"
+  | "session_expired";
 
 export interface ActiveWorkspace {
   id: string;
@@ -49,6 +73,8 @@ export interface DocumentSeed {
 }
 
 interface AppStateValue {
+  authStatus: AuthStatus;
+  user: AuthUser | null;
   connection: ConnectionSnapshot;
   activeWorkspace: ActiveWorkspace | null;
   workspaces: ActiveWorkspace[];
@@ -67,6 +93,10 @@ interface AppStateValue {
   setActiveModel: (selection: ActiveModelSelection) => void;
   refreshConnection: () => Promise<void>;
   refreshWorkspaces: () => Promise<void>;
+  login: (credentials: AuthCredentials) => Promise<void>;
+  register: (credentials: AuthCredentials) => Promise<void>;
+  logout: () => Promise<void>;
+  acknowledgeSessionExpired: () => void;
   /** Opens Chat with a new conversation prefilled to ground it in a document/knowledge item. */
   startConversationAbout: (conversationId: string, draft: string) => void;
   clearChatSeed: () => void;
@@ -90,21 +120,27 @@ const initialConnection: ConnectionSnapshot = {
 
 const AppStateContext = createContext<AppStateValue | null>(null);
 
-const THEME_STORAGE_KEY = "memovi.desktop.theme";
-
-function readStoredTheme(): ThemeMode {
-  try {
-    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === "light" || stored === "dark") {
-      return stored;
-    }
-  } catch {
-    // Ignore storage failures (private mode, quota, etc.).
-  }
-  return "light";
+function clearSessionScopedState(setters: {
+  setActiveWorkspace: (value: ActiveWorkspace | null) => void;
+  setWorkspaces: (value: ActiveWorkspace[]) => void;
+  setAvailableModels: (value: AvailableModel[]) => void;
+  setActiveModelState: (value: ActiveModelSelection | null) => void;
+  setChatSeed: (value: ChatSeed | null) => void;
+  setKnowledgeSeed: (value: KnowledgeSeed | null) => void;
+  setDocumentSeed: (value: DocumentSeed | null) => void;
+}): void {
+  setters.setActiveWorkspace(null);
+  setters.setWorkspaces([]);
+  setters.setAvailableModels([]);
+  setters.setActiveModelState(null);
+  setters.setChatSeed(null);
+  setters.setKnowledgeSeed(null);
+  setters.setDocumentSeed(null);
 }
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [connection, setConnection] =
     useState<ConnectionSnapshot>(initialConnection);
   const [activeWorkspace, setActiveWorkspace] =
@@ -124,6 +160,17 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const knowledgeSeedNonce = useRef(0);
   const [documentSeed, setDocumentSeed] = useState<DocumentSeed | null>(null);
   const documentSeedNonce = useRef(0);
+  const authStatusRef = useRef(authStatus);
+  authStatusRef.current = authStatus;
+
+  const applyAuthenticatedUser = useCallback((nextUser: AuthUser) => {
+    setUser(nextUser);
+    setAuthStatus("authenticated");
+    const storedPage = readStoredPage(nextUser.id);
+    if (storedPage) {
+      setActivePage(storedPage);
+    }
+  }, []);
 
   const refreshWorkspaces = useCallback(async () => {
     try {
@@ -134,8 +181,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       }));
       setWorkspaces(mapped);
       setActiveWorkspace((current) => {
-        if (current && mapped.some((item) => item.id === current.id)) {
-          return current;
+        const preferredId =
+          current?.id ??
+          (user ? readStoredWorkspaceId(user.id) : null) ??
+          null;
+        if (preferredId && mapped.some((item) => item.id === preferredId)) {
+          const match = mapped.find((item) => item.id === preferredId)!;
+          return match;
         }
         const resolved = resolveActiveWorkspace(listed);
         return resolved
@@ -145,14 +197,17 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
               name: "Default Workspace",
             };
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 401) {
+        return;
+      }
       setWorkspaces([]);
       setActiveWorkspace({
         id: DEFAULT_WORKSPACE_ID,
         name: "Default Workspace",
       });
     }
-  }, []);
+  }, [user]);
 
   const refreshConnection = useCallback(async () => {
     setIsRefreshing(true);
@@ -160,7 +215,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const snapshot = await probeBackendConnection();
       setConnection(snapshot);
 
-      if (snapshot.status === "connected" || snapshot.status === "degraded") {
+      const isAuthenticated = authStatusRef.current === "authenticated";
+      if (
+        isAuthenticated &&
+        (snapshot.status === "connected" || snapshot.status === "degraded")
+      ) {
         await refreshWorkspaces();
 
         try {
@@ -191,10 +250,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
                 }
               : null;
           });
-        } catch {
-          setAvailableModels([]);
+        } catch (error) {
+          if (!(error instanceof ApiRequestError && error.status === 401)) {
+            setAvailableModels([]);
+          }
         }
-      } else {
+      } else if (!isAuthenticated) {
         setActiveWorkspace(null);
         setWorkspaces([]);
         setAvailableModels([]);
@@ -204,22 +265,86 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
   }, [refreshWorkspaces]);
 
+  const restoreSession = useCallback(async () => {
+    setAuthStatus("checking");
+    try {
+      const current = await getCurrentUser();
+      applyAuthenticatedUser(current);
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 401) {
+        setUser(null);
+        setAuthStatus("anonymous");
+        return;
+      }
+      // Backend unreachable during boot — still show auth screens so the user
+      // can retry once the API is up; do not pretend a session exists.
+      setUser(null);
+      setAuthStatus("anonymous");
+    }
+  }, [applyAuthenticatedUser]);
+
   useEffect(() => {
+    void restoreSession();
+  }, [restoreSession]);
+
+  useEffect(() => {
+    return onUnauthorized(() => {
+      if (authStatusRef.current !== "authenticated") {
+        return;
+      }
+      setAuthStatus("session_expired");
+      setUser(null);
+      clearSessionScopedState({
+        setActiveWorkspace,
+        setWorkspaces,
+        setAvailableModels,
+        setActiveModelState,
+        setChatSeed,
+        setKnowledgeSeed,
+        setDocumentSeed,
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    if (authStatus !== "authenticated") {
+      return;
+    }
     void refreshConnection();
     const timer = window.setInterval(() => {
       void refreshConnection();
     }, CONNECTION_POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [refreshConnection]);
+  }, [authStatus, refreshConnection]);
+
+  useEffect(() => {
+    // Still probe health while anonymous so AuthGate can show backend status.
+    if (authStatus === "authenticated" || authStatus === "checking") {
+      return;
+    }
+    void refreshConnection();
+    const timer = window.setInterval(() => {
+      void refreshConnection();
+    }, CONNECTION_POLL_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [authStatus, refreshConnection]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    try {
-      window.localStorage.setItem(THEME_STORAGE_KEY, theme);
-    } catch {
-      // Ignore storage failures (private mode, quota, etc.).
-    }
+    writeStoredTheme(theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (user && authStatus === "authenticated") {
+      writeStoredPage(user.id, activePage);
+    }
+  }, [activePage, authStatus, user]);
+
+  useEffect(() => {
+    if (user && authStatus === "authenticated" && activeWorkspace) {
+      writeStoredWorkspaceId(user.id, activeWorkspace.id);
+    }
+  }, [activeWorkspace, authStatus, user]);
 
   const setTheme = useCallback((next: ThemeMode) => {
     setThemeState(next);
@@ -244,6 +369,50 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const setActiveModel = useCallback((selection: ActiveModelSelection) => {
     setActiveModelState(selection);
+  }, []);
+
+  const login = useCallback(
+    async (credentials: AuthCredentials) => {
+      const nextUser = await loginUser(credentials);
+      applyAuthenticatedUser(nextUser);
+    },
+    [applyAuthenticatedUser],
+  );
+
+  const register = useCallback(
+    async (credentials: AuthCredentials) => {
+      const nextUser = await registerUser(credentials);
+      applyAuthenticatedUser(nextUser);
+    },
+    [applyAuthenticatedUser],
+  );
+
+  const logout = useCallback(async () => {
+    try {
+      await logoutUser();
+    } catch (error) {
+      // Session may already be gone; still clear local authenticated state.
+      if (!(error instanceof ApiRequestError && error.status === 401)) {
+        throw error;
+      }
+    } finally {
+      setUser(null);
+      setAuthStatus("anonymous");
+      clearSessionScopedState({
+        setActiveWorkspace,
+        setWorkspaces,
+        setAvailableModels,
+        setActiveModelState,
+        setChatSeed,
+        setKnowledgeSeed,
+        setDocumentSeed,
+      });
+      setActivePage("chat");
+    }
+  }, []);
+
+  const acknowledgeSessionExpired = useCallback(() => {
+    setAuthStatus("anonymous");
   }, []);
 
   const startConversationAbout = useCallback(
@@ -281,6 +450,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AppStateValue>(
     () => ({
+      authStatus,
+      user,
       connection,
       activeWorkspace,
       workspaces,
@@ -299,6 +470,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setActiveModel,
       refreshConnection,
       refreshWorkspaces,
+      login,
+      register,
+      logout,
+      acknowledgeSessionExpired,
       startConversationAbout,
       clearChatSeed,
       openKnowledgeItem,
@@ -307,6 +482,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       clearDocumentSeed,
     }),
     [
+      authStatus,
+      user,
       connection,
       activeWorkspace,
       workspaces,
@@ -324,6 +501,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setActiveModel,
       refreshConnection,
       refreshWorkspaces,
+      login,
+      register,
+      logout,
+      acknowledgeSessionExpired,
       startConversationAbout,
       clearChatSeed,
       openKnowledgeItem,

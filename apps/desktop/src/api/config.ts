@@ -1,4 +1,8 @@
-/** Local API base URL. Desktop never embeds business logic; it calls the platform API. */
+/**
+ * Local API base URL. Desktop never embeds business logic; it calls the platform API.
+ * Default uses `127.0.0.1` to match `task backend` (uvicorn bind) and the Vite/Tauri
+ * origin so the `memovi_session` cookie stays same-site under SameSite=Lax.
+ */
 export const API_BASE_URL =
   import.meta.env.VITE_MEMOVI_API_BASE?.replace(/\/$/, "") ||
   "http://127.0.0.1:8000";

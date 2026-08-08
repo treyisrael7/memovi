@@ -7,9 +7,9 @@ This package implements Memovi's local authentication foundation. Authentication
 to establish ownership of knowledge in a self-hosted instance; it is not a generic SaaS
 identity system.
 
-The package uses secure HTTP-only session cookies, Argon2id password hashes, SQLAlchemy
-repositories, and Alembic-managed PostgreSQL tables. It intentionally does not implement
-JWT, OAuth, RBAC, or API keys.
+The package uses HTTP-only session cookies (Secure on HTTPS), Argon2id password
+hashes, SQLAlchemy repositories, and Alembic-managed PostgreSQL tables. It
+intentionally does not implement JWT, OAuth, RBAC, or API keys.
 
 ## Layers
 

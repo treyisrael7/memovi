@@ -1,3 +1,4 @@
+import { notifyUnauthorized } from "./authEvents";
 import { ApiRequestError, apiFetch, apiUrl, buildHeaders } from "./client";
 import type {
   AvailableModelsResponse,
@@ -109,6 +110,7 @@ export async function streamMessage(
   try {
     response = await fetch(url, {
       method: "POST",
+      credentials: "include",
       signal: input.signal,
       headers: buildHeaders(
         { workspaceId: input.workspaceId },
@@ -134,6 +136,9 @@ export async function streamMessage(
   }
 
   if (!response.ok || !response.body) {
+    if (response.status === 401) {
+      notifyUnauthorized();
+    }
     let detail: string | null = null;
     try {
       const payload = (await response.json()) as { detail?: unknown };

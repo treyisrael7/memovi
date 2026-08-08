@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 
 from auth.api.dependencies import (
     SESSION_COOKIE_NAME,
@@ -32,6 +32,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(
     request: AuthCredentialsRequest,
+    http_request: Request,
     response: Response,
     use_case: Annotated[RegisterUser, Depends(get_register_user)],
 ) -> UserResponse:
@@ -50,13 +51,18 @@ def register(
             detail=str(exc),
         ) from exc
 
-    set_session_cookie(response, result.session_token)
+    set_session_cookie(
+        response,
+        result.session_token,
+        secure=_cookie_secure(http_request),
+    )
     return UserResponse.model_validate(result.user)
 
 
 @router.post("/login", response_model=UserResponse)
 def login(
     request: AuthCredentialsRequest,
+    http_request: Request,
     response: Response,
     use_case: Annotated[LoginUser, Depends(get_login_user)],
 ) -> UserResponse:
@@ -73,18 +79,23 @@ def login(
             detail=str(exc),
         ) from exc
 
-    set_session_cookie(response, result.session_token)
+    set_session_cookie(
+        response,
+        result.session_token,
+        secure=_cookie_secure(http_request),
+    )
     return UserResponse.model_validate(result.user)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(
+    http_request: Request,
     response: Response,
     use_case: Annotated[LogoutUser, Depends(get_logout_user)],
     session_token: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
 ) -> None:
     use_case.execute(session_token)
-    clear_session_cookie(response)
+    clear_session_cookie(response, secure=_cookie_secure(http_request))
 
 
 @router.get("/me", response_model=UserResponse)
@@ -103,21 +114,26 @@ def me(
     return UserResponse.model_validate(user)
 
 
-def set_session_cookie(response: Response, session_token: str) -> None:
+def _cookie_secure(request: Request) -> bool:
+    """Use Secure cookies on HTTPS; allow local HTTP desktop sessions."""
+    return request.url.scheme == "https"
+
+
+def set_session_cookie(response: Response, session_token: str, *, secure: bool) -> None:
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=session_token,
         max_age=int(SESSION_TTL.total_seconds()),
         httponly=True,
-        secure=True,
+        secure=secure,
         samesite="lax",
     )
 
 
-def clear_session_cookie(response: Response) -> None:
+def clear_session_cookie(response: Response, *, secure: bool) -> None:
     response.delete_cookie(
         key=SESSION_COOKIE_NAME,
         httponly=True,
-        secure=True,
+        secure=secure,
         samesite="lax",
     )

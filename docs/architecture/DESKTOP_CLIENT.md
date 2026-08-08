@@ -27,8 +27,8 @@ automation.
 
 | Layer | Owns | Does not own |
 | --- | --- | --- |
-| `apps/desktop` | Window lifecycle, navigation shell, application UI state, theme, startup experience, backend connection management, conversation presentation | Documents, memory, search, intelligence, workspaces (domain rules), models, automation |
-| `apps/api` + `packages/*` | Domain rules, persistence, providers, workers, API contracts | Desktop windowing, UI layout, local theme preference |
+| `apps/desktop` | Window lifecycle, navigation shell, application UI state, theme, startup experience, backend connection management, conversation presentation, authentication presentation (login/register/logout, session restore) | Documents, memory, search, intelligence, workspaces (domain rules), models, automation, session issuance / password hashing |
+| `apps/api` + `packages/*` | Domain rules, persistence, providers, workers, API contracts, session cookies | Desktop windowing, UI layout, local theme preference |
 
 Desktop never:
 
@@ -36,14 +36,18 @@ Desktop never:
 * Embeds provider-specific AI logic
 * Duplicates ingestion, search ranking, or reasoning workflows
 * Owns workspace or document invariants
+* Stores passwords or session tokens in local storage
+* Issues or validates session credentials itself
 
 Desktop may:
 
-* Call platform HTTP APIs
+* Call platform HTTP APIs with cookie credentials
 * Cache presentation state for the current session
+* Restore last page / workspace preferences per user locally
 * Show connection and readiness status
 * Navigate between product pages
 * Render streaming tokens and markdown for conversation UX
+* Present login, registration, logout, and session-expiry UX over `/auth/*`
 
 # Package Layout
 
@@ -72,14 +76,22 @@ in the TypeScript frontend. Backend domains stay in Python packages.
 
 Local development defaults to `http://127.0.0.1:8000`.
 
-Override with `VITE_MEMOVI_API_BASE` when needed.
+Override with `VITE_MEMOVI_API_BASE` when needed. The Vite/Tauri origin defaults
+to `http://127.0.0.1:1420` so it stays same-site with the API and can send the
+`memovi_session` cookie under `SameSite=Lax`. Do not mix `localhost` and
+`127.0.0.1` across the webview and API base URL.
+
+All authenticated API calls use `credentials: "include"` (including SSE streams
+and document uploads) so the HttpOnly session cookie is attached. Desktop never
+reads or writes the cookie value itself.
 
 The shell probes:
 
-1. `GET /health` — process liveness
-2. `GET /ready` — dependency readiness (database, migrations, search, workspace, …)
-3. `GET /workspaces` — populate the workspace selector when the API is reachable
-4. `GET /conversations/models` — populate the model selector
+1. `GET /auth/me` — restore or reject the session before product pages load
+2. `GET /health` — process liveness
+3. `GET /ready` — dependency readiness (database, migrations, search, workspace, …)
+4. `GET /workspaces` — populate the workspace selector when authenticated and reachable
+5. `GET /conversations/models` — populate the model selector
 
 Diagnostics for connection status, environment, and per-component readiness are
 also surfaced to the user directly in Settings → Diagnostics, so operators do
@@ -105,6 +117,56 @@ The API allows local desktop and web origins through CORS so presentation
 clients can call the same contracts from a browser-like webview without embedding
 a second transport stack.
 
+# Authentication
+
+Desktop is the primary authenticated client over the existing local
+email/password + HttpOnly session cookie architecture. It does not introduce
+JWTs, alternate session stores, or client-side password persistence. Server
+auth remains documented in [`AUTHORIZATION.md`](AUTHORIZATION.md).
+
+## Flow
+
+```text
+App start
+  │
+  ├─ authStatus = checking
+  ├─ GET /auth/me  (cookie credentials)
+  │     ├─ 200 → authenticated → restore page/workspace prefs → Shell
+  │     └─ 401 / network → anonymous → AuthGate (login / register)
+  │
+Login / Register
+  │
+  ├─ POST /auth/login or /auth/register  { email, password }
+  ├─ Set-Cookie: memovi_session (HttpOnly; Secure on HTTPS)
+  └─ authenticated → Shell (workspaces + models load)
+
+Logout (Settings → Account)
+  │
+  ├─ confirmation dialog
+  ├─ POST /auth/logout
+  ├─ clear local shell state (workspace, models, seeds)
+  └─ anonymous → AuthGate
+
+401 on a protected API call while authenticated
+  │
+  ├─ session_expired dialog
+  └─ acknowledge → AuthGate
+```
+
+## Session lifecycle
+
+| Event | Behavior |
+| --- | --- |
+| Restore | Startup calls `GET /auth/me`. Success opens the product shell; failure shows auth screens only. |
+| Persist | Browser/WebView stores the HttpOnly cookie. Desktop does not copy tokens into `localStorage`. |
+| Preferences | Theme is local. Last page and active workspace id are restored per user id after login. |
+| Logout | Revokes the server session, clears the cookie, and resets shell state. |
+| Expiry / revoke | Protected `apiFetch` / stream / upload paths notify auth state on `401` and surface the session-expired dialog. |
+
+Unauthenticated users never reach the product shell or page registry. There is
+no client-side route library; `App` gates on `authStatus` before rendering
+`Shell`.
+
 # Application Shell
 
 The shell provides:
@@ -115,7 +177,8 @@ The shell provides:
 * Main content area
 * Status bar with connection details and retry
 * Light / dark theme toggle (persisted locally)
-* Startup connection detection
+* Startup connection detection after authentication
+* Account email in the top bar; sign-out from Settings → Account
 * Design-system UI primitives (`components/ui/`) for layout, inputs, feedback,
   display, and navigation — used consistently across every page. See
   [`../design/DESIGN_SYSTEM.md`](../design/DESIGN_SYSTEM.md).
@@ -198,8 +261,8 @@ Pages are registered in `src/navigation/pages.ts`. Every entry is implemented:
 * **Workflows** — library, run, progress, history
 * **Activity** — a cross-domain timeline of what happened in the workspace
   (see below)
-* **Settings** — model, workspace, capability policy, appearance, and
-  diagnostics (see below)
+* **Settings** — model, workspace, capability policy, appearance, account
+  (sign-out), and diagnostics (see below)
 
 Each page consumes existing platform APIs only; none owns business logic:
 
@@ -298,6 +361,7 @@ observability and audit data in product terms.
 Settings consolidates configuration that previously had no dedicated home:
 
 * **General** — active model (`/conversations/models`) and theme
+* **Account** — signed-in email and confirmed sign-out (`POST /auth/logout`)
 * **Workspaces** — list, switch, and create workspaces (`/workspaces`)
 * **Capabilities** — per-capability permission mode
   (`PUT /capabilities/{id}/permission-mode`); the server remains the sole
@@ -306,8 +370,8 @@ Settings consolidates configuration that previously had no dedicated home:
   the top bar and status bar, presented with per-component detail
 
 Settings never exposes internal implementation details (table names, provider
-SDK identifiers, queue internals); it speaks in product terms (model,
-workspace, capability, appearance, diagnostics).
+SDK identifiers, queue internals, or session token values); it speaks in product
+terms (model, workspace, capability, appearance, account, diagnostics).
 
 # Running Locally
 
@@ -336,3 +400,4 @@ pnpm --filter @memovi/desktop tauri:dev
 * [`KNOWLEDGE_EXPLORER.md`](KNOWLEDGE_EXPLORER.md) — knowledge inspection surface
 * [`MODEL_PROVIDER_FRAMEWORK.md`](MODEL_PROVIDER_FRAMEWORK.md) — model abstractions
 * [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) — future desktop capabilities
+* [`AUTHORIZATION.md`](AUTHORIZATION.md) — server session and authorization model

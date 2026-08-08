@@ -1,3 +1,4 @@
+import { notifyUnauthorized, shouldSuppressUnauthorizedNotify } from "./authEvents";
 import { API_BASE_URL, WORKSPACE_ID_HEADER } from "./config";
 
 export class ApiRequestError extends Error {
@@ -42,6 +43,12 @@ function buildHeaders(
   return headers;
 }
 
+function maybeNotifyUnauthorized(path: string, status: number): void {
+  if (status === 401 && !shouldSuppressUnauthorizedNotify(path)) {
+    notifyUnauthorized();
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   init?: ApiFetchOptions,
@@ -64,6 +71,7 @@ export async function apiFetch<T>(
   }
 
   if (!response.ok) {
+    maybeNotifyUnauthorized(path, response.status);
     let detail: string | null = null;
     try {
       const payload = (await response.json()) as { detail?: unknown };

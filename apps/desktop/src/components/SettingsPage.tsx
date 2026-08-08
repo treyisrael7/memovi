@@ -11,6 +11,7 @@ import { type ThemeMode, useAppState } from "../state/AppStateContext";
 import { Alert } from "./ui/Alert";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
+import { ConfirmationDialog } from "./ui/ConfirmDialog";
 import { Dropdown } from "./ui/Dropdown";
 import { EmptyState } from "./ui/EmptyState";
 import { LoadingState } from "./ui/LoadingState";
@@ -18,10 +19,15 @@ import { TextInput } from "./ui/TextInput";
 import { useToast } from "./ui/ToastContext";
 
 type SettingsSection =
-  "general" | "workspaces" | "capabilities" | "diagnostics";
+  | "general"
+  | "account"
+  | "workspaces"
+  | "capabilities"
+  | "diagnostics";
 
 const SECTIONS: ReadonlyArray<{ id: SettingsSection; label: string }> = [
   { id: "general", label: "General" },
+  { id: "account", label: "Account" },
   { id: "workspaces", label: "Workspaces" },
   { id: "capabilities", label: "Capabilities" },
   { id: "diagnostics", label: "Diagnostics" },
@@ -82,6 +88,62 @@ function GeneralSection() {
           { value: "dark", label: "Dark" },
         ]}
       />
+    </div>
+  );
+}
+
+function AccountSection() {
+  const { user, logout } = useAppState();
+  const { showToast } = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function handleLogout() {
+    setBusy(true);
+    try {
+      await logout();
+      showToast("Signed out.", "ok");
+    } catch (err) {
+      showToast(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Failed to sign out. Try again.",
+        "bad",
+      );
+      setBusy(false);
+      setConfirmOpen(false);
+    }
+  }
+
+  return (
+    <div className="settings-section">
+      <h2>Account</h2>
+      <p className="muted">
+        You are signed in with a server-managed session. Memovi never stores
+        your password on this device.
+      </p>
+      <dl className="meta-grid">
+        <div className="meta-card">
+          <dt>Email</dt>
+          <dd>{user?.email ?? "—"}</dd>
+        </div>
+      </dl>
+      <Button variant="danger" onClick={() => setConfirmOpen(true)}>
+        Sign out
+      </Button>
+      {confirmOpen ? (
+        <ConfirmationDialog
+          title="Sign out?"
+          description="You will need to sign in again to access your workspaces and knowledge."
+          confirmLabel="Sign out"
+          tone="danger"
+          busy={busy}
+          onConfirm={() => void handleLogout()}
+          onCancel={() => {
+            if (!busy) setConfirmOpen(false);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -355,6 +417,7 @@ export function SettingsPage() {
       </nav>
       <div className="settings-content">
         {section === "general" ? <GeneralSection /> : null}
+        {section === "account" ? <AccountSection /> : null}
         {section === "workspaces" ? <WorkspacesSection /> : null}
         {section === "capabilities" ? <CapabilitiesSection /> : null}
         {section === "diagnostics" ? <DiagnosticsSection /> : null}
