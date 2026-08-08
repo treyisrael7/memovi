@@ -118,7 +118,8 @@ Intelligence still uses its own gateway; migration to `memovi_models` is tracked
 7. **Remove deprecated `/search/semantic`** — After confirming no clients depend on it.
 8. **Populate root integration tests** — Replace `tests/` placeholders with cross-package
    architecture tests.
-9. **Durable workflow history** — Replace in-memory workflow history store with persistence.
+9. **Durable workflow history** — Replaced in-memory workflow history/library with
+   durable persistence (`WORKFLOW_ENGINE.md`, Milestone 39).
 10. **Architecture Decision Records** — Add `docs/adr/` when the team wants formal ADR tracking;
     remove references until then (done in this pass).
 

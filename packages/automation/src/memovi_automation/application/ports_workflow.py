@@ -23,6 +23,29 @@ class WorkflowLibrary(Protocol):
         raise NotImplementedError
 
     def register(self, definition: WorkflowDefinition) -> None:
+        """Create or replace a workflow definition (upsert)."""
+        raise NotImplementedError
+
+    def create(self, definition: WorkflowDefinition) -> WorkflowDefinition:
+        """Persist a new workflow definition. Raises if the id already exists."""
+        raise NotImplementedError
+
+    def update(self, definition: WorkflowDefinition) -> WorkflowDefinition:
+        """Replace an existing workflow definition. Raises if missing."""
+        raise NotImplementedError
+
+    def delete(self, workflow_id: str) -> None:
+        """Remove a workflow definition. Raises if missing or built-in protected."""
+        raise NotImplementedError
+
+    def duplicate(
+        self,
+        workflow_id: str,
+        *,
+        new_workflow_id: str | None = None,
+        name: str | None = None,
+    ) -> WorkflowDefinition:
+        """Copy an existing definition under a new id."""
         raise NotImplementedError
 
 
@@ -57,4 +80,21 @@ class WorkflowHistoryStore(Protocol):
         raise NotImplementedError
 
     def store_result(self, result: WorkflowExecutionResult) -> None:
+        """Persist or upsert a full workflow execution result."""
+        raise NotImplementedError
+
+    def list_by_status(
+        self,
+        *,
+        status: str,
+    ) -> tuple[WorkflowExecutionResult, ...]:
+        """List executions matching a status (used for startup recovery)."""
+        raise NotImplementedError
+
+    def fail_interrupted_executions(
+        self,
+        *,
+        reason: str,
+    ) -> tuple[WorkflowExecutionResult, ...]:
+        """Mark interrupted non-terminal runs as failed; avoid duplicate resume."""
         raise NotImplementedError

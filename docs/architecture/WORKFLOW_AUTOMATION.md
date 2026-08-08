@@ -128,13 +128,20 @@ Stored per workspace:
 * Workflow name
 * Execution timestamp
 * Workspace
+* User
 * Duration
 * Result summary
+* Executed / failed steps
+* Error details
 * Executed capabilities
 * Audit references
 
-Default store is process-local (`InMemoryWorkflowHistoryStore`). Durable
-persistence remains future work.
+Default production store is durable Postgres (`SqlAlchemyWorkflowHistoryStore`,
+table `automation_workflow_history`). Process-local
+`InMemoryWorkflowHistoryStore` remains available for tests.
+
+See [`WORKFLOW_ENGINE.md`](WORKFLOW_ENGINE.md) for persistence, recovery, and
+versioning details.
 
 # Planner Integration
 
@@ -177,6 +184,8 @@ are registered.
 * `workflow.execute.start` / `workflow.execute.finish` — include `workflow_id`
 * `workflow.step.execute` — one log per step with `workflow_id`, `step_id`,
   `capability_id`, `plan_id`, `execution_id`
+* Metrics: duration, success/failure/awaiting/cancelled rates, recovery count
+  (see [`WORKFLOW_ENGINE.md`](WORKFLOW_ENGINE.md))
 
 Ambient HTTP `request_id` / `correlation_id` from `RequestContext` are stamped
 onto every log line and copied into plan/step metadata so they propagate through
@@ -185,7 +194,11 @@ Capability Execution Engine audit entries.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/workflows` | List library (capabilities available) |
+| `POST` | `/workflows` | Create definition |
 | `GET` | `/workflows/{id}` | Get definition |
+| `PUT` | `/workflows/{id}` | Update definition |
+| `DELETE` | `/workflows/{id}` | Delete definition |
+| `POST` | `/workflows/{id}/duplicate` | Duplicate definition |
 | `POST` | `/workflows/{id}/execute` | Run with variables |
 | `GET` | `/workflows/history` | List history |
 | `GET` | `/workflows/history/{instance_id}` | Full result |
@@ -195,7 +208,6 @@ Capability Execution Engine audit entries.
 * Loops, parallel fans, conditionals
 * Background / scheduled workflow runners
 * Resume-after-approval of remaining steps in one instance
-* Durable cross-process history
 * LLM-authored workflow graphs
 
 # Future Compatibility
@@ -203,12 +215,13 @@ Capability Execution Engine audit entries.
 Reserved extensions:
 
 * Conditional / loop step kinds on workflow definitions
-* Durable history and approval resume
+* Approval resume across multi-step instances
 * Intelligence-selected workflows from conversation intent
 * Background Activity page integration
 
 # Related Documents
 
+* [`WORKFLOW_ENGINE.md`](WORKFLOW_ENGINE.md)
 * [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md)
 * [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md)
 * [`CAPABILITY_PLANNER.md`](CAPABILITY_PLANNER.md)

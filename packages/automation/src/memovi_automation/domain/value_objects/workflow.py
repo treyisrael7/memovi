@@ -147,6 +147,10 @@ class WorkflowDefinition:
     expected_outputs: tuple[str, ...] = ()
     required_capabilities: tuple[str, ...] = ()
     metadata: Mapping[str, object] = field(default_factory=dict)
+    version: int = 1
+    workspace_id: str | None = None
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def __post_init__(self) -> None:
         workflow_id = self.workflow_id.strip()
@@ -160,6 +164,11 @@ class WorkflowDefinition:
             raise InvalidWorkflowError(
                 "Workflow must contain at least one step.",
                 code="empty_workflow",
+            )
+        if self.version < 1:
+            raise InvalidWorkflowError(
+                "Workflow version must be >= 1.",
+                code="invalid_version",
             )
 
         step_ids = [step.step_id for step in self.steps]
@@ -180,6 +189,7 @@ class WorkflowDefinition:
             dict.fromkeys(step.capability_id for step in self.steps)
         )
         outputs = tuple(item.strip() for item in self.expected_outputs if str(item).strip())
+        workspace = None if self.workspace_id is None else str(self.workspace_id).strip() or None
 
         object.__setattr__(self, "workflow_id", workflow_id)
         object.__setattr__(self, "name", name)
@@ -189,12 +199,50 @@ class WorkflowDefinition:
         object.__setattr__(self, "expected_outputs", outputs)
         object.__setattr__(self, "required_capabilities", tuple(required))
         object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))
+        object.__setattr__(self, "version", int(self.version))
+        object.__setattr__(self, "workspace_id", workspace)
+        object.__setattr__(self, "created_at", _as_utc(self.created_at))
+        object.__setattr__(self, "updated_at", _as_utc(self.updated_at))
 
     def variable_map(self) -> dict[str, WorkflowVariable]:
         return {variable.name: variable for variable in self.variables}
 
     def step_map(self) -> dict[str, WorkflowStep]:
         return {step.step_id: step for step in self.steps}
+
+    def with_updates(
+        self,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        steps: tuple[WorkflowStep, ...] | None = None,
+        variables: tuple[WorkflowVariable, ...] | None = None,
+        expected_outputs: tuple[str, ...] | None = None,
+        required_capabilities: tuple[str, ...] | None = None,
+        metadata: Mapping[str, object] | None = None,
+        bump_version: bool = True,
+    ) -> WorkflowDefinition:
+        """Return an updated definition, optionally incrementing ``version``."""
+        return WorkflowDefinition(
+            workflow_id=self.workflow_id,
+            name=self.name if name is None else name,
+            description=self.description if description is None else description,
+            steps=self.steps if steps is None else steps,
+            variables=self.variables if variables is None else variables,
+            expected_outputs=(
+                self.expected_outputs if expected_outputs is None else expected_outputs
+            ),
+            required_capabilities=(
+                self.required_capabilities
+                if required_capabilities is None
+                else required_capabilities
+            ),
+            metadata=self.metadata if metadata is None else metadata,
+            version=self.version + 1 if bump_version else self.version,
+            workspace_id=self.workspace_id,
+            created_at=self.created_at,
+            updated_at=datetime.now(UTC),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -329,6 +377,11 @@ class WorkflowHistoryEntry:
     result_summary: Mapping[str, object]
     executed_capabilities: tuple[str, ...]
     audit_references: tuple[str, ...] = ()
+    user_id: str | None = None
+    completed_at: datetime | None = None
+    executed_steps: tuple[str, ...] = ()
+    failed_steps: tuple[str, ...] = ()
+    error_details: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -342,6 +395,18 @@ class WorkflowHistoryEntry:
             tuple(self.executed_capabilities),
         )
         object.__setattr__(self, "audit_references", tuple(self.audit_references))
+        object.__setattr__(self, "executed_steps", tuple(self.executed_steps))
+        object.__setattr__(self, "failed_steps", tuple(self.failed_steps))
+        object.__setattr__(self, "error_details", tuple(self.error_details))
+        if self.completed_at is not None:
+            object.__setattr__(self, "completed_at", _as_utc(self.completed_at))
+        object.__setattr__(self, "executed_at", _as_utc(self.executed_at))
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def extract_variable_references(value: object) -> tuple[str, ...]:

@@ -13,8 +13,6 @@ from memovi_automation import (
     CapabilityRegistry,
     FilesystemCapabilityConfig,
     GitCapabilityConfig,
-    InMemoryWorkflowHistoryStore,
-    InMemoryWorkflowLibrary,
     PermissionMode,
     PlanExecutionService,
     TerminalCapabilityConfig,
@@ -36,6 +34,12 @@ from memovi_automation.infrastructure.sqlalchemy_execution_state_store import (
 )
 from memovi_automation.infrastructure.sqlalchemy_permission_policy_store import (
     SqlAlchemyPermissionPolicyStore,
+)
+from memovi_automation.infrastructure.sqlalchemy_workflow_history_store import (
+    SqlAlchemyWorkflowHistoryStore,
+)
+from memovi_automation.infrastructure.sqlalchemy_workflow_library import (
+    SqlAlchemyWorkflowLibrary,
 )
 from memovi_config.settings.capabilities import CapabilitiesSettings
 from memovi_shared import DEFAULT_WORKSPACE_ID
@@ -136,14 +140,28 @@ def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
         pass
     planner = CapabilityPlanner(registry=registry)
     plan_execution = PlanExecutionService(engine=engine, planner=planner)
-    workflow_history_store = InMemoryWorkflowHistoryStore()
+    try:
+        workflow_library: object = SqlAlchemyWorkflowLibrary(db_factory)  # type: ignore[arg-type]
+        workflow_history_store: object = SqlAlchemyWorkflowHistoryStore(db_factory)  # type: ignore[arg-type]
+        # Probe history recovery path so missing tables fall back together.
+        workflow_history_store.list_by_status(status="running")  # type: ignore[attr-defined]
+    except Exception:
+        from memovi_automation import InMemoryWorkflowHistoryStore, InMemoryWorkflowLibrary
+
+        workflow_library = InMemoryWorkflowLibrary()
+        workflow_history_store = InMemoryWorkflowHistoryStore()
     workflow_engine = WorkflowEngine(
-        library=InMemoryWorkflowLibrary(),
+        library=workflow_library,  # type: ignore[arg-type]
         planner=planner,
         plan_execution=plan_execution,
-        history=workflow_history_store,
+        history=workflow_history_store,  # type: ignore[arg-type]
         validator=WorkflowValidator(registry=registry),
     )
+    try:
+        workflow_engine.recover_interrupted_workflows()
+    except Exception:
+        # Local/unit app construction may run before migrations/tables exist.
+        pass
 
     app.state.capability_registry = registry
     app.state.capability_invoker = invoker
@@ -157,6 +175,7 @@ def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
     )
     app.state.workflow_engine = workflow_engine
     app.state.workflow_history_store = workflow_history_store
+    app.state.workflow_library = workflow_library
     app.state.filesystem_allowed_roots = roots
     app.state.terminal_allowed_roots = terminal_roots
     app.state.git_allowed_roots = git_roots

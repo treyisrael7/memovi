@@ -14,7 +14,7 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from time import perf_counter
 
-from memovi_observability import get_logger, get_request_context
+from memovi_observability import get_logger, get_metrics_recorder, get_request_context
 from memovi_observability.logging.structured import log_operation
 from memovi_shared import WorkspaceId
 
@@ -44,6 +44,8 @@ from memovi_automation.domain.value_objects.workflow import (
 
 LOGGER = get_logger("memovi.automation.workflow")
 
+_INTERRUPT_REASON = "Workflow interrupted by application restart."
+
 
 class WorkflowEngine:
     """Execute reusable workflows as sequential planner-backed capability plans."""
@@ -56,12 +58,15 @@ class WorkflowEngine:
         plan_execution: PlanExecutionService,
         history: WorkflowHistoryStore,
         validator: WorkflowValidator | None = None,
+        recover_on_init: bool = False,
     ) -> None:
         self._library = library
         self._planner = planner
         self._plan_execution = plan_execution
         self._history = history
         self._validator = validator or WorkflowValidator(registry=planner.registry)
+        if recover_on_init:
+            self.recover_interrupted_workflows()
 
     @property
     def library(self) -> WorkflowLibrary:
@@ -98,6 +103,22 @@ class WorkflowEngine:
                     continue
                 raise
         return tuple(available)
+
+    def recover_interrupted_workflows(self) -> tuple[WorkflowExecutionResult, ...]:
+        """Mark interrupted ``running`` workflows failed without re-executing steps.
+
+        ``awaiting_approval`` rows are left intact so clients can continue through
+        the Capability Execution Engine approval path after restart.
+        """
+        recovered = self._history.fail_interrupted_executions(reason=_INTERRUPT_REASON)
+        if recovered:
+            log_operation(
+                LOGGER,
+                operation="workflow.recover",
+                status="success",
+                recovered_count=len(recovered),
+            )
+        return recovered
 
     def materialize_plan(
         self,
@@ -199,6 +220,7 @@ class WorkflowEngine:
         run_metadata = {} if metadata is None else dict(metadata)
         if request_id is not None:
             run_metadata.setdefault("request_id", request_id)
+        run_metadata.setdefault("user_id", auth_context.user_id)
 
         instance = WorkflowInstance.create(
             workflow=definition,
@@ -225,6 +247,26 @@ class WorkflowEngine:
             workflow_instance_id=instance.instance_id,
             workspace_id=workspace,
             step_count=len(definition.steps),
+        )
+
+        # Persist running state early so restarts can detect interrupted work.
+        self._persist_progress(
+            instance_id=instance.instance_id,
+            definition=definition,
+            workspace=workspace,
+            status="running",
+            completed=completed,
+            failed=failed,
+            step_results=step_results,
+            errors=errors,
+            audit_refs=audit_refs,
+            outputs={},
+            started_at=started_at,
+            finished_at=None,
+            duration=0.0,
+            context=context,
+            run_metadata=run_metadata,
+            conversation_id=conversation_id,
         )
 
         for step in definition.steps:
@@ -376,6 +418,26 @@ class WorkflowEngine:
                     bindings[name] = read_output_path(plan_step.output, path)
                 context = context.with_bound_values(bindings)
 
+            # Checkpoint after each successful step (no re-execution on restart).
+            self._persist_progress(
+                instance_id=instance.instance_id,
+                definition=definition,
+                workspace=workspace,
+                status="running",
+                completed=completed,
+                failed=failed,
+                step_results=step_results,
+                errors=errors,
+                audit_refs=audit_refs,
+                outputs=_collect_outputs(definition, context),
+                started_at=started_at,
+                finished_at=None,
+                duration=perf_counter() - started,
+                context=context,
+                run_metadata=run_metadata,
+                conversation_id=conversation_id,
+            )
+
         finished_at = datetime.now(UTC)
         outputs = _collect_outputs(definition, context)
         result = WorkflowExecutionResult(
@@ -412,7 +474,83 @@ class WorkflowEngine:
             failed_steps=len(failed),
         )
         self._record_history(result, context)
+        self._record_metrics(result)
         return result
+
+    def _persist_progress(
+        self,
+        *,
+        instance_id: str,
+        definition: WorkflowDefinition,
+        workspace: str,
+        status: str,
+        completed: list[str],
+        failed: list[str],
+        step_results: list[WorkflowStepResult],
+        errors: list[str],
+        audit_refs: list[str],
+        outputs: Mapping[str, object],
+        started_at: datetime,
+        finished_at: datetime | None,
+        duration: float,
+        context: WorkflowContext,
+        run_metadata: Mapping[str, object],
+        conversation_id: str | None,
+    ) -> None:
+        result = WorkflowExecutionResult(
+            instance_id=instance_id,
+            workflow_id=definition.workflow_id,
+            workflow_name=definition.name,
+            workspace_id=workspace,
+            status=status,
+            completed_steps=tuple(completed),
+            failed_steps=tuple(failed),
+            step_results=tuple(step_results),
+            duration=duration,
+            outputs=dict(outputs),
+            errors=tuple(errors),
+            audit_references=tuple(audit_refs),
+            started_at=started_at,
+            finished_at=finished_at,
+            metadata={
+                "required_capabilities": list(definition.required_capabilities),
+                "conversation_id": conversation_id,
+                **dict(run_metadata),
+            },
+        )
+        self._history.store_result(result)
+        # Keep summary row aligned for history list views during long runs.
+        entry = WorkflowHistoryEntry(
+            instance_id=result.instance_id,
+            workflow_id=result.workflow_id,
+            workflow_name=result.workflow_name,
+            workspace_id=result.workspace_id,
+            status=result.status,
+            executed_at=result.started_at,
+            duration=result.duration,
+            result_summary={
+                "status": result.status,
+                "completed_steps": list(result.completed_steps),
+                "failed_steps": list(result.failed_steps),
+                "outputs": dict(result.outputs),
+                "errors": list(result.errors),
+                "variables": dict(context.variables),
+            },
+            executed_capabilities=tuple(
+                dict.fromkeys(
+                    step.capability_id
+                    for step in result.step_results
+                    if step.execution_id is not None
+                )
+            ),
+            audit_references=result.audit_references,
+            user_id=_meta_str(run_metadata, "user_id"),
+            completed_at=result.finished_at,
+            executed_steps=result.completed_steps,
+            failed_steps=result.failed_steps,
+            error_details=result.errors,
+        )
+        self._history.append(entry)
 
     def _record_history(
         self,
@@ -444,9 +582,50 @@ class WorkflowEngine:
             },
             executed_capabilities=capabilities,
             audit_references=result.audit_references,
+            user_id=_meta_str(result.metadata, "user_id"),
+            completed_at=result.finished_at,
+            executed_steps=result.completed_steps,
+            failed_steps=result.failed_steps,
+            error_details=result.errors,
         )
         self._history.append(entry)
         self._history.store_result(result)
+
+    def _record_metrics(self, result: WorkflowExecutionResult) -> None:
+        metrics = get_metrics_recorder()
+        metrics.timing(
+            "memovi.workflows.execution.duration_ms",
+            result.duration * 1000,
+            tags={"status": result.status, "workflow_id": result.workflow_id},
+        )
+        if result.status == "completed":
+            metrics.increment(
+                "memovi.workflows.execution.completed",
+                tags={"workflow_id": result.workflow_id},
+            )
+        elif result.status == "failed":
+            metrics.increment(
+                "memovi.workflows.execution.failed",
+                tags={"workflow_id": result.workflow_id},
+            )
+        elif result.status == "cancelled":
+            metrics.increment(
+                "memovi.workflows.execution.cancelled",
+                tags={"workflow_id": result.workflow_id},
+            )
+        elif result.status == "awaiting_approval":
+            metrics.increment(
+                "memovi.workflows.execution.awaiting_approval",
+                tags={"workflow_id": result.workflow_id},
+            )
+
+
+def _meta_str(metadata: Mapping[str, object], key: str) -> str | None:
+    value = metadata.get(key)
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _step_output_refs(mapping: Mapping[str, object]) -> tuple[str, ...]:

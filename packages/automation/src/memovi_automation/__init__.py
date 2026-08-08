@@ -120,6 +120,8 @@ from memovi_automation.infrastructure import (
     SqlAlchemyExecutionAuditStore,
     SqlAlchemyExecutionStateStore,
     SqlAlchemyPermissionPolicyStore,
+    SqlAlchemyWorkflowHistoryStore,
+    SqlAlchemyWorkflowLibrary,
     built_in_workflows,
 )
 from memovi_automation.terminal import (
@@ -209,6 +211,8 @@ __all__ = [
     "SqlAlchemyExecutionAuditStore",
     "SqlAlchemyExecutionStateStore",
     "SqlAlchemyPermissionPolicyStore",
+    "SqlAlchemyWorkflowHistoryStore",
+    "SqlAlchemyWorkflowLibrary",
     "TerminalCapability",
     "TerminalCapabilityConfig",
     "UnknownCapabilityError",

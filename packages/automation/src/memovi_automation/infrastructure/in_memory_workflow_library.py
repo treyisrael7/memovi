@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from threading import Lock
+from uuid import uuid4
 
-from memovi_automation.domain.exceptions import UnknownWorkflowError
+from memovi_automation.domain.exceptions import InvalidWorkflowError, UnknownWorkflowError
 from memovi_automation.domain.value_objects.workflow import (
     WorkflowDefinition,
     WorkflowStep,
@@ -39,6 +41,7 @@ def built_in_workflows() -> tuple[WorkflowDefinition, ...]:
                 ),
             ),
             expected_outputs=("entries", "count"),
+            metadata={"builtin": True},
         ),
         WorkflowDefinition(
             workflow_id="summarize-git-status",
@@ -76,6 +79,7 @@ def built_in_workflows() -> tuple[WorkflowDefinition, ...]:
                 ),
             ),
             expected_outputs=("git_status", "recent_commits"),
+            metadata={"builtin": True},
         ),
         WorkflowDefinition(
             workflow_id="inspect-then-list",
@@ -111,6 +115,7 @@ def built_in_workflows() -> tuple[WorkflowDefinition, ...]:
                 ),
             ),
             expected_outputs=("resolved_path", "entries"),
+            metadata={"builtin": True},
         ),
         WorkflowDefinition(
             workflow_id="run-command",
@@ -149,6 +154,7 @@ def built_in_workflows() -> tuple[WorkflowDefinition, ...]:
                 ),
             ),
             expected_outputs=("exit_code", "stdout"),
+            metadata={"builtin": True},
         ),
         WorkflowDefinition(
             workflow_id="download-and-verify",
@@ -198,8 +204,13 @@ def built_in_workflows() -> tuple[WorkflowDefinition, ...]:
                 ),
             ),
             expected_outputs=("downloaded_path", "bytes_written", "file_exists"),
+            metadata={"builtin": True},
         ),
     )
+
+
+def _is_builtin(definition: WorkflowDefinition) -> bool:
+    return bool(definition.metadata.get("builtin"))
 
 
 class InMemoryWorkflowLibrary:
@@ -238,3 +249,89 @@ class InMemoryWorkflowLibrary:
     def register(self, definition: WorkflowDefinition) -> None:
         with self._lock:
             self._definitions[definition.workflow_id] = definition
+
+    def create(self, definition: WorkflowDefinition) -> WorkflowDefinition:
+        with self._lock:
+            if definition.workflow_id in self._definitions:
+                raise InvalidWorkflowError(
+                    f"Workflow '{definition.workflow_id}' already exists.",
+                    code="workflow_exists",
+                    details={"workflow_id": definition.workflow_id},
+                )
+            self._definitions[definition.workflow_id] = definition
+        return definition
+
+    def update(self, definition: WorkflowDefinition) -> WorkflowDefinition:
+        with self._lock:
+            existing = self._definitions.get(definition.workflow_id)
+            if existing is None:
+                raise UnknownWorkflowError(
+                    f"Unknown workflow '{definition.workflow_id}'.",
+                    workflow_id=definition.workflow_id,
+                )
+            if _is_builtin(existing):
+                raise InvalidWorkflowError(
+                    f"Built-in workflow '{definition.workflow_id}' cannot be updated.",
+                    code="builtin_immutable",
+                    details={"workflow_id": definition.workflow_id},
+                )
+            updated = WorkflowDefinition(
+                workflow_id=definition.workflow_id,
+                name=definition.name,
+                description=definition.description,
+                steps=definition.steps,
+                variables=definition.variables,
+                expected_outputs=definition.expected_outputs,
+                required_capabilities=definition.required_capabilities,
+                metadata=definition.metadata,
+                version=max(existing.version + 1, definition.version),
+                workspace_id=definition.workspace_id
+                if definition.workspace_id is not None
+                else existing.workspace_id,
+                created_at=existing.created_at,
+                updated_at=datetime.now(UTC),
+            )
+            self._definitions[definition.workflow_id] = updated
+        return updated
+
+    def delete(self, workflow_id: str) -> None:
+        key = workflow_id.strip()
+        with self._lock:
+            existing = self._definitions.get(key)
+            if existing is None:
+                raise UnknownWorkflowError(
+                    f"Unknown workflow '{workflow_id}'.",
+                    workflow_id=workflow_id,
+                )
+            if _is_builtin(existing):
+                raise InvalidWorkflowError(
+                    f"Built-in workflow '{workflow_id}' cannot be deleted.",
+                    code="builtin_immutable",
+                    details={"workflow_id": workflow_id},
+                )
+            del self._definitions[key]
+
+    def duplicate(
+        self,
+        workflow_id: str,
+        *,
+        new_workflow_id: str | None = None,
+        name: str | None = None,
+    ) -> WorkflowDefinition:
+        source = self.get(workflow_id)
+        new_id = (new_workflow_id or f"{source.workflow_id}-copy-{uuid4().hex[:8]}").strip()
+        copy = WorkflowDefinition(
+            workflow_id=new_id,
+            name=(name or f"Copy of {source.name}").strip(),
+            description=source.description,
+            steps=source.steps,
+            variables=source.variables,
+            expected_outputs=source.expected_outputs,
+            required_capabilities=source.required_capabilities,
+            metadata={k: v for k, v in source.metadata.items() if k != "builtin"},
+            version=1,
+            workspace_id=source.workspace_id,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        )
+        return self.create(copy)

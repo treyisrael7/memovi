@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from memovi_observability import get_request_context
 from memovi_shared import WorkspaceId
 
@@ -14,7 +15,10 @@ from memovi_automation.api.dependencies import (
     get_workflow_engine,
 )
 from memovi_automation.api.workflow_schemas import (
+    CreateWorkflowRequest,
+    DuplicateWorkflowRequest,
     ExecuteWorkflowRequest,
+    UpdateWorkflowRequest,
     WorkflowDefinitionResponse,
     WorkflowExecutionResultResponse,
     WorkflowHistoryEntryResponse,
@@ -36,6 +40,8 @@ from memovi_automation.domain.value_objects.workflow import (
     WorkflowDefinition,
     WorkflowExecutionResult,
     WorkflowHistoryEntry,
+    WorkflowStep,
+    WorkflowVariable,
 )
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
@@ -71,6 +77,10 @@ def _definition_response(definition: WorkflowDefinition) -> WorkflowDefinitionRe
         required_capabilities=list(definition.required_capabilities),
         expected_outputs=list(definition.expected_outputs),
         metadata=dict(definition.metadata),
+        version=definition.version,
+        workspace_id=definition.workspace_id,
+        created_at=definition.created_at,
+        updated_at=definition.updated_at,
     )
 
 
@@ -120,6 +130,39 @@ def _history_response(entry: WorkflowHistoryEntry) -> WorkflowHistoryEntryRespon
         result_summary=dict(entry.result_summary),
         executed_capabilities=list(entry.executed_capabilities),
         audit_references=list(entry.audit_references),
+        user_id=entry.user_id,
+        completed_at=entry.completed_at,
+        executed_steps=list(entry.executed_steps),
+        failed_steps=list(entry.failed_steps),
+        error_details=list(entry.error_details),
+    )
+
+
+def _steps_from_write(steps: list) -> tuple[WorkflowStep, ...]:
+    return tuple(
+        WorkflowStep(
+            step_id=step.step_id,
+            capability_id=step.capability_id,
+            operation=step.operation,
+            input_mapping=step.input_mapping,
+            output_mapping=step.output_mapping,
+            expected_result=step.expected_result,
+            description=step.description,
+        )
+        for step in steps
+    )
+
+
+def _variables_from_write(variables: list) -> tuple[WorkflowVariable, ...]:
+    return tuple(
+        WorkflowVariable(
+            name=variable.name,
+            type=variable.type,
+            description=variable.description,
+            required=variable.required,
+            default=variable.default,
+        )
+        for variable in variables
     )
 
 
@@ -133,6 +176,42 @@ def list_workflows(
 ) -> WorkflowListResponse:
     items = [_definition_response(item) for item in engine.list_workflows()]
     return WorkflowListResponse(items=items, count=len(items))
+
+
+@router.post(
+    "",
+    response_model=WorkflowDefinitionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a workflow definition",
+)
+def create_workflow(
+    body: CreateWorkflowRequest,
+    engine: Annotated[WorkflowEngine, Depends(get_workflow_engine)],
+    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
+) -> WorkflowDefinitionResponse:
+    now = datetime.now(UTC)
+    definition = WorkflowDefinition(
+        workflow_id=body.workflow_id,
+        name=body.name,
+        description=body.description,
+        steps=_steps_from_write(body.steps),
+        variables=_variables_from_write(body.variables),
+        expected_outputs=tuple(body.expected_outputs),
+        required_capabilities=tuple(body.required_capabilities),
+        metadata=body.metadata,
+        version=1,
+        workspace_id=body.workspace_id or workspace_id.value,
+        created_at=now,
+        updated_at=now,
+    )
+    try:
+        created = engine.library.create(definition)
+    except InvalidWorkflowError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"message": str(exc), "code": exc.code, "details": exc.details},
+        ) from exc
+    return _definition_response(created)
 
 
 @router.get(
@@ -191,6 +270,108 @@ def get_workflow(
             detail={"message": str(exc), "code": exc.code, "details": exc.details},
         ) from exc
     return _definition_response(definition)
+
+
+@router.put(
+    "/{workflow_id}",
+    response_model=WorkflowDefinitionResponse,
+    summary="Update a workflow definition",
+)
+def update_workflow(
+    workflow_id: str,
+    body: UpdateWorkflowRequest,
+    engine: Annotated[WorkflowEngine, Depends(get_workflow_engine)],
+) -> WorkflowDefinitionResponse:
+    try:
+        existing = engine.library.get(workflow_id)
+    except UnknownWorkflowError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    updated = existing.with_updates(
+        name=body.name,
+        description=body.description,
+        steps=None if body.steps is None else _steps_from_write(body.steps),
+        variables=None if body.variables is None else _variables_from_write(body.variables),
+        expected_outputs=(
+            None if body.expected_outputs is None else tuple(body.expected_outputs)
+        ),
+        required_capabilities=(
+            None
+            if body.required_capabilities is None
+            else tuple(body.required_capabilities)
+        ),
+        metadata=body.metadata,
+        bump_version=True,
+    )
+    try:
+        saved = engine.library.update(updated)
+    except UnknownWorkflowError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except InvalidWorkflowError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"message": str(exc), "code": exc.code, "details": exc.details},
+        ) from exc
+    return _definition_response(saved)
+
+
+@router.delete(
+    "/{workflow_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a workflow definition",
+)
+def delete_workflow(
+    workflow_id: str,
+    engine: Annotated[WorkflowEngine, Depends(get_workflow_engine)],
+) -> Response:
+    try:
+        engine.library.delete(workflow_id)
+    except UnknownWorkflowError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except InvalidWorkflowError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"message": str(exc), "code": exc.code, "details": exc.details},
+        ) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/{workflow_id}/duplicate",
+    response_model=WorkflowDefinitionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Duplicate a workflow definition",
+)
+def duplicate_workflow(
+    workflow_id: str,
+    body: DuplicateWorkflowRequest,
+    engine: Annotated[WorkflowEngine, Depends(get_workflow_engine)],
+) -> WorkflowDefinitionResponse:
+    try:
+        copy = engine.library.duplicate(
+            workflow_id,
+            new_workflow_id=body.new_workflow_id,
+            name=body.name,
+        )
+    except UnknownWorkflowError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except InvalidWorkflowError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"message": str(exc), "code": exc.code, "details": exc.details},
+        ) from exc
+    return _definition_response(copy)
 
 
 @router.post(

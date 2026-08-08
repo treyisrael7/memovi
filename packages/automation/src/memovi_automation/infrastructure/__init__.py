@@ -25,6 +25,12 @@ from memovi_automation.infrastructure.sqlalchemy_execution_state_store import (
 from memovi_automation.infrastructure.sqlalchemy_permission_policy_store import (
     SqlAlchemyPermissionPolicyStore,
 )
+from memovi_automation.infrastructure.sqlalchemy_workflow_history_store import (
+    SqlAlchemyWorkflowHistoryStore,
+)
+from memovi_automation.infrastructure.sqlalchemy_workflow_library import (
+    SqlAlchemyWorkflowLibrary,
+)
 
 __all__ = [
     "InMemoryExecutionAuditStore",
@@ -35,5 +41,7 @@ __all__ = [
     "SqlAlchemyExecutionAuditStore",
     "SqlAlchemyExecutionStateStore",
     "SqlAlchemyPermissionPolicyStore",
+    "SqlAlchemyWorkflowHistoryStore",
+    "SqlAlchemyWorkflowLibrary",
     "built_in_workflows",
 ]

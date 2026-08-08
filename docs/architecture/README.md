@@ -42,6 +42,7 @@ document that matches the concern being changed or reviewed.
 | [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md) | Execution engine lifecycle, server-owned policies, audit, Intelligence bridge |
 | [`CAPABILITY_PLANNER.md`](CAPABILITY_PLANNER.md) | Plan-then-execute composition; planner never invokes capabilities |
 | [`WORKFLOW_AUTOMATION.md`](WORKFLOW_AUTOMATION.md) | Reusable sequential workflows over planner + execution engine |
+| [`WORKFLOW_ENGINE.md`](WORKFLOW_ENGINE.md) | Durable workflow library, history, recovery, and versioning |
 | [`FILESYSTEM_CAPABILITY.md`](FILESYSTEM_CAPABILITY.md) | Filesystem capability baseline: safety, read ops, permissions |
 | [`FILESYSTEM_WRITE.md`](FILESYSTEM_WRITE.md) | Filesystem writes: overwrite/trash policies, create/modify/move/delete |
 | [`TERMINAL_CAPABILITY.md`](TERMINAL_CAPABILITY.md) | Terminal capability execution, safety, timeout, cancel, and audit |

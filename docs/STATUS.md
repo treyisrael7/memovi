@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 38).
+system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 39).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -589,7 +589,6 @@ structured history.
 * Loops, parallel execution, conditionals
 * Background / scheduled workflow runners
 * Resume remaining steps after Ask Every Time approval within one instance
-* Durable cross-process workflow history
 
 ---
 
@@ -1037,7 +1036,6 @@ unchanged; only the state backend moved off process-local dicts.
 **Remaining**
 
 * Optional lease renewal / progress heartbeats for very long terminal runs
-* Workflow history durability (still in-memory)
 
 **Known Risks**
 
@@ -1047,6 +1045,47 @@ unchanged; only the state backend moved off process-local dicts.
 **Next Recommended Work**
 
 * Run `task db:migrate` for `20260808_0014` and `20260808_0015`
+
+---
+
+# Milestone 39 — Durable Workflow Library & History
+
+**Overall Status:** Complete
+
+Workflow definitions and execution history persist in Postgres. The Workflow
+Engine, Capability Planner, and Capability Execution Engine contracts are
+unchanged; only library/history backends and startup recovery were added.
+
+**Completed**
+
+* Durable `SqlAlchemyWorkflowLibrary` + `SqlAlchemyWorkflowHistoryStore`
+* Tables `automation_workflow_definitions` and `automation_workflow_history`
+  (`20260808_0016`)
+* Definition CRUD: create / update / delete / duplicate / list (built-ins immutable)
+* Progressive execution checkpoints (`running` → terminal) with full result JSON
+* Startup recovery: interrupted `running` → `failed` (no duplicate resume);
+  `awaiting_approval` preserved
+* Metrics: duration, success/failure/awaiting/cancelled, recovery count
+* `docs/architecture/WORKFLOW_ENGINE.md` (+ updates to `WORKFLOW_AUTOMATION.md`)
+* Durable library/history/recovery tests
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Resume remaining workflow steps after capability approval within one instance
+* Background / scheduled workflow runners
+
+**Known Risks**
+
+* Mid-flight `running` workflows are marked failed rather than auto-resumed
+  (by design, to avoid duplicate side effects)
+
+**Next Recommended Work**
+
+* Run `task db:migrate` for `20260808_0016`
 * Architecture boundary tests
 
 ---
@@ -1108,6 +1147,7 @@ unchanged; only the state backend moved off process-local dicts.
 * Plan contracts and Intelligence/conversation bridge for create + execute plan
 * Workflow Automation Framework (reusable sequential workflows over planner + engine)
 * Desktop Workflows library / run / progress / history surface
+* Durable workflow library and history (`WORKFLOW_ENGINE.md`, Milestone 39)
 
 **In Progress**
 
@@ -1126,7 +1166,7 @@ unchanged; only the state backend moved off process-local dicts.
 
 **Next Recommended Work**
 
-* Add durable workflow/plan history and background runners — still not a parallel agent stack
+* Background / scheduled workflow runners — still not a parallel agent stack
 
 ---
 
