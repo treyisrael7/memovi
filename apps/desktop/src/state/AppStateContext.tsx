@@ -152,7 +152,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [availableModels, setAvailableModels] = useState<AvailableModel[]>([]);
   const [activeModel, setActiveModelState] =
     useState<ActiveModelSelection | null>(null);
-  const [activePage, setActivePage] = useState<PageId>("chat");
+  const [activePage, setActivePage] = useState<PageId>("home");
   const [theme, setThemeState] = useState<ThemeMode>(() => readStoredTheme());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [chatSeed, setChatSeed] = useState<ChatSeed | null>(null);
@@ -441,7 +441,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         setKnowledgeSeed,
         setDocumentSeed,
       });
-      setActivePage("chat");
+      setActivePage("home");
     }
   }, []);
 

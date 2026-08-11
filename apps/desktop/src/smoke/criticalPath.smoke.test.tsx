@@ -49,12 +49,16 @@ describe("desktop critical path smoke", () => {
     await user.type(screen.getByLabelText(/^Password$/i), "password123");
     await user.click(screen.getByRole("button", { name: /^Sign in$/i }));
 
-    // Workspace + shell loaded
+    // Workspace + shell loaded on Home with getting-started guidance
     await waitFor(() => {
       expect(
         screen.getByRole("navigation", { name: /Primary/i }),
       ).toBeInTheDocument();
     });
+    expect(
+      await screen.findByRole("heading", { name: /Welcome to Memovi/i }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/Getting started/i)).toBeInTheDocument();
     expect(
       await screen.findByText(/Workspace:\s*Default Workspace/i),
     ).toBeInTheDocument();

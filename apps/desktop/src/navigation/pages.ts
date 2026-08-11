@@ -27,7 +27,7 @@ export const PAGES: readonly PageDefinition[] = [
   {
     id: "home",
     label: "Home",
-    description: "Application shell overview and connection status.",
+    description: "Getting started checklist and product overview.",
   },
   {
     id: "chat",

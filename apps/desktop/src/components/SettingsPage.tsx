@@ -19,6 +19,7 @@ import {
   transferWorkspaceOwnership,
 } from "../api/workspaces";
 import { type ThemeMode, useAppState } from "../state/AppStateContext";
+import { describeModelAvailability } from "./gettingStarted";
 import { Alert } from "./ui/Alert";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
@@ -50,43 +51,63 @@ const PERMISSION_MODES: ReadonlyArray<{ id: PermissionMode; label: string }> = [
   { id: "deny", label: "Deny" },
 ];
 
-function GeneralSection() {
+function GeneralSection({
+  onOpenDiagnostics,
+}: {
+  onOpenDiagnostics: () => void;
+}) {
   const { availableModels, activeModel, setActiveModel, theme, setTheme } =
     useAppState();
+  const modelAvailability = describeModelAvailability(availableModels);
 
   return (
     <div className="settings-section">
       <h2>Model</h2>
       <p className="muted">Choose the language model used for conversations.</p>
-      <Dropdown
-        label="Active model"
-        className="settings-field"
-        value={
-          activeModel ? `${activeModel.provider}::${activeModel.model}` : ""
-        }
-        disabled={availableModels.length === 0}
-        onChange={(event) => {
-          const [provider, model] = event.target.value.split("::");
-          const match = availableModels.find(
-            (item) => item.provider === provider && item.model === model,
-          );
-          if (match) {
-            setActiveModel({
-              provider: match.provider,
-              model: match.model,
-              label: match.label,
-            });
+
+      {modelAvailability.kind === "none" ? (
+        <EmptyState
+          title={modelAvailability.title}
+          description={modelAvailability.description}
+          action={
+            <Button variant="secondary" onClick={onOpenDiagnostics}>
+              Open Diagnostics
+            </Button>
           }
-        }}
-        options={
-          availableModels.length === 0
-            ? [{ value: "", label: "No model available" }]
-            : availableModels.map((item) => ({
-                value: `${item.provider}::${item.model}`,
-                label: item.label,
-              }))
-        }
-      />
+        />
+      ) : null}
+
+      {modelAvailability.kind === "fake_only" ? (
+        <Alert tone="info">{modelAvailability.description}</Alert>
+      ) : null}
+
+      {modelAvailability.kind !== "none" ? (
+        <Dropdown
+          label="Active model"
+          className="settings-field"
+          value={
+            activeModel ? `${activeModel.provider}::${activeModel.model}` : ""
+          }
+          disabled={availableModels.length === 0}
+          onChange={(event) => {
+            const [provider, model] = event.target.value.split("::");
+            const match = availableModels.find(
+              (item) => item.provider === provider && item.model === model,
+            );
+            if (match) {
+              setActiveModel({
+                provider: match.provider,
+                model: match.model,
+                label: match.label,
+              });
+            }
+          }}
+          options={availableModels.map((item) => ({
+            value: `${item.provider}::${item.model}`,
+            label: item.label,
+          }))}
+        />
+      ) : null}
 
       <h2>Appearance</h2>
       <Dropdown
@@ -688,7 +709,11 @@ export function SettingsPage() {
         ))}
       </nav>
       <div className="settings-content">
-        {section === "general" ? <GeneralSection /> : null}
+        {section === "general" ? (
+          <GeneralSection
+            onOpenDiagnostics={() => setSection("diagnostics")}
+          />
+        ) : null}
         {section === "account" ? <AccountSection /> : null}
         {section === "workspaces" ? <WorkspacesSection /> : null}
         {section === "capabilities" ? <CapabilitiesSection /> : null}

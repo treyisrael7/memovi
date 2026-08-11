@@ -1657,6 +1657,121 @@ button.linkish {
 
 .home-actions {
   margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.home-getting-started,
+.home-next-steps,
+.home-diagnostics {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1.35rem;
+}
+
+.home-model-empty {
+  margin-top: 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 45%, var(--bg-panel));
+  border-radius: 0.65rem;
+  padding: 1.1rem 1.15rem;
+}
+
+.home-inline-link {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.home-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.home-checklist-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: var(--bg-panel);
+}
+
+.home-checklist-item[data-done="true"] {
+  opacity: 0.78;
+}
+
+.home-checklist-item[data-done="true"] .home-checklist-label {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.home-checklist-mark {
+  width: 1.25rem;
+  text-align: center;
+  font-weight: 650;
+  color: var(--accent);
+}
+
+.home-checklist-item[data-done="false"] .home-checklist-mark {
+  color: var(--text-muted);
+}
+
+.home-checklist-label {
+  font-size: 0.95rem;
+}
+
+.home-checklist-action {
+  justify-self: end;
+}
+
+.home-path-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.home-path-card {
+  display: grid;
+  gap: 0.35rem;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: var(--bg-panel);
+  color: inherit;
+  padding: 0.95rem 1rem;
+  cursor: pointer;
+}
+
+.home-path-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 35%, var(--bg-panel));
+}
+
+.home-path-card strong {
+  font-size: 0.98rem;
+}
+
+.home-path-card span {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.home-diagnostics {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
 }
 
 /* Search */

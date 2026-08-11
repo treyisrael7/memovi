@@ -775,8 +775,15 @@ function CapabilityExecutionPanel({
 }
 
 export function ChatPage() {
-  const { activeWorkspace, activeModel, connection, chatSeed, clearChatSeed } =
-    useAppState();
+  const {
+    activeWorkspace,
+    activeModel,
+    availableModels,
+    connection,
+    chatSeed,
+    clearChatSeed,
+    setActivePage,
+  } = useAppState();
   const workspaceId = activeWorkspace?.id ?? null;
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
@@ -1412,7 +1419,25 @@ export function ChatPage() {
         </div>
 
         <div className="message-list" aria-live="polite">
-          {!activeConversationId ? (
+          {!activeModel ? (
+            <EmptyState
+              title={
+                availableModels.length === 0
+                  ? "No AI models available"
+                  : "Choose a model to chat"
+              }
+              description={
+                availableModels.length === 0
+                  ? "Memovi needs a configured intelligence provider before conversations can run. This often means a missing API key or provider setting on the backend."
+                  : "Select an active model in Settings, then return here to ask a question."
+              }
+              action={
+                <Button onClick={() => setActivePage("settings")}>
+                  Open Settings
+                </Button>
+              }
+            />
+          ) : !activeConversationId ? (
             <EmptyState
               title="Start a conversation"
               description="Create a conversation to start chatting with Memovi."
