@@ -73,6 +73,7 @@ def looks_like_windows_absolute(path_text: str) -> bool:
         return len(path_text) == 2 or path_text[2] in "/\\"
     return False
 
+
 def _matching_root(resolved: Path, allowed_roots: tuple[Path, ...]) -> Path | None:
     for root in allowed_roots:
         if _is_within_root(resolved, root):
