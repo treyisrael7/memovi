@@ -142,8 +142,8 @@ export function ActivityPage() {
         collected.push({
           id: `doc-processing-${document.id}`,
           kind: "processing_started",
-          title: `${document.name} is ${view.label.toLowerCase()}`,
-          detail: view.estimatedStage,
+          title: `${document.name} — ${view.label}`,
+          detail: view.explanation,
           timestamp:
             document.processing_updated_at ??
             document.processing_started_at ??
@@ -156,10 +156,12 @@ export function ActivityPage() {
         collected.push({
           id: `doc-completed-${document.id}`,
           kind: "processing_completed",
-          title: `Processing completed — ${document.name}`,
+          title: knowledgeByDocument.has(document.id)
+            ? `${document.name} is ready`
+            : `${document.name} is indexing`,
           detail: knowledgeByDocument.has(document.id)
-            ? "Knowledge ready and indexed"
-            : "Processing complete — indexing may still catch up",
+            ? "Ready to search and ask about"
+            : "Generating searchable knowledge",
           timestamp:
             document.processing_completed_at ??
             document.processing_updated_at,
@@ -174,7 +176,7 @@ export function ActivityPage() {
           title: `Processing failed — ${document.name}`,
           detail:
             document.processing_failure_reason ??
-            "Open Documents to retry processing",
+            "Open Documents and try Retry processing",
           timestamp: document.processing_updated_at,
         });
       } else if (
@@ -187,7 +189,7 @@ export function ActivityPage() {
           title: `Processing cancelled — ${document.name}`,
           detail:
             document.processing_failure_reason ??
-            "Superseded or stopped — reprocess to continue",
+            "Open Documents and try Retry processing",
           timestamp: document.processing_updated_at,
         });
       }

@@ -8,19 +8,33 @@ import {
 } from "./processingPresentation";
 
 describe("presentProcessingStatus", () => {
-  it("maps backend statuses to lifecycle labels", () => {
+  it("maps backend statuses to user-friendly labels", () => {
     expect(presentProcessingStatus("pending").label).toBe("Queued");
     expect(presentProcessingStatus("extracting").label).toBe("Processing");
-    expect(presentProcessingStatus("normalizing").label).toBe("Chunking");
-    expect(presentProcessingStatus("completed").label).toBe("Completed");
+    expect(presentProcessingStatus("normalizing").label).toBe("Processing");
+    expect(presentProcessingStatus("completed").label).toBe("Ready");
     expect(presentProcessingStatus("failed").label).toBe("Failed");
     expect(presentProcessingStatus("cancelled").label).toBe("Cancelled");
+  });
+
+  it("explains each state in plain language", () => {
+    expect(presentProcessingStatus("pending").explanation).toMatch(/Waiting/i);
+    expect(presentProcessingStatus("extracting").explanation).toMatch(
+      /Reading|extracting/i,
+    );
+    expect(
+      presentProcessingStatus("completed", { hasKnowledge: false }).explanation,
+    ).toMatch(/searchable knowledge/i);
+    expect(
+      presentProcessingStatus("completed", { hasKnowledge: true }).explanation,
+    ).toMatch(/ready to search/i);
+    expect(presentProcessingStatus("failed").nextActionHint).toMatch(/Retry/i);
   });
 
   it("shows Indexing when completed but knowledge is missing", () => {
     const view = presentProcessingStatus("completed", { hasKnowledge: false });
     expect(view.label).toBe("Indexing");
-    expect(view.progressPercent).toBe(85);
+    expect(view.explanation).toMatch(/searchable knowledge/i);
   });
 
   it("marks failed and cancelled as retryable attention states", () => {
@@ -31,11 +45,11 @@ describe("presentProcessingStatus", () => {
 });
 
 describe("presentIndexedState", () => {
-  it("distinguishes indexed vs not yet indexed", () => {
+  it("distinguishes ready vs indexing vs not ready", () => {
     expect(presentIndexedState("pending", false).state).toBe("not_indexed");
-    expect(presentIndexedState("completed", true).label).toBe("Indexed");
+    expect(presentIndexedState("completed", true).label).toBe("Ready");
     expect(presentIndexedState("completed", false).label).toBe("Indexing");
-    expect(presentIndexedState("failed", false).label).toBe("Failed indexing");
+    expect(presentIndexedState("failed", false).label).toBe("Failed");
   });
 });
 

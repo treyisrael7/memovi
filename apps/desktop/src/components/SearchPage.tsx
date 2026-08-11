@@ -385,8 +385,8 @@ export function SearchPage() {
       {canUseBackend && notIndexedDocs.length > 0 ? (
         <Alert tone="warn" className="search-indexing-banner">
           {notIndexedDocs.length === 1
-            ? "1 document is not fully indexed yet and may be missing from results."
-            : `${notIndexedDocs.length} documents are not fully indexed yet and may be missing from results.`}{" "}
+            ? "1 document is still processing and may be missing from results."
+            : `${notIndexedDocs.length} documents are still processing and may be missing from results.`}{" "}
           <button
             type="button"
             className="link-button"

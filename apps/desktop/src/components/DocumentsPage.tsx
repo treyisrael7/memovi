@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type DragEvent,
 } from "react";
@@ -56,7 +57,12 @@ function formatBytesLabel(mimeType: string): string {
 }
 
 export function DocumentsPage() {
-  const { activeWorkspace, connection, startConversationAbout } = useAppState();
+  const {
+    activeWorkspace,
+    connection,
+    startConversationAbout,
+    setActivePage,
+  } = useAppState();
   const { showToast } = useToast();
   const workspaceId = activeWorkspace?.id ?? null;
   const canUseBackend =
@@ -76,6 +82,8 @@ export function DocumentsPage() {
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [reprocessingId, setReprocessingId] = useState<string | null>(null);
+  const hasLoadedOnceRef = useRef(false);
+  const previousKnowledgeRef = useRef<Set<string>>(new Set());
 
   const selectedDocument = useMemo(
     () => documents.find((doc) => doc.id === selectedId) ?? null,
@@ -118,10 +126,24 @@ export function DocumentsPage() {
         listDocuments(workspaceId),
         listKnowledge(workspaceId).catch(() => ({ items: [], count: 0 })),
       ]);
-      setDocuments(docsPayload.items);
-      setKnowledgeDocumentIds(
-        new Set(knowledgePayload.items.map((item) => item.document_id)),
+      const nextKnowledge = new Set(
+        knowledgePayload.items.map((item) => item.document_id),
       );
+      if (hasLoadedOnceRef.current) {
+        for (const document of docsPayload.items) {
+          const newlyReady =
+            document.processing_status === "completed" &&
+            nextKnowledge.has(document.id) &&
+            !previousKnowledgeRef.current.has(document.id);
+          if (newlyReady) {
+            showToast("Your document is ready to search.", "ok");
+          }
+        }
+      }
+      previousKnowledgeRef.current = nextKnowledge;
+      hasLoadedOnceRef.current = true;
+      setDocuments(docsPayload.items);
+      setKnowledgeDocumentIds(nextKnowledge);
       setSelectedId((current) => {
         if (current && docsPayload.items.some((item) => item.id === current)) {
           return current;
@@ -135,13 +157,15 @@ export function DocumentsPage() {
           : "Failed to load documents.",
       );
     }
-  }, [workspaceId, canUseBackend]);
+  }, [workspaceId, canUseBackend, showToast]);
 
   useEffect(() => {
     if (!workspaceId || !canUseBackend) {
       setDocuments([]);
       setKnowledgeDocumentIds(new Set());
       setSelectedId(null);
+      hasLoadedOnceRef.current = false;
+      previousKnowledgeRef.current = new Set();
       return;
     }
     let cancelled = false;
@@ -153,10 +177,13 @@ export function DocumentsPage() {
     ])
       .then(([docsPayload, knowledgePayload]) => {
         if (cancelled) return;
-        setDocuments(docsPayload.items);
-        setKnowledgeDocumentIds(
-          new Set(knowledgePayload.items.map((item) => item.document_id)),
+        const nextKnowledge = new Set(
+          knowledgePayload.items.map((item) => item.document_id),
         );
+        previousKnowledgeRef.current = nextKnowledge;
+        hasLoadedOnceRef.current = true;
+        setDocuments(docsPayload.items);
+        setKnowledgeDocumentIds(nextKnowledge);
         setSelectedId(docsPayload.items[0]?.id ?? null);
       })
       .catch((err: unknown) => {
@@ -440,10 +467,9 @@ export function DocumentsPage() {
               const badge = processingStatusBadge(document.processing_status, {
                 hasKnowledge,
               });
-              const indexed = presentIndexedState(
-                document.processing_status,
+              const view = presentProcessingStatus(document.processing_status, {
                 hasKnowledge,
-              );
+              });
               return (
                 <li key={document.id}>
                   <button
@@ -458,8 +484,7 @@ export function DocumentsPage() {
                       <StatusBadge {...badge} />
                     </div>
                     <span className="documents-list-meta">
-                      {indexed.label} · {document.source_type} ·{" "}
-                      {formatTimestamp(document.created_at)}
+                      {view.explanation}
                     </span>
                   </button>
                 </li>
@@ -491,31 +516,37 @@ export function DocumentsPage() {
                       { hasKnowledge: selectedHasKnowledge },
                     )}
                   />
-                  <StatusBadge
-                    label={selectedIndexed.label}
-                    tone={selectedIndexed.tone}
-                  />
+                  {selectedIndexed.label !== selectedView.label ? (
+                    <StatusBadge
+                      label={selectedIndexed.label}
+                      tone={selectedIndexed.tone}
+                    />
+                  ) : null}
                 </div>
               </div>
 
               <div className="document-processing-panel">
                 <p className="document-processing-stage">
-                  {selectedView.estimatedStage}
+                  {selectedView.explanation}
                 </p>
-                <ProgressBar
-                  value={selectedView.progressPercent}
-                  label="Processing progress"
-                />
                 <p className="muted document-processing-hint">
                   {selectedIndexed.detail}
                 </p>
+                {selectedView.nextActionHint ? (
+                  <p className="document-processing-next">
+                    {selectedView.nextActionHint}
+                  </p>
+                ) : null}
               </div>
 
               {selectedDocument.processing_status === "failed" ? (
                 <Alert tone="bad" className="document-detail-error">
                   {selectedDocument.processing_failure_reason?.trim()
                     ? selectedDocument.processing_failure_reason
-                    : "Processing failed. Retry to re-queue extraction and indexing."}
+                    : "Processing failed."}{" "}
+                  Try Retry processing. If it keeps failing, check that the file
+                  type is supported (PDF, Markdown, or plain text) or upload
+                  again.
                 </Alert>
               ) : null}
 
@@ -523,7 +554,8 @@ export function DocumentsPage() {
                 <Alert tone="warn" className="document-detail-error">
                   {selectedDocument.processing_failure_reason?.trim()
                     ? selectedDocument.processing_failure_reason
-                    : "Processing was cancelled (often superseded by a reprocess). Retry to run again."}
+                    : "Processing was cancelled—often because a newer reprocess replaced it."}{" "}
+                  Use Retry processing to run it again.
                 </Alert>
               ) : null}
 
@@ -566,22 +598,29 @@ export function DocumentsPage() {
               </dl>
 
               <div className="document-detail-actions">
-                <Button
-                  onClick={() => void handleAskAbout(selectedDocument)}
-                  disabled={
-                    !canUseBackend ||
-                    selectedDocument.processing_status !== "completed" ||
-                    !selectedHasKnowledge
-                  }
-                  title={
-                    selectedDocument.processing_status !== "completed" ||
-                    !selectedHasKnowledge
-                      ? "Available once processing and indexing complete"
-                      : undefined
-                  }
-                >
-                  Ask about this document
-                </Button>
+                {selectedHasKnowledge &&
+                selectedDocument.processing_status === "completed" ? (
+                  <>
+                    <Button onClick={() => setActivePage("search")}>
+                      Search it
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => void handleAskAbout(selectedDocument)}
+                      disabled={!canUseBackend}
+                    >
+                      Ask about it
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    onClick={() => void handleAskAbout(selectedDocument)}
+                    disabled
+                    title="Available once this document is ready"
+                  >
+                    Ask about it
+                  </Button>
+                )}
                 <Button
                   variant={
                     selectedView.requiresAttention ? "primary" : "secondary"

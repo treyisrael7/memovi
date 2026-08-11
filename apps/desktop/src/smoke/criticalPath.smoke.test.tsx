@@ -71,10 +71,13 @@ describe("desktop critical path smoke", () => {
     expect(
       await screen.findByRole("heading", { name: "notes.txt" }),
     ).toBeInTheDocument();
+    expect((await screen.findAllByText(/^Ready$/i)).length).toBeGreaterThan(0);
     expect(
-      (await screen.findAllByText(/Completed/i)).length,
+      (await screen.findAllByText(/ready to search and ask about/i)).length,
     ).toBeGreaterThan(0);
-    expect((await screen.findAllByText(/Indexed/i)).length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("button", { name: /^Search it$/i }),
+    ).toBeInTheDocument();
 
     // Document upload
     const fileInput = document.querySelector(

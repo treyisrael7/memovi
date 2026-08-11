@@ -1644,6 +1644,13 @@ button.linkish {
   font-size: 0.8rem;
 }
 
+.document-processing-next {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--accent);
+  font-weight: 560;
+}
+
 .document-detail-actions {
   display: flex;
   gap: 0.5rem;
