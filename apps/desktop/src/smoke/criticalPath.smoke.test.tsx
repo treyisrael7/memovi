@@ -128,7 +128,7 @@ describe("desktop critical path smoke", () => {
       );
     });
 
-    // Settings persistence (theme)
+    // Settings persistence (theme + model)
     await user.click(screen.getByRole("button", { name: /^Settings$/i }));
     expect(
       await screen.findByRole("heading", { name: /Model/i }),
@@ -136,6 +136,11 @@ describe("desktop critical path smoke", () => {
     const theme = screen.getByLabelText(/^Theme$/i);
     await user.selectOptions(theme, "dark");
     expect(window.localStorage.getItem("memovi.desktop.theme")).toBe("dark");
+    await waitFor(() => {
+      expect(
+        window.localStorage.getItem("memovi.desktop.activeModel.user-smoke-1"),
+      ).toBe("fake::fake-model");
+    });
 
     // Shutdown: sign out returns to auth gate, then unmount (app close)
     await user.click(screen.getByRole("button", { name: /^Account$/i }));

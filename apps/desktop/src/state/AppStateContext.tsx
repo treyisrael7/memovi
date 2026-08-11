@@ -29,9 +29,11 @@ import type { AvailableModel } from "../api/types";
 import { listWorkspaces, resolveActiveWorkspace } from "../api/workspaces";
 import { getPage, type PageId } from "../navigation/pages";
 import {
+  readStoredModel,
   readStoredPage,
   readStoredTheme,
   readStoredWorkspaceId,
+  writeStoredModel,
   writeStoredPage,
   writeStoredTheme,
   writeStoredWorkspaceId,
@@ -234,22 +236,37 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           const models = await listModels();
           setAvailableModels(models.models);
           setActiveModelState((current) => {
-            if (
-              current &&
-              models.models.some(
-                (item) =>
-                  item.provider === current.provider &&
-                  item.model === current.model,
-              )
-            ) {
-              return current;
-            }
-            const fallback =
+            const findModel = (provider: string, model: string) =>
               models.models.find(
-                (item) =>
-                  item.provider === models.default_provider &&
-                  item.model === models.default_model,
-              ) ?? models.models[0];
+                (item) => item.provider === provider && item.model === model,
+              );
+
+            if (current) {
+              const existing = findModel(current.provider, current.model);
+              if (existing) {
+                return {
+                  provider: existing.provider,
+                  model: existing.model,
+                  label: existing.label,
+                };
+              }
+            }
+
+            const stored = user ? readStoredModel(user.id) : null;
+            if (stored) {
+              const fromStore = findModel(stored.provider, stored.model);
+              if (fromStore) {
+                return {
+                  provider: fromStore.provider,
+                  model: fromStore.model,
+                  label: fromStore.label,
+                };
+              }
+            }
+
+            const fallback =
+              findModel(models.default_provider, models.default_model) ??
+              models.models[0];
             return fallback
               ? {
                   provider: fallback.provider,
@@ -271,7 +288,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsRefreshing(false);
     }
-  }, [refreshWorkspaces]);
+  }, [refreshWorkspaces, user]);
 
   const restoreSession = useCallback(async () => {
     setAuthStatus("checking");
@@ -353,6 +370,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       writeStoredWorkspaceId(user.id, activeWorkspace.id);
     }
   }, [activeWorkspace, authStatus, user]);
+
+  useEffect(() => {
+    if (user && authStatus === "authenticated" && activeModel) {
+      writeStoredModel(user.id, {
+        provider: activeModel.provider,
+        model: activeModel.model,
+      });
+    }
+  }, [activeModel, authStatus, user]);
 
   const setTheme = useCallback((next: ThemeMode) => {
     setThemeState(next);

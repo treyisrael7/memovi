@@ -9,6 +9,8 @@ import {
   readStoredPage,
   writeStoredWorkspaceId,
   readStoredWorkspaceId,
+  writeStoredModel,
+  readStoredModel,
 } from "../state/sessionPreferences";
 import { ApiRequestError } from "../api/client";
 
@@ -45,6 +47,18 @@ describe("sessionPreferences", () => {
     expect(readStoredPage("user-1")).toBe("documents");
     expect(readStoredWorkspaceId("user-1")).toBe("ws-1");
     expect(readStoredPage("user-2")).toBeNull();
+  });
+
+  it("persists active model per user and rejects corrupt values", () => {
+    writeStoredModel("user-1", { provider: "openai", model: "gpt-4.1" });
+    expect(readStoredModel("user-1")).toEqual({
+      provider: "openai",
+      model: "gpt-4.1",
+    });
+    expect(readStoredModel("user-2")).toBeNull();
+
+    window.localStorage.setItem("memovi.desktop.activeModel.user-1", "broken");
+    expect(readStoredModel("user-1")).toBeNull();
   });
 
   it("formats auth errors for the login gate", () => {

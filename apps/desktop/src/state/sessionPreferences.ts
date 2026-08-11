@@ -5,8 +5,31 @@ import { getPage } from "../navigation/pages";
 const THEME_STORAGE_KEY = "memovi.desktop.theme";
 const PAGE_STORAGE_PREFIX = "memovi.desktop.lastPage.";
 const WORKSPACE_STORAGE_PREFIX = "memovi.desktop.activeWorkspace.";
+const MODEL_STORAGE_PREFIX = "memovi.desktop.activeModel.";
 
 export type ThemeMode = "light" | "dark";
+
+export interface StoredModelRef {
+  provider: string;
+  model: string;
+}
+
+function encodeModelRef(ref: StoredModelRef): string {
+  return `${ref.provider}::${ref.model}`;
+}
+
+function decodeModelRef(stored: string): StoredModelRef | null {
+  const separator = stored.indexOf("::");
+  if (separator <= 0) {
+    return null;
+  }
+  const provider = stored.slice(0, separator).trim();
+  const model = stored.slice(separator + 2).trim();
+  if (!provider || !model) {
+    return null;
+  }
+  return { provider, model };
+}
 
 export function readStoredTheme(): ThemeMode {
   try {
@@ -63,6 +86,31 @@ export function writeStoredWorkspaceId(
     window.localStorage.setItem(
       `${WORKSPACE_STORAGE_PREFIX}${userId}`,
       workspaceId,
+    );
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function readStoredModel(userId: string): StoredModelRef | null {
+  try {
+    const stored = window.localStorage.getItem(
+      `${MODEL_STORAGE_PREFIX}${userId}`,
+    );
+    if (!stored) {
+      return null;
+    }
+    return decodeModelRef(stored);
+  } catch {
+    return null;
+  }
+}
+
+export function writeStoredModel(userId: string, ref: StoredModelRef): void {
+  try {
+    window.localStorage.setItem(
+      `${MODEL_STORAGE_PREFIX}${userId}`,
+      encodeModelRef(ref),
     );
   } catch {
     // Ignore storage failures.
