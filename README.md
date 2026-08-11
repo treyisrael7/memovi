@@ -192,7 +192,7 @@ web-workspace subtasks.
 Local infrastructure is defined in `compose.yml`:
 
 - PostgreSQL 18 with pgvector on `127.0.0.1:5432`
-- Redis 8 on `127.0.0.1:6379`
+- Redis 8 on `127.0.0.1:6379` (Compose-reserved; no application client usage yet)
 - MinIO API on `127.0.0.1:9000`
 - MinIO console on `127.0.0.1:9001`
 

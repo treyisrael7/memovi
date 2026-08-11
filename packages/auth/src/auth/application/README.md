@@ -1,11 +1,12 @@
 # Auth Application Layer
 
-The application layer coordinates auth use cases. It will load domain objects,
-call domain behavior, use repository interfaces, and return DTOs.
+The application layer coordinates auth use cases: load domain objects, call
+domain behavior, use repository interfaces, and return DTOs.
 
-Current contents are structural only:
+Contents:
 
-- `commands` will contain write use-case requests.
-- `queries` will contain read use-case requests.
-- `dto` will contain application input and output records.
-- `services` will contain use-case orchestration.
+- `commands` — register, login, and logout use cases.
+- `queries` — current user and authenticated principal resolution.
+- `dto` — application input and output records.
+- `ports.py` — password hasher, session token, and optional registration callback ports.
+- `exceptions.py` — application-level failure types.

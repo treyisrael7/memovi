@@ -13,11 +13,11 @@ intentionally does not implement JWT, OAuth, RBAC, or API keys.
 
 ## Layers
 
-- `domain` — auth business concepts, value objects, repository interfaces, domain events,
-  domain exceptions, and domain services.
-- `application` — use-case commands, queries, DTOs, and services.
+- `domain` — auth business concepts, value objects, repository interfaces, reserved
+  domain-event package, and domain exceptions.
+- `application` — use-case commands, queries, DTOs, and ports.
 - `api` — transport-specific FastAPI routers, schemas, and dependencies.
-- `infrastructure` — persistence, repository, security, and provider adapters.
+- `infrastructure` — persistence, repository, and security adapters.
 
 The import package is `auth` because the package boundary is already clear from
 `packages/auth`.

@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-08 (Milestone 46).
+system on a reusable backend platform. Last reviewed: 2026-08-10 (Milestone 47).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -1377,6 +1377,49 @@ froze unwired LLM tool-calling types without product claims.
 **Next Recommended Work**
 
 * Continue Phase 1 V1 platform completion without reintroducing unused packages
+* Follow-on V1 cleanup (PR #2+): remove deprecated `GET /search/semantic` after
+  client confirmation; decide whether to drop Compose Redis; optional Tool freeze removal
+
+---
+
+# Milestone 47 — V1 Cleanup Sprint PR #1
+
+**Overall Status:** Complete
+
+Subtractive dead-architecture cleanup with no runtime behavior changes. Removed
+empty leftover package trees and auth/intelligence scaffold packages that had no
+imports; reconciled documentation drift left after Milestone 46.
+
+**Completed**
+
+* Deleted empty `packages/documents/src/memovi_documents/` twin tree
+* Deleted empty leftover `apps/api/app/` layout
+* Deleted empty untracked `events/` dirs under memory and search package roots
+* Deleted empty auth `domain/services`, `application/services`, and
+  `infrastructure/providers` scaffolds (no imports)
+* Deleted empty `memovi_intelligence/events` package (no imports)
+* Updated auth layer READMEs to match implemented routers, use cases, and adapters
+* Corrected `ENGINEERING_SNAPSHOT.md` references to deleted placeholders (`EchoTool`,
+  `Placeholder*`), middleware/config validation status, and Redis reserved usage
+* Clarified README / local-infrastructure Redis wording (Compose-reserved, unused by app)
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Deprecated `GET /search/semantic` removal (PR #2)
+* Redis Compose removal decision (PR #2+)
+* Frozen ToolRegistry / ToolExecutor keep-or-delete decision (post-V1)
+
+**Known Risks**
+
+* None — no intentional runtime behavior changes
+
+**Next Recommended Work**
+
+* PR #2: remove deprecated semantic search route after confirming no external clients
 
 ---
 

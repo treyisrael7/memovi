@@ -4,8 +4,9 @@ The API layer owns transport-specific auth entry points. It translates HTTP
 requests into application use cases and maps application results or errors back
 to HTTP responses.
 
-Current contents are placeholders only:
+Contents:
 
-- `router.py` defines the auth router without endpoints.
-- `schemas.py` will contain request and response schemas.
-- `dependencies.py` will contain FastAPI dependency wiring.
+- `router.py` — `/auth` routes for register, login, logout, and current user.
+- `schemas.py` — request and response schemas.
+- `dependencies.py` — FastAPI dependency wiring (repositories, session cookie/TTL
+  from `memovi_config.AuthSettings`).

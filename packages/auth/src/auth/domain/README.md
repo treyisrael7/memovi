@@ -6,8 +6,7 @@ authorization. It is independent of FastAPI, databases, provider SDKs, and queue
 Contents:
 
 - `entities` — auth domain entities.
-- `events` — lightweight auth domain facts.
+- `events` — reserved package for durable auth domain facts (none published yet).
 - `repositories` — persistence interfaces owned by the domain.
-- `services` — domain rules that do not belong to one entity.
 - `value_objects` — immutable auth values.
 - `exceptions.py` — domain-level failure types.

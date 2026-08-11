@@ -3,9 +3,8 @@
 The infrastructure layer implements external concerns for the auth domain while
 keeping those details out of domain and application code.
 
-Current contents are empty extension points:
+Contents:
 
-- `persistence` will contain storage mappings.
-- `repositories` will contain repository implementations.
-- `security` will contain credential and token adapters.
-- `providers` will contain external identity provider adapters.
+- `persistence` — SQLAlchemy ORM models for users and sessions.
+- `repositories` — SQLAlchemy repository implementations.
+- `security` — Argon2id password hashing and session token adapters.

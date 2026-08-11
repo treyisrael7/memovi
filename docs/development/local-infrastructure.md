@@ -54,7 +54,9 @@ The `pgvector/pgvector:pg18` image keeps local PostgreSQL 18 ready for future ve
 
 ## Redis
 
-Redis provides a local cache and queue-adjacent primitive for platform workflows that need fast ephemeral state.
+Redis is included in Compose as a reserved local service for future cache or
+queue-adjacent workflows. Application code does not currently open a Redis
+client; PostgreSQL-backed queues and in-process events cover today's needs.
 
 - Service name: `redis`
 - Image: `redis:8`

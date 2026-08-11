@@ -250,8 +250,6 @@ No GET/list document routes are registered.
 
 None in package source. Downstream effects occur only via events handled in `apps/api`.
 
-Note: empty twin tree `packages/documents/src/memovi_documents/` exists with no files.
-
 ---
 
 ## Memory (`packages/memory`)
@@ -420,14 +418,13 @@ None under `application/queries/`.
 
 * Ports: `KnowledgeRetriever`, `ReasoningProvider`, `ConversationRepository`, `Tool`
 * Infra: `InMemoryConversationRepository`, `SqlAlchemyConversationRepository`
-* Retrieval: `FakeKnowledgeRetriever`, `PlaceholderKnowledgeRetriever`
-* Providers: `FakeReasoningProvider`, `OpenAIReasoningProvider`, `PlaceholderReasoningProvider`, `build_model_gateway`
-* Tools: `EchoTool`
+* Retrieval: `FakeKnowledgeRetriever`
+* Providers: `FakeReasoningProvider`, `OpenAIReasoningProvider`, `build_model_gateway`
 * Config: `IntelligenceConfig`, `ReasoningProviderKind`
 
 ### Domain events
 
-None. `memovi_intelligence/events/__init__.py` is empty.
+None. Intelligence does not ship a package-level `events/` module.
 
 ### Entities
 
@@ -503,7 +500,7 @@ Empty package.
 * Location: `apps/api/src/api/events/in_process_event_dispatcher.py`
 * Wired in: `apps/api/src/api/memory_integration.py` (+ search registration)
 
-There is no out-of-process message bus. Redis exists in Compose but has no application client usage found.
+There is no out-of-process message bus. Redis exists in Compose as a reserved service with no application client usage.
 
 ## Every domain event
 
@@ -514,13 +511,9 @@ There is no out-of-process message bus. Redis exists in Compose but has no appli
 | `ProcessingCompleted` | `ProcessDocument` / worker via publisher; `CompleteProcessing` returns | `MemoryProcessingCompletedHandler` | Successful processing | Memory materialization |
 | `ProcessingFailed` | `ProcessDocument` / worker; `FailProcessing` returns | None on bus | Processing failure | Job marked failed |
 | `KnowledgeMaterialized` | `MemoryProcessingCompletedHandler` | `SearchKnowledgeMaterializedHandler` | Memory materialize succeeds | Search document materialization |
-| `KnowledgeConstructed` | Not published | None | N/A | Defined only |
-| `ChunksGenerated` | Not published | None | N/A | Defined only |
 | `SearchIndexed` | `SearchKnowledgeMaterializedHandler` | `SearchIndexedEmbeddingHandler` | Search doc materialized | Embedding generation |
 | `SearchDocumentRegistered` | Not published | None | N/A | Defined only |
 | `EmbeddingGenerated` | `GenerateEmbedding` | None | Embedding created | Terminal event |
-| `UserRegistered` | Not published | None | N/A | Defined only |
-| `UserLoggedIn` | Not published | None | N/A | Defined only |
 
 ## Event graph (active path)
 
@@ -786,10 +779,6 @@ Implemented:
 * `FakeReasoningProvider`
 * `OpenAIReasoningProvider`
 
-Placeholder:
-
-* `PlaceholderReasoningProvider` (`NotImplementedError`)
-
 Factory: `build_model_gateway` registers `fake`; registers `openai` when `OPENAI_API_KEY` is set.
 
 ## ExecutionTrace
@@ -801,9 +790,10 @@ Immutable stage timings + aggregate `ExecutionMetrics`. Stages: `retrieval`, `co
 * `Tool` port
 * `ToolRegistry` — register/discover
 * `ToolExecutor` — validate args, execute, timeouts
-* `EchoTool` — demo/test tool
 
-**Not invoked by `Reason` or Conversation API.** Used in unit tests and `scripts/verify_echo_tool.py` only.
+**Frozen / not product-supported.** Not invoked by `Reason` or the Conversation API.
+Covered by unit tests only (`packages/intelligence/tests/test_tool_framework.py`).
+Host actions use the Automation Capability Framework instead.
 
 ## Conversation Memory
 
@@ -1074,37 +1064,31 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 * Production embedding providers are config-selected at the API composition root
 * Document processing queue is durable in Postgres (`SqlAlchemyProcessingJobQueue`)
 * Event bus is in-process only
-* Auth events defined but unused
+* Auth domain-event package is reserved but publishes no event types yet
 * Several domain events defined but never published
-* Documents twin empty package tree `memovi_documents/`
-* Middleware registration is a no-op
-* Configuration validation is a no-op
 
 ## Temporary implementations
 
 * Explicit `FakeEmbeddingProvider` / `SEARCH_EMBEDDING_PROVIDER=fake` for local and tests
 * `FakeKnowledgeRetriever` / `FakeReasoningProvider` for isolated intelligence tests
 * `NoOpEventPublisher` / collecting publishers in documents package tests
-* Placeholder reasoning/knowledge retrievers that raise `NotImplementedError`
 
 ## Planned / implied refactors (from docs/status, not unfinished code branches)
 
 * Ownership context on knowledge APIs
 * Architecture boundary tests
-* Memory HTTP surface
 * Live smoke coverage against hosted OpenAI / Ollama outside default CI
-* Tool loop integration into Reason (framework exists; path does not)
+* Optional post-V1 LLM tool-calling (frozen `ToolRegistry` / `ToolExecutor`; not on Reason path)
 
 ## Missing production features
 
 * OCR
-* Connector sync
-* Desktop client UX / streaming / realtime channels
+* Additional connector providers beyond filesystem
+* Desktop realtime channels / streaming polish
 * AI summaries
-* Collections/tags/knowledge graph
-* Audit logging
+* Knowledge graph
 * Architecture tests
-* Redis-backed queues (Redis runs in Compose unused by app code found)
+* Redis-backed queues (Redis runs in Compose unused by app code; reserved only)
 
 ---
 
@@ -1141,17 +1125,16 @@ Implemented vertical slices:
 2. **Document ingestion** — multipart upload to MinIO, durable processing queue, background worker, PDF/Markdown/text processing, normalized content.
 3. **Memory materialization** — on `ProcessingCompleted`, create knowledge items and chunks.
 4. **Search indexing and retrieval** — search documents, PostgreSQL FTS, pgvector embeddings (dim 4 + fake provider in composition), hybrid RRF retrieval API.
-5. **Intelligence foundation** — Reason pipeline, conversation memory, Conversation REST API, execution traces, fake/OpenAI providers, tool framework (unused by Reason).
+5. **Intelligence foundation** — Reason pipeline, conversation memory, Conversation REST API, execution traces, fake/OpenAI providers, frozen ToolRegistry/ToolExecutor (not on Reason path).
 
 Composition root (`apps/api`) owns cross-domain event wiring and adapters. Domain packages do not import each other. Clients attach at the API boundary.
 
 Not implemented:
 
-* Ownership enforcement on knowledge APIs
-* Connectors, OCR, collections/tags
-* Desktop client product UX / streaming
-* Typed shared config package
+* OCR
+* Additional connector providers beyond filesystem
+* Knowledge graph
 * Optional live embedding provider smoke jobs
 * Architecture boundary tests
 
-The knowledge pipeline from upload through hybrid search is operational for local development. Conversation reasoning is closed-loop with Search-backed retrieval and durable SQLAlchemy conversation persistence at the composition root. The flagship desktop shell in `apps/desktop` consumes that API; Chat, Documents, and Settings pages are the next client work.
+The knowledge pipeline from upload through hybrid search is operational for local development. Conversation reasoning is closed-loop with Search-backed retrieval and durable SQLAlchemy conversation persistence at the composition root. The flagship desktop shell in `apps/desktop` consumes that API.

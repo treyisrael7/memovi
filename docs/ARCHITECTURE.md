@@ -510,7 +510,7 @@ Clients call the platform API. They do not own knowledge, retrieval, or reasonin
 
 * PostgreSQL
 * pgvector
-* Redis
+* Redis (Compose-reserved; no application client usage yet)
 * MinIO
 * Docker
 
