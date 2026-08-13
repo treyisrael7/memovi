@@ -117,6 +117,13 @@ describe("desktop critical path smoke", () => {
     expect(
       await screen.findByText(/Hello from smoke stub/i),
     ).toBeInTheDocument();
+    await user.click(
+      await screen.findByRole("button", { name: /Open source: notes\.txt/i }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: /^Knowledge$/i }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/Smoke knowledge/i)).toBeInTheDocument();
 
     // Workflow execution
     await user.click(screen.getByRole("button", { name: /^Workflows$/i }));

@@ -235,6 +235,16 @@ filesystem/browser APIs locally. See
 Markdown rendering, code-block copy, message copy, retry on failed responses,
 and auto-scroll are presentation concerns only.
 
+Assistant citations are interactive. Clicking a citation resolves the most
+specific openable source using existing APIs and AppState seeds: knowledge
+item (`GET /memory/by-document/{document_id}` → `openKnowledgeItem`), then
+document (`GET /documents/{id}` → `openDocument`), then Search scoped to that
+document (`openSearchSource`). If none of those destinations can be opened,
+Chat shows a toast instead of failing silently. Chat stays mounted after first
+visit so inspecting a source does not reset the active conversation. Conversation
+response DTOs currently include `document_id` and `chunk_id` only — not
+`knowledge_item_id` — so knowledge linking is resolved client-side.
+
 A conversation can also be started *from* Documents or Knowledge ("Ask about
 this document" / "Ask about this"): those pages create a conversation via
 `POST /conversations`, then hand the new conversation id and a draft prompt to

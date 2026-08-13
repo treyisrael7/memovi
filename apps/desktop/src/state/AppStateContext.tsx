@@ -75,6 +75,12 @@ export interface DocumentSeed {
   nonce: number;
 }
 
+export interface SearchSeed {
+  documentId: string;
+  query: string;
+  nonce: number;
+}
+
 interface AppStateValue {
   authStatus: AuthStatus;
   user: AuthUser | null;
@@ -90,6 +96,7 @@ interface AppStateValue {
   chatSeed: ChatSeed | null;
   knowledgeSeed: KnowledgeSeed | null;
   documentSeed: DocumentSeed | null;
+  searchSeed: SearchSeed | null;
   setActivePage: (page: PageId) => void;
   setTheme: (theme: ThemeMode) => void;
   setActiveWorkspaceId: (workspaceId: string) => void;
@@ -109,6 +116,9 @@ interface AppStateValue {
   /** Opens Documents with the given document selected. */
   openDocument: (documentId: string) => void;
   clearDocumentSeed: () => void;
+  /** Opens Search scoped to a source document, with a query prefilled. */
+  openSearchSource: (documentId: string, query: string) => void;
+  clearSearchSeed: () => void;
 }
 
 const initialConnection: ConnectionSnapshot = {
@@ -131,6 +141,7 @@ function clearSessionScopedState(setters: {
   setChatSeed: (value: ChatSeed | null) => void;
   setKnowledgeSeed: (value: KnowledgeSeed | null) => void;
   setDocumentSeed: (value: DocumentSeed | null) => void;
+  setSearchSeed: (value: SearchSeed | null) => void;
 }): void {
   setters.setActiveWorkspace(null);
   setters.setWorkspaces([]);
@@ -139,6 +150,7 @@ function clearSessionScopedState(setters: {
   setters.setChatSeed(null);
   setters.setKnowledgeSeed(null);
   setters.setDocumentSeed(null);
+  setters.setSearchSeed(null);
 }
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
@@ -163,6 +175,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const knowledgeSeedNonce = useRef(0);
   const [documentSeed, setDocumentSeed] = useState<DocumentSeed | null>(null);
   const documentSeedNonce = useRef(0);
+  const [searchSeed, setSearchSeed] = useState<SearchSeed | null>(null);
+  const searchSeedNonce = useRef(0);
   const authStatusRef = useRef(authStatus);
   authStatusRef.current = authStatus;
 
@@ -327,6 +341,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         setChatSeed,
         setKnowledgeSeed,
         setDocumentSeed,
+        setSearchSeed,
       });
     });
   }, []);
@@ -440,6 +455,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         setChatSeed,
         setKnowledgeSeed,
         setDocumentSeed,
+        setSearchSeed,
       });
       setActivePage("home");
     }
@@ -482,6 +498,20 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setDocumentSeed(null);
   }, []);
 
+  const openSearchSource = useCallback((documentId: string, query: string) => {
+    searchSeedNonce.current += 1;
+    setSearchSeed({
+      documentId,
+      query,
+      nonce: searchSeedNonce.current,
+    });
+    setActivePage("search");
+  }, []);
+
+  const clearSearchSeed = useCallback(() => {
+    setSearchSeed(null);
+  }, []);
+
   const value = useMemo<AppStateValue>(
     () => ({
       authStatus,
@@ -498,6 +528,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       chatSeed,
       knowledgeSeed,
       documentSeed,
+      searchSeed,
       setActivePage: handleSetActivePage,
       setTheme,
       setActiveWorkspaceId,
@@ -514,6 +545,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       clearKnowledgeSeed,
       openDocument,
       clearDocumentSeed,
+      openSearchSource,
+      clearSearchSeed,
     }),
     [
       authStatus,
@@ -529,6 +562,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       chatSeed,
       knowledgeSeed,
       documentSeed,
+      searchSeed,
       handleSetActivePage,
       setTheme,
       setActiveWorkspaceId,
@@ -545,6 +579,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       clearKnowledgeSeed,
       openDocument,
       clearDocumentSeed,
+      openSearchSource,
+      clearSearchSeed,
     ],
   );
 

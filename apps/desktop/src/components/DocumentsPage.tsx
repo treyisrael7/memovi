@@ -62,6 +62,8 @@ export function DocumentsPage() {
     connection,
     startConversationAbout,
     setActivePage,
+    documentSeed,
+    clearDocumentSeed,
   } = useAppState();
   const { showToast } = useToast();
   const workspaceId = activeWorkspace?.id ?? null;
@@ -184,7 +186,12 @@ export function DocumentsPage() {
         hasLoadedOnceRef.current = true;
         setDocuments(docsPayload.items);
         setKnowledgeDocumentIds(nextKnowledge);
-        setSelectedId(docsPayload.items[0]?.id ?? null);
+        setSelectedId((current) => {
+          if (current && docsPayload.items.some((item) => item.id === current)) {
+            return current;
+          }
+          return docsPayload.items[0]?.id ?? null;
+        });
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -202,6 +209,12 @@ export function DocumentsPage() {
       cancelled = true;
     };
   }, [workspaceId, canUseBackend]);
+
+  useEffect(() => {
+    if (!documentSeed) return;
+    setSelectedId(documentSeed.documentId);
+    clearDocumentSeed();
+  }, [documentSeed, clearDocumentSeed]);
 
   useEffect(() => {
     if (!needsPolling || !workspaceId || !canUseBackend) {

@@ -80,6 +80,8 @@ export function SearchPage() {
     openKnowledgeItem,
     startConversationAbout,
     setActivePage,
+    searchSeed,
+    clearSearchSeed,
   } = useAppState();
   const { showToast } = useToast();
   const workspaceId = activeWorkspace?.id ?? null;
@@ -172,6 +174,14 @@ export function SearchPage() {
       cancelled = true;
     };
   }, [workspaceId, canUseBackend]);
+
+  useEffect(() => {
+    if (!searchSeed) return;
+    setScope("document");
+    setDocumentId(searchSeed.documentId);
+    setQuery(searchSeed.query);
+    clearSearchSeed();
+  }, [searchSeed, clearSearchSeed]);
 
   useEffect(() => {
     if (!workspaceId || !canUseBackend) {

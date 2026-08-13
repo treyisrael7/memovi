@@ -28,6 +28,20 @@ export const SMOKE_DOCUMENT = {
   source_type: "upload",
 };
 
+export const SMOKE_KNOWLEDGE = {
+  id: "ki-smoke-1",
+  workspace_id: DEFAULT_WORKSPACE_ID,
+  document_id: SMOKE_DOCUMENT.id,
+  document_version_id: "ver-smoke-1",
+  source_type: "upload",
+  mime_type: "text/plain",
+  created_at: "2026-01-01T00:00:00.000Z",
+  updated_at: "2026-01-01T00:00:00.000Z",
+  chunk_count: 1,
+  summary: "Smoke knowledge",
+  confidence: 1,
+};
+
 type Json =
   Record<string, unknown> | unknown[] | string | number | boolean | null;
 
@@ -229,7 +243,14 @@ export function createMockBackend(): MockBackend {
               role: "assistant",
               content: "Hello from smoke stub.",
               timestamp: "2026-01-01T00:00:00.000Z",
-              citations: [],
+              citations: [
+                {
+                  document_id: SMOKE_DOCUMENT.id,
+                  chunk_id: "chunk-smoke-1",
+                  document_title: SMOKE_DOCUMENT.name,
+                  score: 0.9,
+                },
+              ],
             },
           ],
         },
@@ -297,25 +318,57 @@ export function createMockBackend(): MockBackend {
         },
       };
     }
+    if (path === "/memory/dashboard") {
+      return {
+        status: 200,
+        body: {
+          workspace_id: DEFAULT_WORKSPACE_ID,
+          knowledge_item_count: 1,
+          chunk_count: 1,
+          source_document_count: 1,
+          concept_count: 0,
+          relationship_count: 0,
+          source_type_counts: { upload: 1 },
+          mime_type_counts: { "text/plain": 1 },
+        },
+      };
+    }
+    if (path.startsWith("/memory/by-document/")) {
+      return {
+        status: 200,
+        body: { items: [SMOKE_KNOWLEDGE], count: 1 },
+      };
+    }
+    if (path === "/memory/concepts") {
+      return { status: 200, body: { items: [], count: 0 } };
+    }
+    if (path === "/memory/relationships" || path.startsWith("/memory/relationships?")) {
+      return { status: 200, body: { items: [], count: 0 } };
+    }
+    if (path === `/memory/${SMOKE_KNOWLEDGE.id}`) {
+      return {
+        status: 200,
+        body: {
+          ...SMOKE_KNOWLEDGE,
+          chunks: [
+            {
+              id: "chunk-smoke-1",
+              knowledge_item_id: SMOKE_KNOWLEDGE.id,
+              document_id: SMOKE_DOCUMENT.id,
+              document_version_id: SMOKE_KNOWLEDGE.document_version_id,
+              chunk_index: 0,
+              text: "Smoke knowledge chunk",
+              created_at: "2026-01-01T00:00:00.000Z",
+            },
+          ],
+        },
+      };
+    }
     if (path === "/memory" || path.startsWith("/memory?")) {
       return {
         status: 200,
         body: {
-          items: [
-            {
-              id: "ki-smoke-1",
-              workspace_id: DEFAULT_WORKSPACE_ID,
-              document_id: SMOKE_DOCUMENT.id,
-              document_version_id: "ver-smoke-1",
-              source_type: "upload",
-              mime_type: "text/plain",
-              created_at: "2026-01-01T00:00:00.000Z",
-              updated_at: "2026-01-01T00:00:00.000Z",
-              chunk_count: 1,
-              summary: "Smoke knowledge",
-              confidence: 1,
-            },
-          ],
+          items: [SMOKE_KNOWLEDGE],
           count: 1,
         },
       };

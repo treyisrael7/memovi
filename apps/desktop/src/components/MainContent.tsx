@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import { ActivityPage } from "./ActivityPage";
 import { ChatPage } from "./ChatPage";
 import { CollectionsPage } from "./CollectionsPage";
@@ -13,13 +15,19 @@ import { getPage } from "../navigation/pages";
 import { useAppState } from "../state/AppStateContext";
 
 export function MainContent() {
-  const { activePage } = useAppState();
+  const { activePage, chatSeed } = useAppState();
   const page = getPage(activePage);
+  const [chatMounted, setChatMounted] = useState(false);
 
-  let body;
+  useEffect(() => {
+    if (page.id === "chat" || chatSeed) {
+      setChatMounted(true);
+    }
+  }, [page.id, chatSeed]);
+
+  let body = null;
   switch (page.id) {
     case "chat":
-      body = <ChatPage />;
       break;
     case "knowledge":
       body = <KnowledgeExplorerPage />;
@@ -54,5 +62,14 @@ export function MainContent() {
       break;
   }
 
-  return <main className="content">{body}</main>;
+  return (
+    <main className="content">
+      {chatMounted ? (
+        <div hidden={page.id !== "chat"}>
+          <ChatPage />
+        </div>
+      ) : null}
+      {page.id !== "chat" ? body : null}
+    </main>
+  );
 }

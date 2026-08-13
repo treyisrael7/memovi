@@ -27,11 +27,11 @@ import {
 } from "../api/conversations";
 import type {
   CapabilityExecution,
-  Citation,
   ConversationMessage,
   ConversationSummary,
 } from "../api/types";
 import { useAppState } from "../state/AppStateContext";
+import { CitationList } from "./CitationList";
 import { Button } from "./ui/Button";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { EmptyState } from "./ui/EmptyState";
@@ -99,20 +99,7 @@ function MarkdownBody({ content }: { content: string }) {
   );
 }
 
-function Citations({ citations }: { citations: Citation[] }) {
-  if (citations.length === 0) {
-    return null;
-  }
-  return (
-    <ul className="citation-list">
-      {citations.map((citation) => (
-        <li key={`${citation.document_id}:${citation.chunk_id}`}>
-          {citation.document_title ?? citation.document_id}
-        </li>
-      ))}
-    </ul>
-  );
-}
+const lastConversationByWorkspace = new Map<string, string>();
 
 function operationSummaryText(execution: CapabilityExecution): string | null {
   const summary = execution.metadata?.operation_summary;
@@ -891,6 +878,15 @@ export function ChatPage() {
           ) {
             return current;
           }
+          const remembered = lastConversationByWorkspace.get(workspaceId);
+          if (
+            remembered &&
+            payload.conversations.some(
+              (item) => item.conversation_id === remembered,
+            )
+          ) {
+            return remembered;
+          }
           return payload.conversations[0]?.conversation_id ?? null;
         });
       })
@@ -913,6 +909,12 @@ export function ChatPage() {
       cancelled = true;
     };
   }, [workspaceId, canUseBackend]);
+
+  useEffect(() => {
+    if (workspaceId && activeConversationId) {
+      lastConversationByWorkspace.set(workspaceId, activeConversationId);
+    }
+  }, [workspaceId, activeConversationId]);
 
   useEffect(() => {
     if (!chatSeed || !workspaceId || !canUseBackend) {
@@ -1491,7 +1493,7 @@ export function ChatPage() {
                     <p>{message.content}</p>
                   )}
                 </div>
-                <Citations citations={message.citations} />
+                <CitationList citations={message.citations} />
               </article>
             ))
           )}
