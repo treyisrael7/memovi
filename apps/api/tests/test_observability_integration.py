@@ -331,6 +331,7 @@ def test_ready_endpoint_reports_components() -> None:
         "migrations",
         "workspace",
         "search_readiness",
+        "object_storage",
     }
 
 

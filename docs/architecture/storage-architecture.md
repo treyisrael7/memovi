@@ -273,6 +273,23 @@ Instead, each domain communicates through repository interfaces defined by the a
 
 This separation preserves domain independence.
 
+## Object storage backend selection
+
+The Documents `ObjectStorage` port has two infrastructure adapters:
+
+* `MinioObjectStorage` — persistent S3-compatible storage (default)
+* `InMemoryObjectStorage` — process-local memory for tests and explicit local development
+
+Backend selection is **explicit** via `MEMOVI_OBJECT_STORAGE` (`minio` | `memory`).
+There is no silent fallback from MinIO to memory when MinIO is unreachable.
+`memory` is rejected unless `MEMOVI_ENV` is `local`, `development`, `dev`, or `test`.
+If the configured backend is `minio` and MinIO cannot be reached, API startup
+fails with operator guidance (`docker compose up -d` / `task docker-up`).
+
+`/ready` reports an `object_storage` component so operators (including desktop
+Settings → Diagnostics) can see whether persistent MinIO or explicit in-memory
+development storage is active.
+
 # Backup Strategy
 
 Only authoritative data requires comprehensive backup.

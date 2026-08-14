@@ -18,6 +18,7 @@ from memovi_workspace.infrastructure.repositories import SqlAlchemyWorkspaceRepo
 from sqlalchemy import text
 
 from api.database import create_session, engine
+from api.document_processing import MEMORY_STORAGE_LABEL, MINIO_STORAGE_LABEL
 
 router = APIRouter(tags=["health"])
 
@@ -150,10 +151,61 @@ def _check_search_readiness() -> ComponentCheck:
         return ComponentCheck(name="search_readiness", status="down", detail=str(exc))
 
 
+_OBJECT_STORAGE_DOWN = (
+    "Persistent object storage is unavailable (MinIO). "
+    "Start MinIO with `docker compose up -d` or `task docker-up`."
+)
+
+
+def _check_object_storage(
+    *,
+    storage: object | None = None,
+    backend: str | None = None,
+    label: str | None = None,
+) -> ComponentCheck:
+    kind = (backend or "").strip().lower()
+    is_memory = kind == "memory" or type(storage).__name__ == "InMemoryObjectStorage"
+    if storage is None and not kind:
+        return ComponentCheck(
+            name="object_storage",
+            status="down",
+            detail="Object storage was not configured.",
+        )
+    if is_memory:
+        return ComponentCheck(
+            name="object_storage",
+            status="up",
+            detail=label or MEMORY_STORAGE_LABEL,
+        )
+    try:
+        check_available = getattr(storage, "check_available", None)
+        if callable(check_available):
+            check_available()
+        return ComponentCheck(
+            name="object_storage",
+            status="up",
+            detail=label or MINIO_STORAGE_LABEL,
+        )
+    except Exception:
+        return ComponentCheck(
+            name="object_storage",
+            status="down",
+            detail=_OBJECT_STORAGE_DOWN,
+        )
+
+
 def run_readiness_checks(
     *,
     embedding_provider: EmbeddingProvider | None = None,
+    object_storage: object | None = None,
+    object_storage_backend: str | None = None,
+    object_storage_label: str | None = None,
 ) -> list[ComponentCheck]:
+    storage_check = _check_object_storage(
+        storage=object_storage,
+        backend=object_storage_backend,
+        label=object_storage_label,
+    )
     database = _check_database()
     if database.status == "down":
         # Avoid stacking multiple long connection attempts when Postgres is down.
@@ -165,6 +217,7 @@ def run_readiness_checks(
             ComponentCheck(name="migrations", status="down", detail=unavailable),
             ComponentCheck(name="workspace", status="down", detail=unavailable),
             ComponentCheck(name="search_readiness", status="down", detail=unavailable),
+            storage_check,
         ]
     return [
         database,
@@ -173,6 +226,7 @@ def run_readiness_checks(
         _check_migrations(),
         _check_workspace(),
         _check_search_readiness(),
+        storage_check,
     ]
 
 
@@ -184,7 +238,12 @@ async def health() -> dict[str, str]:
 @router.get("/ready")
 async def ready(request: Request, response: Response) -> dict[str, Any]:
     embedding_provider = getattr(request.app.state, "embedding_provider", None)
-    checks = run_readiness_checks(embedding_provider=embedding_provider)
+    checks = run_readiness_checks(
+        embedding_provider=embedding_provider,
+        object_storage=getattr(request.app.state, "object_storage", None),
+        object_storage_backend=getattr(request.app.state, "object_storage_backend", None),
+        object_storage_label=getattr(request.app.state, "object_storage_label", None),
+    )
     all_up = all(check.status == "up" for check in checks)
     if not all_up:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE

@@ -162,7 +162,14 @@ export function createMockBackend(): MockBackend {
         body: {
           status: "ready",
           environment: "test",
-          components: [{ name: "postgres", status: "ok" }],
+          components: [
+            { name: "postgres", status: "ok" },
+            {
+              name: "object_storage",
+              status: "up",
+              detail: "Persistent object storage: MinIO",
+            },
+          ],
         },
       };
     }

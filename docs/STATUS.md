@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #8).
+system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #9).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -120,7 +120,7 @@ import local folders through Documents.
 **Completed**
 
 * Document uploads (`POST /documents`)
-* MinIO-backed object storage
+* MinIO-backed object storage (explicit backend; no silent in-memory fallback — PR #9)
 * Document processing engine for PDF, Markdown, and plain text
 * Processing queue and background worker
 * Chunk generation via Memory materialization on `ProcessingCompleted`
@@ -930,6 +930,9 @@ startup fail-fast checks live there. Domain `from_env()` helpers delegate to
 * `Settings` aggregate + `load_settings()` / `validate_configuration()`
 * Secret wrapping (`SecretValue`) that never appears in `str`/`repr`/errors
 * API startup validation through `api.bootstrap.validate_configuration()`
+* Explicit object-storage backend (`MEMOVI_OBJECT_STORAGE=minio|memory`); MinIO
+  unavailability fails startup instead of silently using in-memory storage (PR #9)
+* `/ready` `object_storage` component for operator/desktop diagnostics
 * Migration of database, MinIO, embeddings, intelligence, capability roots, and
   readiness environment reads onto `memovi_config`
 * Configuration validation tests (valid, missing required, invalid enums/URLs/numbers)

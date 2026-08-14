@@ -363,6 +363,7 @@ def test_health_liveness_and_ready_healthy_shape() -> None:
         "migrations",
         "workspace",
         "search_readiness",
+        "object_storage",
     }
 
 

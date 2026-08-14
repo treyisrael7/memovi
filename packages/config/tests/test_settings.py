@@ -52,6 +52,13 @@ def test_valid_configuration_loads_all_domains() -> None:
     assert "secret-db-password" not in repr(settings.database)
 
 
+def test_explicit_in_memory_object_storage_allowed_in_test_env() -> None:
+    settings = validate_configuration(
+        _base_environ(MEMOVI_OBJECT_STORAGE="memory", MEMOVI_ENV="test"),
+    )
+    assert settings.storage.backend == "memory"
+
+
 def test_missing_required_openai_key_for_embeddings() -> None:
     with pytest.raises(ConfigurationError, match="OPENAI_API_KEY"):
         EmbeddingsSettings.from_environ(

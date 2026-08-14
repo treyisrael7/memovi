@@ -63,6 +63,10 @@ class MinioObjectStorage:
     def delete_object(self, key: str) -> None:
         self._client.delete_object(Bucket=self._bucket_name, Key=key)
 
+    def check_available(self) -> None:
+        """Fail fast when MinIO cannot be reached (startup and readiness)."""
+        self._client.head_bucket(Bucket=self._bucket_name)
+
     def _ensure_bucket_exists(self) -> None:
         try:
             self._client.head_bucket(Bucket=self._bucket_name)

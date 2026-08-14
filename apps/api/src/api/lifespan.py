@@ -14,6 +14,7 @@ from api.bootstrap import LOGGER_NAME, initialize_logging, validate_configuratio
 from api.database import create_session
 from api.document_processing import (
     configure_document_processing,
+    describe_object_storage,
     start_document_processing_worker,
     stop_document_processing_worker,
 )
@@ -31,13 +32,14 @@ def startup_object_storage(settings: Settings) -> ObjectStorage:
     """Select object storage from explicit configuration. Never falls back silently."""
     logger = logging.getLogger(LOGGER_NAME)
     if settings.storage.backend == ObjectStorageBackend.MEMORY:
-        logger.info("Using InMemoryObjectStorage (development only)")
-        return InMemoryObjectStorage()
+        storage: ObjectStorage = InMemoryObjectStorage()
+        logger.info(describe_object_storage(storage, backend=settings.storage.backend))
+        return storage
     try:
         storage = MinioObjectStorage.from_env()
     except Exception as exc:
-        raise ConfigurationError(_MINIO_UNAVAILABLE.format(error=exc)) from exc
-    logger.info("Using MinioObjectStorage")
+        raise ConfigurationError(_MINIO_UNAVAILABLE.format(error=str(exc))) from exc
+    logger.info(describe_object_storage(storage, backend=settings.storage.backend))
     return storage
 
 
@@ -55,6 +57,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             session_factory=create_session,
             queue=SqlAlchemyProcessingJobQueue(create_session),
             object_storage=startup_object_storage(settings),
+            storage_backend=settings.storage.backend,
         )
     if not hasattr(app.state, "document_processing_worker_task"):
         await start_document_processing_worker(app)

@@ -110,7 +110,9 @@ Connectivity is checked at API startup. Invalid URL / blank credentials fail
 configuration validation even if MinIO is down. If the backend is `minio` and
 MinIO cannot be reached, startup fails with instructions to start Compose /
 check `MINIO_SERVER_URL`, or to opt in to ephemeral in-memory storage for local
-development only. There is no silent fallback.
+development only. There is no silent fallback. `/ready` includes an
+`object_storage` component (`Persistent object storage: MinIO` or
+`Development object storage: In-memory`).
 
 ### Embeddings
 
