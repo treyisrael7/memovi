@@ -6,7 +6,7 @@ This document defines how knowledge is persisted, organized, indexed, cached, ba
 
 # Scope
 
-It covers PostgreSQL, pgvector, MinIO, Redis, data ownership, lifecycle, versioning, derived data, storage boundaries, backup strategy, and future evolution.
+It covers PostgreSQL, pgvector, MinIO, data ownership, lifecycle, versioning, derived data, storage boundaries, backup strategy, and future evolution. Redis is not used in V1; distributed queues or Redis Streams remain future architectural options.
 
 # Relationship to ARCHITECTURE.md
 
@@ -30,18 +30,21 @@ If two systems become sources of truth for the same information, the architectur
 
 # Storage Overview
 
-The platform consists of four primary storage responsibilities.
+The platform consists of three primary storage responsibilities in V1.
 
 ```text
                     Storage Platform
 
-        ┌──────────────┬──────────────┬──────────────┬──────────────┐
-        ▼              ▼              ▼              ▼
+        ┌──────────────┬──────────────┬──────────────┐
+        ▼              ▼              ▼
 
- Relational Data   Vector Data      Object Data      Cache
+ Relational Data   Vector Data      Object Data
 
- PostgreSQL        pgvector         MinIO           Redis
+ PostgreSQL        pgvector         MinIO
 ```
+
+A dedicated cache store is not part of V1. Redis is not used; distributed queues
+or Redis Streams remain future architectural options.
 
 Although several technologies are involved, the platform maintains a single logical source of truth.
 
@@ -174,9 +177,14 @@ Every cache entry should be disposable.
 
 Deleting the cache should never result in permanent data loss.
 
-## Why Redis?
+V1 has no dedicated cache infrastructure. Sessions, processing jobs, and
+connector progress persist in PostgreSQL. Redis is not used in V1; distributed
+queues or Redis Streams remain future architectural options if a disposable
+cache or stream layer is later justified.
 
-Redis provides:
+## Future cache options
+
+A future cache or stream layer could provide:
 
 * High-performance caching
 * Distributed locks
@@ -184,7 +192,7 @@ Redis provides:
 * Streams
 * Temporary state
 
-Redis accelerates the platform. It does not define the platform.
+Any such layer would accelerate the platform. It would not define the platform.
 
 # Data Ownership
 
@@ -195,7 +203,6 @@ Each storage responsibility owns different categories of information.
 | PostgreSQL | Business entities |
 | pgvector | Semantic embeddings |
 | MinIO | Original artifacts |
-| Redis | Temporary operational state |
 
 Ownership should remain exclusive.
 
@@ -310,6 +317,7 @@ Future operational requirements may introduce:
 * Read replicas
 * Distributed object storage
 * Dedicated vector databases
+* Disposable cache or stream layers (Redis is not used in V1)
 * Cold storage
 * Archival systems
 
@@ -322,7 +330,7 @@ The architecture intentionally isolates storage technologies behind stable abstr
 * PostgreSQL is the authoritative source of truth.
 * pgvector stores derived semantic representations rather than business entities.
 * MinIO preserves immutable source artifacts.
-* Redis stores temporary operational state only.
+* Redis is not used in V1; distributed queues or Redis Streams remain future architectural options.
 * Business domains remain independent from storage implementations.
 * Derived data should always be reproducible.
 * Storage responsibilities remain exclusive.

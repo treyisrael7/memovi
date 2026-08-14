@@ -84,7 +84,7 @@ If you are not using Task, the equivalent commands are documented in
 |-- tests/                    # Reserved for future cross-package tests (placeholders today)
 |-- .devcontainer/            # VS Code Dev Container definition
 |-- .github/workflows/        # Repository validation workflows
-|-- compose.yml               # Local PostgreSQL, Redis, and MinIO
+|-- compose.yml               # Local PostgreSQL and MinIO
 |-- pyproject.toml            # Python workspace and tooling config
 |-- pnpm-workspace.yaml       # pnpm workspace config
 `-- Taskfile.yml              # Repository task runner
@@ -204,7 +204,6 @@ web-workspace subtasks.
 Local infrastructure is defined in `compose.yml`:
 
 - PostgreSQL 18 with pgvector on `127.0.0.1:5432`
-- Redis 8 on `127.0.0.1:6379` (Compose-reserved; no application client usage yet)
 - MinIO API on `127.0.0.1:9000` (required for document uploads unless `MEMOVI_OBJECT_STORAGE=memory` is set for local development)
 - MinIO console on `127.0.0.1:9001`
 

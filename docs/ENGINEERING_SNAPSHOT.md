@@ -498,7 +498,7 @@ Empty package.
 * Location: `apps/api/src/api/events/in_process_event_dispatcher.py`
 * Wired in: `apps/api/src/api/memory_integration.py` (+ search registration)
 
-There is no out-of-process message bus. Redis exists in Compose as a reserved service with no application client usage.
+There is no out-of-process message bus. Redis is not used in V1; distributed queues or Redis Streams remain future architectural options.
 
 ## Every domain event
 
@@ -926,7 +926,6 @@ From `.env.example` and code readers:
 |----------|---------|
 | `POSTGRES_DB/USER/PASSWORD/HOST/PORT` | Postgres / DATABASE_URL construction |
 | `DATABASE_URL` | SQLAlchemy/Alembic (optional override) |
-| `REDIS_PASSWORD`, `REDIS_PORT` | Compose Redis service only |
 | `MINIO_*` | Object storage credentials/endpoints/bucket |
 | `INTELLIGENCE_PROVIDER` | `fake` \| `openai` |
 | `INTELLIGENCE_MODEL` | optional model override |
@@ -938,7 +937,6 @@ From `.env.example` and code readers:
 `compose.yml` services:
 
 * `postgres` — `pgvector/pgvector:pg18`
-* `redis` — `redis:8`
 * `minio`
 
 No API or web service is defined in Compose.
@@ -1085,7 +1083,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 * AI summaries
 * Knowledge graph
 * Architecture tests
-* Redis-backed queues (Redis runs in Compose unused by app code; reserved only)
+* Redis-backed queues (Redis is not used in V1; distributed queues remain a future option)
 
 ---
 

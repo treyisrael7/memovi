@@ -130,7 +130,7 @@ See [`storage-architecture.md`](storage-architecture.md).
 
 The architecture intentionally does not prescribe a specific messaging technology.
 
-Current implementations may use Redis Streams, PostgreSQL-backed queues, RabbitMQ, Kafka, or future messaging systems.
+V1 uses an in-process event dispatcher and a PostgreSQL-backed document processing queue. Redis is not used in V1; distributed queues or Redis Streams remain future architectural options, along with other replaceable brokers.
 
 Messaging infrastructure is replaceable. The architectural model remains constant.
 

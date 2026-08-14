@@ -232,7 +232,7 @@ flowchart TD
     Memory --> Storage
     Intelligence --> Storage
 
-    Storage[(PostgreSQL / pgvector<br/>Redis / MinIO)]
+    Storage[(PostgreSQL / pgvector<br/>MinIO)]
 ```
 
 Additional clients attach at the API without changing Documents, Memory, Search,
@@ -327,7 +327,7 @@ Processing components should remain stateless whenever practical. Each worker pe
 
 The Infrastructure Layer provides technical capabilities required by the rest of the platform.
 
-Examples include PostgreSQL, pgvector, Redis, MinIO, object storage, logging, metrics, tracing, Docker, and configuration.
+Examples include PostgreSQL, pgvector, MinIO, object storage, logging, metrics, tracing, Docker, and configuration. Redis is not used in V1; distributed queues or Redis Streams remain future architectural options.
 
 Infrastructure exists to support the platform. Business decisions should never originate from infrastructure components.
 
@@ -510,9 +510,11 @@ Clients call the platform API. They do not own knowledge, retrieval, or reasonin
 
 * PostgreSQL
 * pgvector
-* Redis (Compose-reserved; no application client usage yet)
 * MinIO
 * Docker
+
+Redis is not used in V1. Distributed queues or Redis Streams remain future
+architectural options.
 
 ## AI
 
@@ -543,7 +545,7 @@ The high-level architecture establishes these constraints:
 * Long-running work is asynchronous whenever appropriate.
 * Components communicate through stable interfaces and domain events.
 * PostgreSQL is the authoritative source of truth.
-* pgvector, Redis, and generated indexes store derived or temporary data.
+* pgvector and generated indexes store derived data. Redis is not used in V1.
 * Operational simplicity is preferred over premature distribution.
 * Architectural boundaries take precedence over implementation convenience.
 
@@ -564,7 +566,7 @@ The following documents expand this blueprint without redefining it.
 | [`architecture/request-lifecycle.md`](architecture/request-lifecycle.md) | Synchronous request flow, async transitions, failures, and transactions |
 | [`architecture/event-architecture.md`](architecture/event-architecture.md) | Event philosophy, lifecycle, ownership, workers, versioning, and failure handling |
 | [`architecture/knowledge-processing-pipeline.md`](architecture/knowledge-processing-pipeline.md) | Ingestion, normalization, storage, processing, indexing, retrieval, and intelligence stages |
-| [`architecture/storage-architecture.md`](architecture/storage-architecture.md) | PostgreSQL, pgvector, Redis, MinIO, data ownership, backup, and versioning |
+| [`architecture/storage-architecture.md`](architecture/storage-architecture.md) | PostgreSQL, pgvector, MinIO, data ownership, backup, and versioning |
 | [`architecture/search-architecture.md`](architecture/search-architecture.md) | Search responsibility, retrieval strategies, indexes, ranking, and boundaries |
 | [`architecture/SEARCH.md`](architecture/SEARCH.md) | Embedding provider configuration, production recommendations, testing |
 | [`architecture/intelligence-architecture.md`](architecture/intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |

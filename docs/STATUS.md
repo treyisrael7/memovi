@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #11).
+system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #12).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -1381,7 +1381,7 @@ froze unwired LLM tool-calling types without product claims.
 **Next Recommended Work**
 
 * Continue Phase 1 V1 platform completion without reintroducing unused packages
-* Follow-on V1 cleanup: decide whether to drop Compose Redis; optional Tool freeze removal
+* Optional Tool freeze removal
 
 ---
 
@@ -1414,7 +1414,6 @@ imports; reconciled documentation drift left after Milestone 46.
 
 **Remaining**
 
-* Redis Compose removal decision (PR #2+)
 * Frozen ToolRegistry / ToolExecutor keep-or-delete decision (post-V1)
 
 **Known Risks**
@@ -1423,7 +1422,41 @@ imports; reconciled documentation drift left after Milestone 46.
 
 **Next Recommended Work**
 
-* Decide whether Compose Redis can be dropped now that the app does not use it
+* Optional post-V1 Tool freeze removal
+
+---
+
+# Milestone 48 — V1 Cleanup Sprint PR #12
+
+**Overall Status:** Complete
+
+Removed unused Redis Compose infrastructure. Audit confirmed no application
+client, package dependency, tests, CI service, or subsystem used Redis. Local
+stack is PostgreSQL and MinIO only. No application behavior change.
+
+**Completed**
+
+* Deleted Compose `redis` service, healthcheck, ports, env, and `memovi_redis_data`
+* Removed `REDIS_PASSWORD` and `REDIS_PORT` from `.env.example`
+* Removed Dev Container port `6379` forwarding and Redis label
+* Reconciled V1 docs so Redis is not described as a current dependency
+* Labeled distributed queues / Redis Streams as future architectural options
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Frozen ToolRegistry / ToolExecutor keep-or-delete decision (post-V1)
+
+**Known Risks**
+
+* None — no intentional runtime behavior changes
+
+**Next Recommended Work**
+
+* Continue Phase 1 V1 platform completion without reintroducing unused infrastructure
 
 ---
 

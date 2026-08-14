@@ -52,22 +52,10 @@ PostgreSQL is the authoritative relational database for durable Memovi data.
 
 The `pgvector/pgvector:pg18` image keeps local PostgreSQL 18 ready for future vector extension usage. The Compose stack does not create schemas, migrations, tables, or application data. Apply Alembic migrations with `task db:migrate` to create Auth, Documents, Memory, and Search tables.
 
-## Redis
-
-Redis is included in Compose as a reserved local service for future cache or
-queue-adjacent workflows. Application code does not currently open a Redis
-client; PostgreSQL-backed queues and in-process events cover today's needs.
-
-- Service name: `redis`
-- Image: `redis:8`
-- Container port: `6379`
-- Host binding: `127.0.0.1:${REDIS_PORT:-6379}`
-- Password: `${REDIS_PASSWORD:-memovi_local_redis_42e7f8a6c9d54b1a}`
-- Volume: `memovi_redis_data`
-- Persistence: append-only file enabled
-- Health check: authenticated `redis-cli ping`
-
-Redis requires authentication even in local development. The default password is local-only and should be changed in `.env` for shared machines.
+Redis is not used in V1. Document processing uses a PostgreSQL-backed job table
+and an in-process worker; domain events use an in-process dispatcher. Distributed
+queues or Redis Streams remain future architectural options, not local Compose
+services.
 
 ## MinIO
 

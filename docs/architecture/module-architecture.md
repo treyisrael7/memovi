@@ -98,7 +98,7 @@ Processing components should remain stateless whenever practical.
 
 ## Infrastructure
 
-The Infrastructure Layer provides technical capabilities such as PostgreSQL, pgvector, Redis, MinIO, object storage, logging, metrics, tracing, Docker, and configuration.
+The Infrastructure Layer provides technical capabilities such as PostgreSQL, pgvector, MinIO, object storage, logging, metrics, tracing, Docker, and configuration. Redis is not used in V1; distributed queues or Redis Streams remain future architectural options.
 
 Infrastructure exists to support the platform. Business decisions should never originate from infrastructure components.
 

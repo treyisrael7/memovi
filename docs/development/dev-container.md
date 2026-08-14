@@ -50,7 +50,6 @@ Forwarded ports are configured for the web app and local infrastructure:
 
 - `3000` for the optional web client workspace
 - `5432` for PostgreSQL
-- `6379` for Redis
 - `9000` for the MinIO API
 - `9001` for the MinIO console
 

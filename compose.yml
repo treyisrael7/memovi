@@ -24,31 +24,6 @@ services:
     networks:
       - memovi_internal
 
-  # Low-latency cache and queue-adjacent primitive for local development.
-  redis:
-    image: redis:8
-    restart: unless-stopped
-    command:
-      - redis-server
-      - --appendonly
-      - "yes"
-      - --requirepass
-      - ${REDIS_PASSWORD:-memovi_local_redis_42e7f8a6c9d54b1a}
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-memovi_local_redis_42e7f8a6c9d54b1a}
-    ports:
-      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
-    volumes:
-      - memovi_redis_data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$${REDIS_PASSWORD}\" ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    networks:
-      - memovi_internal
-
   # S3-compatible object storage for uploaded files and generated artifacts.
   minio:
     image: minio/minio:latest
@@ -86,7 +61,5 @@ networks:
 volumes:
   memovi_postgres_data:
     name: memovi_postgres_data
-  memovi_redis_data:
-    name: memovi_redis_data
   memovi_minio_data:
     name: memovi_minio_data

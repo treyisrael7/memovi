@@ -31,7 +31,7 @@ document that matches the concern being changed or reviewed.
 | [`request-lifecycle.md`](request-lifecycle.md) | Synchronous request flow, async transitions, failures, and transaction boundaries |
 | [`event-architecture.md`](event-architecture.md) | Event philosophy, event lifecycle, event ownership, workers, failures, and versioning |
 | [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md) | Acquisition, normalization, storage, processing, knowledge creation, indexing, retrieval, and intelligence |
-| [`storage-architecture.md`](storage-architecture.md) | PostgreSQL, pgvector, MinIO, Redis, data ownership, backup, and versioning |
+| [`storage-architecture.md`](storage-architecture.md) | PostgreSQL, pgvector, MinIO, data ownership, backup, and versioning |
 | [`search-architecture.md`](search-architecture.md) | Search responsibility, retrieval strategies, indexes, ranking, and boundaries |
 | [`intelligence-architecture.md`](intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |
 | [`CONNECTOR_FRAMEWORK.md`](CONNECTOR_FRAMEWORK.md) | Connector framework: registry, sync, normalization into Documents |

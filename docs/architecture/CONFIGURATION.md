@@ -180,8 +180,9 @@ Desktop Vite builds also read `VITE_MEMOVI_API_BASE` (client-only; not validated
 
 ### Compose-only (not read by the API Python process)
 
-`REDIS_PASSWORD`, `REDIS_PORT`, `MINIO_API_PORT`, `MINIO_CONSOLE_PORT`,
-`MINIO_BROWSER_REDIRECT_URL` are used by Docker Compose / infra substitution.
+`MINIO_API_PORT`, `MINIO_CONSOLE_PORT`, and `MINIO_BROWSER_REDIRECT_URL` are used
+by Docker Compose / infra substitution. Redis is not used in V1 and has no
+Compose or application environment variables.
 
 ---
 

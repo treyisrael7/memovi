@@ -123,8 +123,10 @@ Examples include:
 
 * PostgreSQL
 * pgvector
-* Redis
 * MinIO
+
+Redis is not used in V1; distributed queues or Redis Streams remain future
+architectural options.
 
 Persistence implementations remain hidden behind repositories and infrastructure adapters.
 

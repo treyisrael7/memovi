@@ -30,9 +30,11 @@ The high-level runtime model includes:
 * Domain events
 * Workers
 * PostgreSQL with pgvector
-* Redis
 * MinIO
 * Observability tooling
+
+Redis is not used in V1; distributed queues or Redis Streams remain future
+architectural options.
 
 The top-level blueprint represents these responsibilities in the canonical system diagram.
 
@@ -46,7 +48,6 @@ Examples include:
 
 * PostgreSQL
 * pgvector
-* Redis
 * MinIO
 * Object Storage
 * Logging
@@ -87,7 +88,9 @@ Deployment must account for the platform's storage responsibilities:
 * PostgreSQL as the authoritative source of truth
 * pgvector for derived semantic representations
 * MinIO for immutable source artifacts
-* Redis for temporary operational state
+
+Redis is not used in V1 for temporary operational state. Distributed queues or
+Redis Streams remain future architectural options.
 
 Only authoritative data requires comprehensive backup.
 

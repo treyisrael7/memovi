@@ -16,16 +16,13 @@
     "UV_LINK_MODE": "copy"
   },
   "postCreateCommand": "corepack enable && corepack prepare pnpm@10.33.4 --activate && uv sync --all-groups && pnpm install --frozen-lockfile && uv run pre-commit install",
-  "forwardPorts": [3000, 5432, 6379, 9000, 9001],
+  "forwardPorts": [3000, 5432, 9000, 9001],
   "portsAttributes": {
     "3000": {
       "label": "Next.js"
     },
     "5432": {
       "label": "PostgreSQL"
-    },
-    "6379": {
-      "label": "Redis"
     },
     "9000": {
       "label": "MinIO API"
