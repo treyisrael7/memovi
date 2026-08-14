@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import StrEnum
 
 from memovi_config.env import Environ, get_secret, get_str, require_http_url
 from memovi_config.exceptions import ConfigurationError
@@ -13,15 +14,22 @@ DEFAULT_MINIO_ACCESS_KEY = "memovi_minio_admin"
 DEFAULT_MINIO_SECRET_KEY = "memovi_local_minio_5c7f1e9a3b6d4a82"
 DEFAULT_MINIO_BUCKET = "memovi-documents"
 DEFAULT_MINIO_REGION = "us-east-1"
+DEFAULT_OBJECT_STORAGE_BACKEND = "minio"
+
+
+class ObjectStorageBackend(StrEnum):
+    """Supported object-storage backends. ``memory`` is an explicit local opt-in."""
+
+    MINIO = "minio"
+    MEMORY = "memory"
 
 
 @dataclass(frozen=True, slots=True)
 class StorageSettings:
     """Typed MinIO / S3-compatible object storage settings.
 
-    Connectivity is validated separately at runtime (startup may fall back to
-    in-memory storage when MinIO is unavailable). This object validates that
-    configuration values themselves are well-formed.
+    Backend selection is explicit. Connectivity for ``minio`` is checked at
+    process startup; there is no silent in-memory fallback.
     """
 
     endpoint_url: str = DEFAULT_MINIO_ENDPOINT
@@ -33,8 +41,21 @@ class StorageSettings:
     )
     bucket_name: str = DEFAULT_MINIO_BUCKET
     region_name: str = DEFAULT_MINIO_REGION
+    backend: str = DEFAULT_OBJECT_STORAGE_BACKEND
 
     def __post_init__(self) -> None:
+        backend = self.backend.strip().lower()
+        if not backend:
+            raise ConfigurationError("MEMOVI_OBJECT_STORAGE cannot be blank.")
+        try:
+            kind = ObjectStorageBackend(backend)
+        except ValueError as exc:
+            supported = ", ".join(item.value for item in ObjectStorageBackend)
+            raise ConfigurationError(
+                f"Unsupported object storage backend '{backend}'. " f"Supported: {supported}.",
+            ) from exc
+        object.__setattr__(self, "backend", kind.value)
+
         require_http_url("MINIO_SERVER_URL", self.endpoint_url)
         if not self.access_key.get_secret_value().strip():
             raise ConfigurationError("MINIO_ROOT_USER cannot be blank.")
@@ -52,6 +73,7 @@ class StorageSettings:
     def __repr__(self) -> str:
         return (
             "StorageSettings("
+            f"backend={self.backend!r}, "
             f"endpoint_url={self.endpoint_url!r}, "
             "access_key=SecretValue('***'), "
             "secret_key=SecretValue('***'), "
@@ -97,10 +119,19 @@ class StorageSettings:
             )
             or DEFAULT_MINIO_REGION
         )
+        backend = (
+            get_str(
+                environ,
+                "MEMOVI_OBJECT_STORAGE",
+                default=DEFAULT_OBJECT_STORAGE_BACKEND,
+            )
+            or DEFAULT_OBJECT_STORAGE_BACKEND
+        )
         return cls(
             endpoint_url=endpoint_url,
             access_key=access_key,
             secret_key=secret_key,
             bucket_name=bucket_name,
             region_name=region_name,
+            backend=backend,
         )

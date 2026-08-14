@@ -86,3 +86,5 @@ MinIO provides local S3-compatible object storage for uploaded files and generat
 - Health check: MinIO live health endpoint
 
 The Compose stack does not create buckets or policies. Those should be added later through infrastructure initialization code or explicit setup scripts when application storage contracts exist.
+
+The API defaults to MinIO (`MEMOVI_OBJECT_STORAGE=minio`). If MinIO is not running, startup fails instead of silently storing uploads in process memory. For ephemeral local work only, set `MEMOVI_OBJECT_STORAGE=memory` with `MEMOVI_ENV=local`.

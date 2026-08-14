@@ -6,6 +6,9 @@ from documents.application.ports import ObjectStorage
 from documents.infrastructure.queue import SqlAlchemyProcessingJobQueue
 from documents.infrastructure.storage import InMemoryObjectStorage, MinioObjectStorage
 from fastapi import FastAPI
+from memovi_config.exceptions import ConfigurationError
+from memovi_config.settings import Settings
+from memovi_config.settings.storage import ObjectStorageBackend
 
 from api.bootstrap import LOGGER_NAME, initialize_logging, validate_configuration
 from api.database import create_session
@@ -16,23 +19,32 @@ from api.document_processing import (
 )
 from api.embedding_composition import configure_embedding_provider
 
+_MINIO_UNAVAILABLE = (
+    "Persistent object storage is required but MinIO is unavailable ({error}). "
+    "Start MinIO with `docker compose up -d` or `task docker-up`, then confirm "
+    "MINIO_SERVER_URL. For local development only, set MEMOVI_OBJECT_STORAGE=memory "
+    "with MEMOVI_ENV=local — in-memory storage is ephemeral and loses files on restart."
+)
 
-def _startup_object_storage() -> ObjectStorage:
-    """Prefer MinIO, but fail fast to in-memory when local infra is unavailable."""
-    try:
-        return MinioObjectStorage.from_env()
-    except Exception as exc:
-        logging.getLogger(LOGGER_NAME).warning(
-            "MinIO unavailable at startup (%s); using in-memory object storage.",
-            exc,
-        )
+
+def startup_object_storage(settings: Settings) -> ObjectStorage:
+    """Select object storage from explicit configuration. Never falls back silently."""
+    logger = logging.getLogger(LOGGER_NAME)
+    if settings.storage.backend == ObjectStorageBackend.MEMORY:
+        logger.info("Using InMemoryObjectStorage (development only)")
         return InMemoryObjectStorage()
+    try:
+        storage = MinioObjectStorage.from_env()
+    except Exception as exc:
+        raise ConfigurationError(_MINIO_UNAVAILABLE.format(error=exc)) from exc
+    logger.info("Using MinioObjectStorage")
+    return storage
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     initialize_logging()
-    validate_configuration()
+    settings = validate_configuration()
     if not hasattr(app.state, "embedding_provider"):
         configure_embedding_provider(app)
 
@@ -42,7 +54,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             app,
             session_factory=create_session,
             queue=SqlAlchemyProcessingJobQueue(create_session),
-            object_storage=_startup_object_storage(),
+            object_storage=startup_object_storage(settings),
         )
     if not hasattr(app.state, "document_processing_worker_task"):
         await start_document_processing_worker(app)

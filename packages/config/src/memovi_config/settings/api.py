@@ -20,6 +20,10 @@ class ApiSettings:
             raise ConfigurationError("MEMOVI_ENV cannot be blank.")
         object.__setattr__(self, "environment", environment)
 
+    def allows_in_memory_object_storage(self) -> bool:
+        """In-memory object storage is an explicit local/test opt-in only."""
+        return self.environment.lower() in {"local", "development", "dev", "test"}
+
     @classmethod
     def from_environ(cls, environ: Environ) -> ApiSettings:
         return cls(

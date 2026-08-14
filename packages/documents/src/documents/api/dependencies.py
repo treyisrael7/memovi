@@ -24,7 +24,6 @@ from documents.infrastructure.repositories import (
     SqlAlchemyDocumentRepository,
     SqlAlchemyProcessingJobRepository,
 )
-from documents.infrastructure.storage import MinioObjectStorage
 
 
 def get_database_session() -> OrmSession:
@@ -49,8 +48,11 @@ def get_processing_job_queue(request: Request) -> ProcessingJobQueue:
 ProcessingJobQueueDependency = Annotated[ProcessingJobQueue, Depends(get_processing_job_queue)]
 
 
-def get_object_storage() -> ObjectStorage:
-    return MinioObjectStorage.from_env()
+def get_object_storage(request: Request) -> ObjectStorage:
+    storage = getattr(request.app.state, "object_storage", None)
+    if storage is None:
+        raise RuntimeError("Object storage was not configured.")
+    return cast(ObjectStorage, storage)
 
 
 ObjectStorageDependency = Annotated[ObjectStorage, Depends(get_object_storage)]

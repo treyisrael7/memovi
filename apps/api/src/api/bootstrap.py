@@ -2,6 +2,7 @@ import logging
 from importlib.metadata import PackageNotFoundError, metadata
 
 from memovi_config import validate_configuration as validate_platform_configuration
+from memovi_config.settings import Settings
 from memovi_observability import configure_structured_logging
 
 PROJECT_DISTRIBUTION = "memovi-api"
@@ -12,9 +13,9 @@ def initialize_logging() -> None:
     configure_structured_logging(level=logging.INFO)
 
 
-def validate_configuration() -> None:
+def validate_configuration() -> Settings:
     """Fail fast when required environment configuration is invalid."""
-    validate_platform_configuration()
+    return validate_platform_configuration()
 
 
 def project_metadata() -> dict[str, str]:

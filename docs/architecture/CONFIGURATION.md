@@ -80,7 +80,7 @@ In production, treat the following as required in practice:
 | Variable | Domain | Notes |
 | --- | --- | --- |
 | `DATABASE_URL` or `POSTGRES_*` | Database | Reachable Postgres |
-| `MINIO_*` | Storage | Reachable object storage (API may fall back to in-memory when unavailable) |
+| `MINIO_*` | Storage | Reachable object storage (startup fails if MinIO is down unless `MEMOVI_OBJECT_STORAGE=memory` is set in a development `MEMOVI_ENV`) |
 | `OPENAI_API_KEY` | Embeddings / Models | Required when provider is `openai` |
 | `MEMOVI_FILESYSTEM_ROOTS` (etc.) | Capabilities | Required when locking capability roots; unset keeps temp/fallback behavior |
 
@@ -104,9 +104,13 @@ In production, treat the following as required in practice:
 | `MINIO_ROOT_PASSWORD` | optional | local default | Secret |
 | `MINIO_BUCKET` | optional | `memovi-documents` | |
 | `MINIO_REGION_NAME` | optional | `us-east-1` | |
+| `MEMOVI_OBJECT_STORAGE` | optional | `minio` | `minio` \| `memory`. `memory` is allowed only when `MEMOVI_ENV` is `local`, `development`, `dev`, or `test`. |
 
-Connectivity is checked at runtime. Invalid URL / blank credentials fail startup
-validation even if MinIO is down.
+Connectivity is checked at API startup. Invalid URL / blank credentials fail
+configuration validation even if MinIO is down. If the backend is `minio` and
+MinIO cannot be reached, startup fails with instructions to start Compose /
+check `MINIO_SERVER_URL`, or to opt in to ephemeral in-memory storage for local
+development only. There is no silent fallback.
 
 ### Embeddings
 

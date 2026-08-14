@@ -13,7 +13,7 @@ from memovi_config.settings.embeddings import EmbeddingsSettings
 from memovi_config.settings.models import ModelsSettings
 from memovi_config.settings.observability import ObservabilitySettings
 from memovi_config.settings.search import SearchSettings
-from memovi_config.settings.storage import StorageSettings
+from memovi_config.settings.storage import ObjectStorageBackend, StorageSettings
 
 __all__ = [
     "ApiSettings",
@@ -25,6 +25,7 @@ __all__ = [
     "DesktopSettings",
     "EmbeddingsSettings",
     "ModelsSettings",
+    "ObjectStorageBackend",
     "ObservabilitySettings",
     "SearchSettings",
     "SecretValue",

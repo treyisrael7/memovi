@@ -52,14 +52,16 @@ def configure_document_processing(
             app.state.event_dispatcher = dispatcher
         event_publisher = TransactionScopedEventPublisher(dispatcher)
 
+    resolved_storage = object_storage or MinioObjectStorage.from_env()
     worker = DocumentProcessingWorker(
         queue=processing_queue,
         session_factory=session_factory,
-        object_storage=object_storage or MinioObjectStorage.from_env(),
+        object_storage=resolved_storage,
         event_publisher=event_publisher,
         config=worker_config,
     )
     app.state.document_processing_worker = worker
+    app.state.object_storage = resolved_storage
     return worker
 
 

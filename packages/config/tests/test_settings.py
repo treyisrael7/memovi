@@ -46,6 +46,7 @@ def test_valid_configuration_loads_all_domains() -> None:
     assert settings.models.provider == "fake"
     assert settings.database.host == "127.0.0.1"
     assert settings.storage.bucket_name == "memovi-documents"
+    assert settings.storage.backend == "minio"
     assert "secret-db-password" in settings.database.url
     assert "secret-db-password" not in settings.database.safe_url
     assert "secret-db-password" not in repr(settings.database)
@@ -91,6 +92,25 @@ def test_invalid_minio_url() -> None:
         StorageSettings.from_environ(
             _base_environ(MINIO_SERVER_URL="ftp://127.0.0.1:9000"),
         )
+
+
+def test_explicit_in_memory_object_storage_allowed_in_local() -> None:
+    settings = validate_configuration(
+        _base_environ(MEMOVI_OBJECT_STORAGE="memory", MEMOVI_ENV="local"),
+    )
+    assert settings.storage.backend == "memory"
+
+
+def test_in_memory_object_storage_rejected_in_production() -> None:
+    with pytest.raises(ConfigurationError, match="only allowed in development"):
+        validate_configuration(
+            _base_environ(MEMOVI_OBJECT_STORAGE="memory", MEMOVI_ENV="production"),
+        )
+
+
+def test_invalid_object_storage_backend() -> None:
+    with pytest.raises(ConfigurationError, match="Unsupported object storage backend"):
+        StorageSettings.from_environ(_base_environ(MEMOVI_OBJECT_STORAGE="disk"))
 
 
 def test_invalid_numeric_port() -> None:

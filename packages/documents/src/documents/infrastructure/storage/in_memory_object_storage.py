@@ -1,5 +1,5 @@
 class InMemoryObjectStorage:
-    """Process-local object storage for tests and offline API startup fallbacks."""
+    """Process-local object storage for tests and explicit local development."""
 
     def __init__(self) -> None:
         self.objects: dict[str, tuple[bytes, str]] = {}
