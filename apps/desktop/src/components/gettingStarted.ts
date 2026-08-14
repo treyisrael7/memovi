@@ -1,7 +1,7 @@
+import type { ConnectionSnapshot, ConnectionStatus } from "../api/health";
 import type { AvailableModel } from "../api/types";
-import type { PageId } from "../navigation/pages";
+import type { PageId, SettingsSectionId } from "../navigation/pages";
 import type { AuthStatus } from "../state/AppStateContext";
-import type { ConnectionSnapshot } from "../api/health";
 
 export interface GettingStartedItem {
   id: string;
@@ -9,6 +9,7 @@ export interface GettingStartedItem {
   done: boolean;
   /** Primary navigation target when this step is the next action. */
   page: PageId;
+  settingsSection?: SettingsSectionId;
 }
 
 export interface GettingStartedSnapshot {
@@ -18,6 +19,30 @@ export interface GettingStartedSnapshot {
   askedQuestion: boolean;
 }
 
+export type ProviderSetupKind =
+  "backend_unavailable" | "none" | "fake_only" | "ready";
+
+export interface ProviderSetupGuidance {
+  kind: ProviderSetupKind;
+  title: string;
+  description: string;
+}
+
+export const PROVIDER_SETUP_STEPS = [
+  "Add your OpenAI API key to the backend environment.",
+  "Set INTELLIGENCE_PROVIDER=openai.",
+  "Restart the Memovi API.",
+  "Return here and recheck.",
+] as const;
+
+export const OPENAI_BACKEND_ENV_INSTRUCTIONS = [
+  "OPENAI_API_KEY=<your key>",
+  "INTELLIGENCE_PROVIDER=openai",
+].join("\n");
+
+export const PROVIDER_SETUP_RESTART_NOTE =
+  "Restart the Memovi API after changing these values.";
+
 export function isRealAiProvider(provider: string): boolean {
   return provider.trim().toLowerCase() !== "fake";
 }
@@ -26,26 +51,50 @@ export function hasConfiguredAiProvider(models: AvailableModel[]): boolean {
   return models.some((model) => isRealAiProvider(model.provider));
 }
 
-export function describeModelAvailability(models: AvailableModel[]): {
-  kind: "ready" | "fake_only" | "none";
-  title: string;
-  description: string;
-} {
-  if (models.length === 0) {
+export function connectedProviderStatusLabel(
+  models: AvailableModel[],
+): string | null {
+  if (!hasConfiguredAiProvider(models)) {
+    return null;
+  }
+  const hasOpenAi = models.some(
+    (model) => model.provider.trim().toLowerCase() === "openai",
+  );
+  return hasOpenAi ? "OpenAI connected" : "AI provider connected";
+}
+
+export function isBackendReachable(status: ConnectionStatus): boolean {
+  return status === "connected" || status === "degraded";
+}
+
+export function describeProviderSetup(input: {
+  connectionStatus: ConnectionStatus;
+  models: AvailableModel[];
+}): ProviderSetupGuidance {
+  if (!isBackendReachable(input.connectionStatus)) {
+    return {
+      kind: "backend_unavailable",
+      title: "Backend unavailable",
+      description:
+        "Memovi cannot check AI providers until the API is running. Start it with `task backend`, then recheck.",
+    };
+  }
+
+  if (input.models.length === 0) {
     return {
       kind: "none",
       title: "No AI models available",
       description:
-        "Memovi could not load a language model. This usually means no intelligence provider is configured, the backend is still using an incomplete setup, or an API key such as OPENAI_API_KEY is missing. Open Settings to review the active model and diagnostics.",
+        "Memovi could not load a language model. Open Diagnostics to review the backend, then configure OpenAI in the API environment if needed.",
     };
   }
 
-  if (!hasConfiguredAiProvider(models)) {
+  if (!hasConfiguredAiProvider(input.models)) {
     return {
       kind: "fake_only",
-      title: "Using the local fake provider",
+      title: "AI provider not configured",
       description:
-        "Conversations will run against Memovi’s built-in fake model. Configure a real provider (for example OpenAI via OPENAI_API_KEY and INTELLIGENCE_PROVIDER) on the backend, then refresh connection from Settings.",
+        "Memovi is currently using its built-in demo model. To use a real AI provider, configure OpenAI on the backend.",
     };
   }
 
@@ -62,9 +111,7 @@ export function buildGettingStartedChecklist(input: {
   availableModels: AvailableModel[];
   snapshot: GettingStartedSnapshot;
 }): GettingStartedItem[] {
-  const connected =
-    input.connection.status === "connected" ||
-    input.connection.status === "degraded";
+  const connected = isBackendReachable(input.connection.status);
   const signedIn = input.authStatus === "authenticated";
 
   return [
@@ -83,8 +130,9 @@ export function buildGettingStartedChecklist(input: {
     {
       id: "ai_provider",
       label: "Configure an AI provider",
-      done: hasConfiguredAiProvider(input.availableModels),
+      done: connected && hasConfiguredAiProvider(input.availableModels),
       page: "settings",
+      settingsSection: "diagnostics",
     },
     {
       id: "folder",

@@ -58,6 +58,9 @@ describe("desktop critical path smoke", () => {
     expect(
       await screen.findByRole("heading", { name: /Welcome to Memovi/i }),
     ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: /Connect an AI provider/i }),
+    ).toBeInTheDocument();
     expect(await screen.findByText(/Getting started/i)).toBeInTheDocument();
     expect(
       await screen.findByText(/Workspace:\s*Default Workspace/i),

@@ -17,6 +17,9 @@ export type PageId =
   | "activity"
   | "settings";
 
+export type SettingsSectionId =
+  "general" | "account" | "workspaces" | "capabilities" | "diagnostics";
+
 export interface PageDefinition {
   id: PageId;
   label: string;

@@ -27,7 +27,11 @@ import { listModels } from "../api/conversations";
 import { probeBackendConnection, type ConnectionSnapshot } from "../api/health";
 import type { AvailableModel } from "../api/types";
 import { listWorkspaces, resolveActiveWorkspace } from "../api/workspaces";
-import { getPage, type PageId } from "../navigation/pages";
+import {
+  getPage,
+  type PageId,
+  type SettingsSectionId,
+} from "../navigation/pages";
 import {
   readStoredModel,
   readStoredPage,
@@ -41,11 +45,9 @@ import {
 } from "./sessionPreferences";
 
 export type { ThemeMode };
+export type { SettingsSectionId };
 export type AuthStatus =
-  | "checking"
-  | "authenticated"
-  | "anonymous"
-  | "session_expired";
+  "checking" | "authenticated" | "anonymous" | "session_expired";
 
 export interface ActiveWorkspace {
   id: string;
@@ -91,6 +93,7 @@ interface AppStateValue {
   activeModel: ActiveModelSelection | null;
   activeModelLabel: string;
   activePage: PageId;
+  settingsSection: SettingsSectionId;
   theme: ThemeMode;
   isRefreshing: boolean;
   chatSeed: ChatSeed | null;
@@ -98,6 +101,8 @@ interface AppStateValue {
   documentSeed: DocumentSeed | null;
   searchSeed: SearchSeed | null;
   setActivePage: (page: PageId) => void;
+  setSettingsSection: (section: SettingsSectionId) => void;
+  openSettings: (section?: SettingsSectionId) => void;
   setTheme: (theme: ThemeMode) => void;
   setActiveWorkspaceId: (workspaceId: string) => void;
   setActiveModel: (selection: ActiveModelSelection) => void;
@@ -165,6 +170,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [activeModel, setActiveModelState] =
     useState<ActiveModelSelection | null>(null);
   const [activePage, setActivePage] = useState<PageId>("home");
+  const [settingsSection, setSettingsSection] =
+    useState<SettingsSectionId>("general");
   const [theme, setThemeState] = useState<ThemeMode>(() => readStoredTheme());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [chatSeed, setChatSeed] = useState<ChatSeed | null>(null);
@@ -200,9 +207,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setWorkspaces(mapped);
       setActiveWorkspace((current) => {
         const preferredId =
-          current?.id ??
-          (user ? readStoredWorkspaceId(user.id) : null) ??
-          null;
+          current?.id ?? (user ? readStoredWorkspaceId(user.id) : null) ?? null;
         if (preferredId && mapped.some((item) => item.id === preferredId)) {
           const match = mapped.find((item) => item.id === preferredId)!;
           return match;
@@ -404,6 +409,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setActivePage(page);
   }, []);
 
+  const handleSetSettingsSection = useCallback((section: SettingsSectionId) => {
+    setSettingsSection(section);
+  }, []);
+
+  const openSettings = useCallback((section: SettingsSectionId = "general") => {
+    setSettingsSection(section);
+    setActivePage("settings");
+  }, []);
+
   const setActiveWorkspaceId = useCallback(
     (workspaceId: string) => {
       const match = workspaces.find(
@@ -523,6 +537,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       activeModel,
       activeModelLabel: activeModel?.label ?? "No model selected",
       activePage,
+      settingsSection,
       theme,
       isRefreshing,
       chatSeed,
@@ -530,6 +545,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       documentSeed,
       searchSeed,
       setActivePage: handleSetActivePage,
+      setSettingsSection: handleSetSettingsSection,
+      openSettings,
       setTheme,
       setActiveWorkspaceId,
       setActiveModel,
@@ -557,6 +574,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       availableModels,
       activeModel,
       activePage,
+      settingsSection,
       theme,
       isRefreshing,
       chatSeed,
@@ -564,6 +582,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       documentSeed,
       searchSeed,
       handleSetActivePage,
+      handleSetSettingsSection,
+      openSettings,
       setTheme,
       setActiveWorkspaceId,
       setActiveModel,

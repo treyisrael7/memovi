@@ -223,6 +223,10 @@ Workspace switching reloads the conversation list from the backend so chats
 remain isolated by ownership. Model selection is sent on each stream/send
 request (`provider` + `model`) and does not change backend defaults permanently.
 
+When `GET /conversations/models` returns only the built-in `fake` provider, Chat
+stays usable with the demo model and shows a **Configure an AI provider** action
+that opens Settings → Diagnostics. Desktop never asks for an API key.
+
 Chat also polls capability executions for the active workspace/conversation and
 renders confirmation dialogs, progress, success/failure, overwrite Replace
 prompts, undo messaging for trash deletes, and browser navigation/download/
@@ -258,8 +262,8 @@ message history on the Intelligence API; the seed is only a UI handoff.
 
 Pages are registered in `src/navigation/pages.ts`. Every entry is implemented:
 
-* **Home** — connection/workspace/model summary and shortcuts into Documents
-  and Conversations
+* **Home** — getting-started checklist, AI provider setup guidance when only the
+  built-in fake model is registered, and shortcuts into Documents and Conversations
 * **Conversations** (Chat) — the grounded chat experience described above
 * **Documents** — import, processing status, and lifecycle (see below)
 * **Knowledge** — Knowledge Explorer: browse extracted entities, concepts,
@@ -383,18 +387,23 @@ presents the platform's existing observability and audit data in product terms.
 
 Settings consolidates configuration that previously had no dedicated home:
 
-* **General** — active model (`/conversations/models`) and theme
+* **General** — active model (`/conversations/models`) and theme. If only the
+  fake provider is registered, setup steps appear next to the selector. If a
+  non-fake model is listed, General may show **OpenAI connected** (registration
+  only — not a live key-validity probe).
 * **Account** — signed-in email and confirmed sign-out (`POST /auth/logout`)
 * **Workspaces** — list, switch, and create workspaces (`/workspaces`)
 * **Capabilities** — per-capability permission mode
   (`PUT /capabilities/{id}/permission-mode`); the server remains the sole
   authority on whether an action is actually allowed at execution time
-* **Diagnostics** — the same connection snapshot (`/health`, `/ready`) used by
-  the top bar and status bar, presented with per-component detail
+* **Diagnostics** — connection snapshot (`/health`, `/ready`) plus backend
+  environment instructions for OpenAI (`OPENAI_API_KEY`, `INTELLIGENCE_PROVIDER`).
+  Recheck after restarting the API. Diagnostics never displays secret values.
 
 Settings never exposes internal implementation details (table names, provider
 SDK identifiers, queue internals, or session token values); it speaks in product
-terms (model, workspace, capability, appearance, account, diagnostics).
+terms (model, workspace, capability, appearance, account, diagnostics). Provider
+API keys are not entered or stored in the desktop client.
 
 # Running Locally
 

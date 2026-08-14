@@ -19,7 +19,13 @@ import {
   transferWorkspaceOwnership,
 } from "../api/workspaces";
 import { type ThemeMode, useAppState } from "../state/AppStateContext";
-import { describeModelAvailability } from "./gettingStarted";
+import type { SettingsSectionId } from "../navigation/pages";
+import { describeProviderSetup } from "./gettingStarted";
+import {
+  ProviderBackendEnvInstructions,
+  ProviderConnectedStatus,
+  ProviderSetupSteps,
+} from "./ProviderSetupGuidance";
 import { Alert } from "./ui/Alert";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
@@ -30,14 +36,7 @@ import { LoadingState } from "./ui/LoadingState";
 import { TextInput } from "./ui/TextInput";
 import { useToast } from "./ui/ToastContext";
 
-type SettingsSection =
-  | "general"
-  | "account"
-  | "workspaces"
-  | "capabilities"
-  | "diagnostics";
-
-const SECTIONS: ReadonlyArray<{ id: SettingsSection; label: string }> = [
+const SECTIONS: ReadonlyArray<{ id: SettingsSectionId; label: string }> = [
   { id: "general", label: "General" },
   { id: "account", label: "Account" },
   { id: "workspaces", label: "Workspaces" },
@@ -56,19 +55,28 @@ function GeneralSection({
 }: {
   onOpenDiagnostics: () => void;
 }) {
-  const { availableModels, activeModel, setActiveModel, theme, setTheme } =
-    useAppState();
-  const modelAvailability = describeModelAvailability(availableModels);
+  const {
+    availableModels,
+    activeModel,
+    setActiveModel,
+    theme,
+    setTheme,
+    connection,
+  } = useAppState();
+  const providerSetup = describeProviderSetup({
+    connectionStatus: connection.status,
+    models: availableModels,
+  });
 
   return (
     <div className="settings-section">
       <h2>Model</h2>
       <p className="muted">Choose the language model used for conversations.</p>
 
-      {modelAvailability.kind === "none" ? (
+      {providerSetup.kind === "none" ? (
         <EmptyState
-          title={modelAvailability.title}
-          description={modelAvailability.description}
+          title={providerSetup.title}
+          description={providerSetup.description}
           action={
             <Button variant="secondary" onClick={onOpenDiagnostics}>
               Open Diagnostics
@@ -77,11 +85,21 @@ function GeneralSection({
         />
       ) : null}
 
-      {modelAvailability.kind === "fake_only" ? (
-        <Alert tone="info">{modelAvailability.description}</Alert>
+      {providerSetup.kind === "fake_only" ? (
+        <div className="provider-setup-inline">
+          <Alert tone="info">{providerSetup.description}</Alert>
+          <ProviderSetupSteps />
+          <Button variant="secondary" onClick={onOpenDiagnostics}>
+            Open Diagnostics
+          </Button>
+        </div>
       ) : null}
 
-      {modelAvailability.kind !== "none" ? (
+      {providerSetup.kind === "ready" ? (
+        <ProviderConnectedStatus models={availableModels} />
+      ) : null}
+
+      {providerSetup.kind !== "none" ? (
         <Dropdown
           label="Active model"
           className="settings-field"
@@ -627,7 +645,12 @@ function CapabilitiesSection() {
 }
 
 function DiagnosticsSection() {
-  const { connection, isRefreshing, refreshConnection } = useAppState();
+  const { connection, isRefreshing, refreshConnection, availableModels } =
+    useAppState();
+  const providerSetup = describeProviderSetup({
+    connectionStatus: connection.status,
+    models: availableModels,
+  });
 
   return (
     <div className="settings-section">
@@ -655,12 +678,29 @@ function DiagnosticsSection() {
       </dl>
 
       {connection.error ? (
-        <Alert
-          tone={connection.status === "degraded" ? "warn" : "bad"}
-        >
+        <Alert tone={connection.status === "degraded" ? "warn" : "bad"}>
           {connection.error}
         </Alert>
       ) : null}
+
+      <h3>AI provider setup</h3>
+      {providerSetup.kind === "fake_only" ? (
+        <Alert tone="info">{providerSetup.description}</Alert>
+      ) : null}
+      {providerSetup.kind === "ready" ? (
+        <ProviderConnectedStatus models={availableModels} />
+      ) : null}
+      {providerSetup.kind === "backend_unavailable" ? (
+        <Alert tone="warn">{providerSetup.description}</Alert>
+      ) : null}
+      {providerSetup.kind === "none" ? (
+        <Alert tone="warn">{providerSetup.description}</Alert>
+      ) : null}
+      <p className="muted">
+        Provider API keys stay in the backend environment. Memovi does not
+        accept keys in the desktop app.
+      </p>
+      <ProviderBackendEnvInstructions />
 
       <ul className="component-list">
         {connection.components.map((component) => (
@@ -692,7 +732,7 @@ function DiagnosticsSection() {
 }
 
 export function SettingsPage() {
-  const [section, setSection] = useState<SettingsSection>("general");
+  const { settingsSection, setSettingsSection } = useAppState();
 
   return (
     <div className="settings-page">
@@ -701,23 +741,23 @@ export function SettingsPage() {
           <button
             key={entry.id}
             type="button"
-            data-active={section === entry.id}
-            onClick={() => setSection(entry.id)}
+            data-active={settingsSection === entry.id}
+            onClick={() => setSettingsSection(entry.id)}
           >
             {entry.label}
           </button>
         ))}
       </nav>
       <div className="settings-content">
-        {section === "general" ? (
+        {settingsSection === "general" ? (
           <GeneralSection
-            onOpenDiagnostics={() => setSection("diagnostics")}
+            onOpenDiagnostics={() => setSettingsSection("diagnostics")}
           />
         ) : null}
-        {section === "account" ? <AccountSection /> : null}
-        {section === "workspaces" ? <WorkspacesSection /> : null}
-        {section === "capabilities" ? <CapabilitiesSection /> : null}
-        {section === "diagnostics" ? <DiagnosticsSection /> : null}
+        {settingsSection === "account" ? <AccountSection /> : null}
+        {settingsSection === "workspaces" ? <WorkspacesSection /> : null}
+        {settingsSection === "capabilities" ? <CapabilitiesSection /> : null}
+        {settingsSection === "diagnostics" ? <DiagnosticsSection /> : null}
       </div>
     </div>
   );

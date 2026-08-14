@@ -7,13 +7,13 @@ import { listDocuments } from "../api/documents";
 import { useAppState } from "../state/AppStateContext";
 import {
   buildGettingStartedChecklist,
-  describeModelAvailability,
+  describeProviderSetup,
   nextGettingStartedAction,
   type GettingStartedSnapshot,
 } from "./gettingStarted";
+import { ProviderSetupCard } from "./ProviderSetupGuidance";
 import { Alert } from "./ui/Alert";
 import { Button } from "./ui/Button";
-import { EmptyState } from "./ui/EmptyState";
 import { PageLayout } from "./ui/PageLayout";
 import { SectionHeader } from "./ui/SectionHeader";
 
@@ -59,6 +59,7 @@ export function HomePage() {
     availableModels,
     activeModelLabel,
     setActivePage,
+    openSettings,
   } = useAppState();
   const [snapshot, setSnapshot] =
     useState<GettingStartedSnapshot>(EMPTY_SNAPSHOT);
@@ -70,10 +71,7 @@ export function HomePage() {
       setSnapshot(EMPTY_SNAPSHOT);
       return;
     }
-    if (
-      connection.status !== "connected" &&
-      connection.status !== "degraded"
-    ) {
+    if (connection.status !== "connected" && connection.status !== "degraded") {
       return;
     }
 
@@ -119,7 +117,10 @@ export function HomePage() {
     snapshot,
   });
   const nextAction = nextGettingStartedAction(checklist);
-  const modelAvailability = describeModelAvailability(availableModels);
+  const providerSetup = describeProviderSetup({
+    connectionStatus: connection.status,
+    models: availableModels,
+  });
   const completedCount = checklist.filter((item) => item.done).length;
 
   return (
@@ -127,33 +128,30 @@ export function HomePage() {
       title="Welcome to Memovi"
       description="Memovi turns folders and documents into searchable knowledge you can ask about. Start with the checklist below."
     >
-      {modelAvailability.kind === "none" ? (
-        <EmptyState
-          className="home-model-empty"
-          title={modelAvailability.title}
-          description={modelAvailability.description}
-          action={
-            <Button onClick={() => setActivePage("settings")}>
-              Open Settings
-            </Button>
-          }
+      {providerSetup.kind === "none" ? (
+        <ProviderSetupCard
+          kind="none"
+          title={providerSetup.title}
+          description={providerSetup.description}
+          onOpenDiagnostics={() => openSettings("diagnostics")}
+          onViewInstructions={() => openSettings("diagnostics")}
         />
       ) : null}
 
-      {modelAvailability.kind === "fake_only" ? (
-        <Alert tone="info">
-          {modelAvailability.description}{" "}
-          <button
-            type="button"
-            className="home-inline-link"
-            onClick={() => setActivePage("settings")}
-          >
-            Open Settings
-          </button>
-        </Alert>
+      {providerSetup.kind === "fake_only" ? (
+        <ProviderSetupCard
+          kind="fake_only"
+          title="Connect an AI provider"
+          description="Memovi is running, but only the built-in demo model is available."
+          onOpenDiagnostics={() => openSettings("diagnostics")}
+          onViewInstructions={() => openSettings("diagnostics")}
+        />
       ) : null}
 
-      <section className="home-getting-started" aria-labelledby="getting-started-heading">
+      <section
+        className="home-getting-started"
+        aria-labelledby="getting-started-heading"
+      >
         <SectionHeader
           id="getting-started-heading"
           title="Getting started"
@@ -176,7 +174,13 @@ export function HomePage() {
                 <Button
                   variant="secondary"
                   className="home-checklist-action"
-                  onClick={() => setActivePage(item.page)}
+                  onClick={() => {
+                    if (item.settingsSection) {
+                      openSettings(item.settingsSection);
+                      return;
+                    }
+                    setActivePage(item.page);
+                  }}
                 >
                   Continue
                 </Button>
@@ -187,9 +191,17 @@ export function HomePage() {
 
         {nextAction ? (
           <div className="home-actions">
-            <Button onClick={() => setActivePage(nextAction.page)}>
+            <Button
+              onClick={() => {
+                if (nextAction.settingsSection) {
+                  openSettings(nextAction.settingsSection);
+                  return;
+                }
+                setActivePage(nextAction.page);
+              }}
+            >
               {nextAction.id === "ai_provider"
-                ? "Open Settings"
+                ? "Open Diagnostics"
                 : nextAction.id === "folder"
                   ? "Add a folder"
                   : nextAction.id === "documents"
@@ -277,11 +289,8 @@ export function HomePage() {
             <dd>{API_BASE_URL}</dd>
           </div>
         </dl>
-        <Button
-          variant="secondary"
-          onClick={() => setActivePage("settings")}
-        >
-          Open Settings diagnostics
+        <Button variant="secondary" onClick={() => openSettings("diagnostics")}>
+          Open Diagnostics
         </Button>
       </section>
     </PageLayout>

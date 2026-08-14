@@ -48,6 +48,12 @@ Secrets are wrapped in `SecretValue`:
 
 Supported secret sources: **environment variables only** for V1.
 
+The desktop client does **not** collect, store, or transmit provider API keys.
+Users configure `OPENAI_API_KEY` and `INTELLIGENCE_PROVIDER` on the API process
+(typically `.env`), restart the API, then verify from **Settings → Diagnostics**.
+Changing provider selection is process-start configuration; it is not applied at
+runtime.
+
 ---
 
 ## Configuration domains
@@ -133,7 +139,7 @@ development only. There is no silent fallback. `/ready` includes an
 | `INTELLIGENCE_PROVIDER` | optional | `fake` | `fake` \| `openai` \| reserved providers |
 | `INTELLIGENCE_MODEL` | optional | provider default | |
 | `OPENAI_MODEL` | optional | `gpt-4o-mini` | Used when provider is `openai` and `INTELLIGENCE_MODEL` unset |
-| `OPENAI_API_KEY` | conditional | — | Secret; required at startup when `INTELLIGENCE_PROVIDER=openai` |
+| `OPENAI_API_KEY` | conditional | — | Secret; required at startup when `INTELLIGENCE_PROVIDER=openai`. Never entered in the desktop client. |
 
 ### Capabilities
 

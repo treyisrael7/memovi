@@ -31,6 +31,7 @@ import type {
   ConversationSummary,
 } from "../api/types";
 import { useAppState } from "../state/AppStateContext";
+import { describeProviderSetup } from "./gettingStarted";
 import { CitationList } from "./CitationList";
 import { Button } from "./ui/Button";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
@@ -769,7 +770,7 @@ export function ChatPage() {
     connection,
     chatSeed,
     clearChatSeed,
-    setActivePage,
+    openSettings,
   } = useAppState();
   const workspaceId = activeWorkspace?.id ?? null;
 
@@ -796,6 +797,10 @@ export function ChatPage() {
 
   const canUseBackend =
     connection.status === "connected" || connection.status === "degraded";
+  const providerSetup = describeProviderSetup({
+    connectionStatus: connection.status,
+    models: availableModels,
+  });
 
   const activeConversation = useMemo(
     () =>
@@ -1413,6 +1418,21 @@ export function ChatPage() {
       <section className="chat-main">
         <div className="chat-main-header">
           <h1>{activeConversation?.title ?? "Conversation"}</h1>
+          {providerSetup.kind === "fake_only" ? (
+            <div className="chat-provider-setup">
+              <p>
+                AI provider not configured. Conversations can still use the
+                built-in demo model.
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => openSettings("diagnostics")}
+              >
+                Configure an AI provider
+              </Button>
+            </div>
+          ) : null}
           {error ? (
             <p className="chat-error" role="alert">
               {error}
@@ -1424,18 +1444,18 @@ export function ChatPage() {
           {!activeModel ? (
             <EmptyState
               title={
-                availableModels.length === 0
-                  ? "No AI models available"
+                providerSetup.kind === "none"
+                  ? providerSetup.title
                   : "Choose a model to chat"
               }
               description={
-                availableModels.length === 0
-                  ? "Memovi needs a configured intelligence provider before conversations can run. This often means a missing API key or provider setting on the backend."
+                providerSetup.kind === "none"
+                  ? providerSetup.description
                   : "Select an active model in Settings, then return here to ask a question."
               }
               action={
-                <Button onClick={() => setActivePage("settings")}>
-                  Open Settings
+                <Button onClick={() => openSettings("diagnostics")}>
+                  Configure an AI provider
                 </Button>
               }
             />

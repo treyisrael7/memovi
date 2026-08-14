@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #9).
+system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #10).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -692,6 +692,7 @@ shared UI primitives.
 * Collections page (create/rename/delete, memberships, statistics, activity, search filter)
 * Workflows page (library, run, progress, history) over `/workflows`
 * Documents, Search, Activity, and Settings product pages
+* Home / Settings / Chat guidance for backend OpenAI env setup (no in-app API keys)
 * Design system: tokens (light/dark), reusable `components/ui/` library, UX
   standards for loading/empty/error/confirm/toast, and
   `docs/design/DESIGN_SYSTEM.md`

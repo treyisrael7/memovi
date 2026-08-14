@@ -129,6 +129,18 @@ Start the flagship desktop client (requires Rust / Tauri prerequisites):
 task desktop
 ```
 
+The API defaults to the built-in **fake** reasoning provider. That is enough to
+explore documents, search, and the desktop shell. To use a real model for Chat:
+
+1. Copy `.env.example` to `.env` if you have not already.
+2. Set `OPENAI_API_KEY` and `INTELLIGENCE_PROVIDER=openai` in that backend `.env`.
+3. Restart the API (`task backend`).
+4. In the desktop app, open **Settings → Diagnostics** and click **Recheck now**.
+
+Do not enter API keys in the desktop client. Provider credentials stay in the
+API process environment. See
+[`docs/architecture/CONFIGURATION.md`](docs/architecture/CONFIGURATION.md).
+
 The API health endpoint is available at `http://localhost:8000/health`.
 Local authentication endpoints are available under `http://localhost:8000/auth`.
 Full-text, semantic, and hybrid search are available at `http://localhost:8000/search`.

@@ -308,6 +308,26 @@
   font-size: 1.15rem;
 }
 
+.chat-provider-setup {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: var(--bg-panel);
+}
+
+.chat-provider-setup p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.4;
+  max-width: 36rem;
+}
+
 .chat-error {
   margin: 0.55rem 0 0;
   color: var(--status-bad);
@@ -1702,6 +1722,62 @@ button.linkish {
   background: color-mix(in srgb, var(--accent-soft) 45%, var(--bg-panel));
   border-radius: 0.65rem;
   padding: 1.1rem 1.15rem;
+}
+
+.provider-setup-card {
+  margin-top: 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 45%, var(--bg-panel));
+  border-radius: 0.65rem;
+  padding: 1.1rem 1.15rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.provider-setup-card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.provider-setup-card p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.provider-setup-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.35rem;
+  line-height: 1.45;
+}
+
+.provider-setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.provider-setup-inline {
+  display: grid;
+  gap: 0.7rem;
+  margin-bottom: 0.85rem;
+}
+
+.provider-setup-env pre {
+  margin: 0.35rem 0 0.55rem;
+  padding: 0.75rem 0.85rem;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg-app);
+  font-size: 0.85rem;
+}
+
+.provider-connected-status {
+  margin: 0 0 0.75rem;
+  color: var(--ok, #2f7d4a);
+  font-weight: 600;
 }
 
 .home-inline-link {
