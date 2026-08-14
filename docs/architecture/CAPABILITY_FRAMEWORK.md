@@ -8,17 +8,18 @@ composable, permissioned actions that Intelligence can discover and invoke.
 # Scope
 
 It covers capability abstractions, registry discovery, permission metadata,
-execution contracts, safety boundaries, relationship to Intelligence tools, and
-the future plugin path. It does not describe concrete filesystem, git, terminal,
+execution contracts, safety boundaries, how Intelligence requests host actions,
+and the future plugin path. It does not describe concrete filesystem, git, terminal,
 or browser implementations, approval UI, or multi-step automation orchestration.
 
 # Relationship to ARCHITECTURE.md
 
 [`../ARCHITECTURE.md`](../ARCHITECTURE.md) identifies Intelligence as a consumer
-of knowledge and notes tool orchestration inside reasoning. This document defines
-the separate Capability Framework in `packages/automation` that owns environment
-actions and permission metadata. Capabilities strengthen the knowledge platform
-without becoming an agent runtime.
+of knowledge and `ModelGateway` as the model boundary. This document defines the
+Capability Framework in `packages/automation`: the V1 host-execution architecture
+(registry, planner, execution engine, approval / policy, workflows) plus connector-
+backed environment actions. Capabilities are not a replacement for an Intelligence
+tool registry; they are how host actions run.
 
 # Why Capabilities Exist
 
@@ -172,23 +173,18 @@ Forbidden:
 Concrete adapters may use OS or provider libraries inside infrastructure modules,
 but the public capability boundary remains provider-agnostic.
 
-# Relationship to Intelligence Tools
+# Relationship to Intelligence
 
-Intelligence already has a `Tool` / `ToolRegistry` / `ToolExecutor` framework for
-LLM-facing call schemas during reasoning.
+Host actions are Capabilities. There is no Intelligence tool-execution framework
+(`ToolRegistry` / `ToolExecutor` were removed). LLM tool calling is not implemented.
 
-| Concern | Intelligence `Tool` | Automation `Capability` |
-| --- | --- | --- |
-| Primary consumer | Reasoning / prompt orchestration | Environment actions |
-| Provider coupling | Avoided, but tool calling is AI-adjacent | Fully provider-agnostic |
-| Permissions | Not modeled | First-class metadata |
-| Product examples | Echo / future LLM tools | Filesystem, Git, Terminal, Browser |
+`ReasoningResult` still has unused `tool_calls` / `tool_results` fields (`ToolCall` /
+`ToolResult`) as deferred type plumbing. They are not a live execution path and are
+not how Capabilities run.
 
 Intelligence submits host actions through a `CapabilityExecutionPort` adapted to
-the Capability Execution Engine in the composition root. That bridge must not
-collapse the two abstractions: tools describe model-callable shapes; capabilities
-describe safe host actions. Intelligence never calls `Capability.execute` or
-`CapabilityInvoker.invoke` directly.
+the Capability Execution Engine in the composition root. Intelligence never calls
+`Capability.execute` or `CapabilityInvoker.invoke` directly.
 
 # Extension Example
 
@@ -258,7 +254,7 @@ should extend this framework rather than invent a parallel execution stack.
 * Registration is explicit via dependency injection; no reflection or globals.
 * Permissions are metadata first; approval UI comes later.
 * Capabilities interact with the host only through `CapabilityContext`.
-* Intelligence Tools and Automation Capabilities remain distinct abstractions.
+* Host actions run through Capabilities (registry, planner, execution engine, workflows), not an Intelligence tool stack.
 * Concrete product capabilities (Filesystem, Terminal) register explicitly at the composition root.
 
 # Related Documents

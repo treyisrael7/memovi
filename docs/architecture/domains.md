@@ -237,7 +237,6 @@ It transforms retrieved knowledge into useful responses. Intelligence depends up
 * Chat
 * Prompt construction
 * Provider routing
-* Tool orchestration
 * AI summaries
 * Planning
 * Reasoning

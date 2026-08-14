@@ -132,7 +132,7 @@ Useful signals include:
 * Failure rate
 * Retrieval latency
 * Context assembly behavior
-* Tool orchestration duration
+* Capability execution duration
 
 Knowledge remains independent from providers, but provider behavior must still be observable.
 

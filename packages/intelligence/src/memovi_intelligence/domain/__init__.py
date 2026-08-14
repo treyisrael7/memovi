@@ -26,8 +26,6 @@ from memovi_intelligence.domain.value_objects import (
     RetrievedKnowledge,
     StageTiming,
     ToolCall,
-    ToolDefinition,
-    ToolParameter,
     ToolResult,
 )
 
@@ -56,8 +54,6 @@ __all__ = [
     "RetrievedKnowledge",
     "StageTiming",
     "ToolCall",
-    "ToolDefinition",
-    "ToolParameter",
     "ToolResult",
     "estimate_token_count",
 ]

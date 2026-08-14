@@ -83,20 +83,4 @@ class InvalidIntelligenceConfigError(IntelligenceDomainError):
 
 
 class InvalidToolError(IntelligenceDomainError):
-    """Raised when a tool value object violates domain constraints."""
-
-
-class UnknownToolError(IntelligenceDomainError):
-    """Raised when a requested tool is not registered."""
-
-
-class InvalidToolArgumentsError(IntelligenceDomainError):
-    """Raised when tool arguments fail schema validation."""
-
-
-class ToolExecutionError(IntelligenceDomainError):
-    """Raised when a tool fails during execution."""
-
-
-class ToolTimeoutError(IntelligenceDomainError):
-    """Raised when a tool exceeds its allotted execution time."""
+    """Raised when a ToolCall or ToolResult value object violates domain constraints."""

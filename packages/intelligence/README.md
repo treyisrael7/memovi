@@ -11,9 +11,7 @@ pipeline:
 
 * Immutable reasoning concepts (`ReasoningRequest`, `ReasoningContext`, `ReasoningResult`)
 * Conversation memory (`Conversation`, `ConversationTurn`, `ConversationHistory`, `ConversationId`)
-* Frozen future LLM tool-calling types (`Tool`, `ToolRegistry`, `ToolExecutor`, `ToolCall`,
-  `ToolResult`, `ToolDefinition`) — not product-supported; not wired into conversation Reason.
-  Host actions use the Automation Capability Framework.
+* Unused `ToolCall` / `ToolResult` fields on `ReasoningResult` (`tool_calls` / `tool_results`) — retained type plumbing only; not an execution framework and not product-supported. Host actions use the Automation Capability Framework.
 * Read-only execution tracing (`ExecutionTrace`, `ExecutionStage`, `StageTiming`, `ExecutionMetrics`)
 * Provider-agnostic prompt construction (`Prompt`, `PromptMessage`, `PromptRole`, `PromptSection`)
 * Citations attached to reasoning answers
@@ -28,7 +26,7 @@ pipeline:
 * Deterministic `FakeReasoningProvider` / `FakeKnowledgeRetriever` / `InMemoryConversationRepository` for tests; production `OpenAIReasoningProvider`; Search-backed retrieval and SQLAlchemy conversation persistence are wired in `apps/api`
 * Package configuration with provider selection (`provider=fake|openai`; future: anthropic, ollama, gemini)
 
-It does not implement product LLM tools, streaming/realtime channels beyond the
+It does not implement LLM tool calling, streaming/realtime channels beyond the
 conversation SSE path, or agents. Desktop (and other) clients consume the
 Conversation API; Intelligence does not own UI.
 

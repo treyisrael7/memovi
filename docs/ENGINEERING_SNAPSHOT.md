@@ -408,13 +408,11 @@ None under `application/queries/`.
 * `ModelGateway`
 * `ReasoningService` (facade)
 * `ExecutionTracer`
-* `ToolRegistry`
-* `ToolExecutor`
 * Domain: `estimate_token_count`
 
 ### Repositories / ports
 
-* Ports: `KnowledgeRetriever`, `ReasoningProvider`, `ConversationRepository`, `Tool`
+* Ports: `KnowledgeRetriever`, `ReasoningProvider`, `ConversationRepository`
 * Infra: `InMemoryConversationRepository`, `SqlAlchemyConversationRepository`
 * Retrieval: `FakeKnowledgeRetriever`
 * Providers: `FakeReasoningProvider`, `OpenAIReasoningProvider`, `build_model_gateway`
@@ -437,7 +435,7 @@ Conversation: `ConversationId`, `ConversationRole`, `ConversationTurn`, `Convers
 Reasoning: `ReasoningRequestId`, `ReasoningQuery`, `RetrievedKnowledge`, `AssembledDocument`, `ContextMetadata`, `Citation`  
 Prompt: `Prompt`, `PromptMessage`, `PromptRole`, `PromptSection`  
 Execution: `ExecutionTrace`, `ExecutionStage`, `StageTiming`, `ExecutionMetrics`  
-Tools: `ToolCall`, `ToolResult`, `ToolDefinition`, `ToolParameter`
+Retained unused result plumbing: `ToolCall`, `ToolResult` (on `ReasoningResult`; not an execution framework)
 
 ### DTOs / API schemas
 
@@ -782,15 +780,19 @@ Factory: `build_model_gateway` registers `fake`; registers `openai` when `OPENAI
 
 Immutable stage timings + aggregate `ExecutionMetrics`. Stages: `retrieval`, `context_assembly`, `prompt_build`, `provider_resolution`, `model_execution`. Built by `ExecutionTracer` inside `Reason`.
 
-## Tool Framework
+## Host execution (Capabilities)
 
-* `Tool` port
-* `ToolRegistry` — register/discover
-* `ToolExecutor` — validate args, execute, timeouts
+V1 host actions run through Automation, not Intelligence:
 
-**Frozen / not product-supported.** Not invoked by `Reason` or the Conversation API.
-Covered by unit tests only (`packages/intelligence/tests/test_tool_framework.py`).
-Host actions use the Automation Capability Framework instead.
+* Capability Registry
+* Capability Planner
+* Capability Execution Engine (approval / policy)
+* Workflow Engine
+* Connector Framework
+
+`ToolRegistry` / `ToolExecutor` were removed. `ReasoningResult` still has unused
+`tool_calls` / `tool_results` (`ToolCall` / `ToolResult`) as deferred type plumbing.
+LLM tool calling is not implemented.
 
 ## Conversation Memory
 
@@ -1073,7 +1075,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 * Ownership context on knowledge APIs
 * Architecture boundary tests
 * Live smoke coverage against hosted OpenAI / Ollama outside default CI
-* Optional post-V1 LLM tool-calling (frozen `ToolRegistry` / `ToolExecutor`; not on Reason path)
+* Optional removal of unused `ReasoningResult.tool_calls` / `tool_results` type plumbing
 
 ## Missing production features
 
@@ -1101,7 +1103,7 @@ Enforced by package layout, ports, and composition practices:
 8. **Thin API routers** — routes map to application commands/services; business rules stay below transport.
 9. **Separate persistence metadata per domain** — distinct SQLAlchemy `Base`/tables per domain; Alembic aggregates them.
 10. **Search projections are derived** — `search_documents` / embeddings are materializations, not source of truth for raw uploads.
-11. **Tools are first-class but optional** — tool ports exist without coupling Reason to tools yet.
+11. **Host actions are Capabilities** — registry, planner, execution engine, and workflows in Automation; Intelligence has no tool-execution stack.
 12. **Local-first auth** — session cookies + Argon2; no JWT/OAuth in foundation.
 
 ---
@@ -1120,7 +1122,7 @@ Implemented vertical slices:
 2. **Document ingestion** — multipart upload to MinIO, durable processing queue, background worker, PDF/Markdown/text processing, normalized content.
 3. **Memory materialization** — on `ProcessingCompleted`, create knowledge items and chunks.
 4. **Search indexing and retrieval** — search documents, PostgreSQL FTS, pgvector embeddings (dim 4 + fake provider in composition), hybrid RRF retrieval API.
-5. **Intelligence foundation** — Reason pipeline, conversation memory, Conversation REST API, execution traces, fake/OpenAI providers, frozen ToolRegistry/ToolExecutor (not on Reason path).
+5. **Intelligence foundation** — Reason pipeline, conversation memory, Conversation REST API, execution traces, fake/OpenAI providers. Host actions use Capabilities, not an Intelligence tool stack.
 
 Composition root (`apps/api`) owns cross-domain event wiring and adapters. Domain packages do not import each other. Clients attach at the API boundary.
 

@@ -30,7 +30,6 @@ Intelligence owns:
 * Retrieval-Augmented Generation
 * Prompt construction
 * Provider routing
-* Tool orchestration
 * AI summaries
 * Planning
 * Reasoning
@@ -58,15 +57,17 @@ Core immutable concepts:
 * `ReasoningResult` — immutable reasoning output with a read-only `execution_trace`
 * `ExecutionTrace` — structured stage timings and aggregate metrics for a reasoning request
 * `Conversation` / `ConversationHistory` / `ConversationTurn` — multi-turn conversation memory
-* `Tool` / `ToolDefinition` / `ToolCall` / `ToolResult` — first-class tool execution contracts
 
 `ReasoningContext` includes the originating request, retained retrieved knowledge,
 assembled documents, assembly metadata, an estimated token count, and optional
 trimmed conversation history.
 
 `ReasoningResult` is immutable and includes the answer, citations, metadata, provider
-name, execution time, the context that produced it, an `execution_trace`, and optional
-`tool_calls` / `tool_results`.
+name, execution time, the context that produced it, and a read-only `execution_trace`.
+It still carries unused `tool_calls` / `tool_results` fields typed as `ToolCall` /
+`ToolResult`; those are retained compatibility plumbing on the result object, not an
+active LLM tool-calling or host-execution framework. Providers do not populate them,
+and conversation APIs do not expose them.
 
 The `Reason` command records timing for each pipeline stage (`retrieval`,
 `context_assembly`, `prompt_build`, `provider_resolution`, `model_execution`) and
@@ -80,16 +81,12 @@ conversation history under configurable turn and token limits; history never byp
 those limits or the overall estimated-token budget. `PromptBuilder` renders history as
 its own `conversation_history` section, separate from retrieved knowledge.
 
-`ToolRegistry` registers and discovers tools without executing them. `ToolExecutor`
-validates tool identity and arguments, executes the resolved tool, captures execution
-metadata, and returns an immutable `ToolResult`. Domain errors cover unknown tools,
-invalid arguments, execution failures, and timeouts. Concrete product tools and agent
-loops are out of scope for this foundation.
-
-Environment actions (filesystem, git, terminal, browser, and similar) belong to the
-Capability Framework in `packages/automation`, not to Intelligence Tools. Tools are
-LLM-facing orchestration contracts; Capabilities are permissioned host actions.
-Intelligence may later discover and invoke capabilities through that framework.
+Host actions (filesystem, git, terminal, browser, and similar) belong to the
+Capability Framework in `packages/automation`. V1 executes those actions through
+the Capability Registry, Capability Planner, Capability Execution Engine (including
+approval / policy), Workflow Engine, and Connector Framework. Intelligence submits
+host work through composition-root ports; it does not own a parallel tool-execution
+stack. LLM tool calling is not implemented.
 See [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md).
 
 `ContextAssembler` builds that context through the `KnowledgeRetriever` port. It orders
@@ -155,8 +152,8 @@ Provider-specific logic remains isolated within Intelligence adapters.
 
 The live provider boundary is `ModelGateway` with registered `ReasoningProvider`
 implementations (`fake`, `openai`). Host environment actions use the Automation
-Capability Framework. Frozen `ToolRegistry` / `ToolExecutor` types exist for
-possible post-V1 LLM tool-calling and are not wired into conversation Reason.
+Capability Framework (registry, planner, execution engine, workflows). There is no
+Intelligence `ToolRegistry` / `ToolExecutor`.
 
 Replacing one AI provider with another should require minimal architectural change because knowledge storage, retrieval, and memory remain independent from provider implementations.
 
@@ -208,7 +205,7 @@ This preserves the principle that knowledge remains independent from AI provider
 
 # Planning and Future Agents
 
-The Intelligence domain may support planning, reasoning, tool execution, and future autonomous workflows.
+The Intelligence domain may support planning, reasoning, and future autonomous workflows.
 
 These capabilities should reason over retrieved knowledge without modifying the underlying platform ownership model.
 

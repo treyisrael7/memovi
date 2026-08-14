@@ -8,7 +8,6 @@ from memovi_intelligence.domain.value_objects import (
     ConversationTurn,
     Prompt,
     RetrievedKnowledge,
-    ToolDefinition,
 )
 
 
@@ -84,24 +83,4 @@ class ConversationRepository(Protocol):
         *,
         workspace_id: WorkspaceId,
     ) -> tuple[ConversationTurn, ...]:
-        raise NotImplementedError
-
-
-class Tool(Protocol):
-    """Frozen: future LLM tool-calling port (not wired into conversation Reason).
-
-    Host actions use the Automation Capability Framework. Do not expand this
-    surface until product tool-calling is an intentional post-V1 feature.
-    """
-
-    def name(self) -> str:
-        raise NotImplementedError
-
-    def description(self) -> str:
-        raise NotImplementedError
-
-    def schema(self) -> ToolDefinition:
-        raise NotImplementedError
-
-    def execute(self, arguments: dict[str, object]) -> object:
         raise NotImplementedError

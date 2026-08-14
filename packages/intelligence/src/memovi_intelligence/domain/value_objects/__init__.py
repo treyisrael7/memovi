@@ -20,8 +20,6 @@ from memovi_intelligence.domain.value_objects.reasoning_request_id import Reason
 from memovi_intelligence.domain.value_objects.retrieved_knowledge import RetrievedKnowledge
 from memovi_intelligence.domain.value_objects.stage_timing import StageTiming
 from memovi_intelligence.domain.value_objects.tool_call import ToolCall
-from memovi_intelligence.domain.value_objects.tool_definition import ToolDefinition
-from memovi_intelligence.domain.value_objects.tool_parameter import ToolParameter
 from memovi_intelligence.domain.value_objects.tool_result import ToolResult
 
 __all__ = [
@@ -45,7 +43,5 @@ __all__ = [
     "RetrievedKnowledge",
     "StageTiming",
     "ToolCall",
-    "ToolDefinition",
-    "ToolParameter",
     "ToolResult",
 ]

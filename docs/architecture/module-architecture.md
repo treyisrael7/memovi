@@ -86,7 +86,7 @@ The Knowledge Platform must never depend upon the Intelligence Layer.
 
 The Intelligence Layer consumes knowledge and enriches information already stored by the Knowledge Platform.
 
-It includes chat, RAG, prompt construction, tool orchestration, provider routing, AI summaries, planning, reasoning, and future autonomous agents.
+It includes chat, RAG, prompt construction, provider routing, AI summaries, planning, reasoning, and future autonomous agents. Host actions run through the Automation Capability Framework, not an Intelligence tool stack.
 
 ## Processing
 

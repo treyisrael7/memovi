@@ -1381,7 +1381,6 @@ froze unwired LLM tool-calling types without product claims.
 **Next Recommended Work**
 
 * Continue Phase 1 V1 platform completion without reintroducing unused packages
-* Optional Tool freeze removal
 
 ---
 
@@ -1414,7 +1413,7 @@ imports; reconciled documentation drift left after Milestone 46.
 
 **Remaining**
 
-* Frozen ToolRegistry / ToolExecutor keep-or-delete decision (post-V1)
+* None
 
 **Known Risks**
 
@@ -1422,7 +1421,7 @@ imports; reconciled documentation drift left after Milestone 46.
 
 **Next Recommended Work**
 
-* Optional post-V1 Tool freeze removal
+* Continue Phase 1 V1 platform completion without reintroducing unused packages
 
 ---
 
@@ -1448,7 +1447,7 @@ stack is PostgreSQL and MinIO only. No application behavior change.
 
 **Remaining**
 
-* Frozen ToolRegistry / ToolExecutor keep-or-delete decision (post-V1)
+* None
 
 **Known Risks**
 
@@ -1457,6 +1456,46 @@ stack is PostgreSQL and MinIO only. No application behavior change.
 **Next Recommended Work**
 
 * Continue Phase 1 V1 platform completion without reintroducing unused infrastructure
+
+---
+
+# Milestone 49 — V1 Cleanup Sprint PR #13
+
+**Overall Status:** Complete
+
+Deleted the unused Intelligence `ToolRegistry` / `ToolExecutor` stack. Host
+actions continue to run through Capabilities (registry, planner, execution
+engine, approval / policy, workflows, connectors). `ModelGateway` / Reason /
+`ReasoningResult` were not changed. `ToolCall` / `ToolResult` remain only as
+unused fields on `ReasoningResult`.
+
+**Completed**
+
+* Deleted `ToolRegistry`, `ToolExecutor`, `Tool` protocol, `ToolDefinition`,
+  `ToolParameter`, empty `infrastructure/tools`, and isolated tool-framework tests
+* Removed executor-only exceptions (`UnknownToolError`, `InvalidToolArgumentsError`,
+  `ToolExecutionError`, `ToolTimeoutError`); kept `InvalidToolError` for
+  `ToolCall` / `ToolResult`
+* Documentation now describes Capabilities as the V1 host-execution architecture,
+  not a replacement tool registry; LLM tool calling is not claimed
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Optional later removal of unused `ReasoningResult.tool_calls` / `tool_results`
+  (requires touching `ReasoningResult`, `ModelGateway`, and `Reason`)
+
+**Known Risks**
+
+* None — no intentional runtime behavior changes
+
+**Next Recommended Work**
+
+* Continue Phase 1 V1 platform completion; do not reintroduce an Intelligence
+  tool-execution stack
 
 ---
 
