@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #10).
+system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #11).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -1381,8 +1381,7 @@ froze unwired LLM tool-calling types without product claims.
 **Next Recommended Work**
 
 * Continue Phase 1 V1 platform completion without reintroducing unused packages
-* Follow-on V1 cleanup (PR #2+): remove deprecated `GET /search/semantic` after
-  client confirmation; decide whether to drop Compose Redis; optional Tool freeze removal
+* Follow-on V1 cleanup: decide whether to drop Compose Redis; optional Tool freeze removal
 
 ---
 
@@ -1406,6 +1405,8 @@ imports; reconciled documentation drift left after Milestone 46.
 * Corrected `ENGINEERING_SNAPSHOT.md` references to deleted placeholders (`EchoTool`,
   `Placeholder*`), middleware/config validation status, and Redis reserved usage
 * Clarified README / local-infrastructure Redis wording (Compose-reserved, unused by app)
+* Removed deprecated `GET /search/semantic` and the `SemanticSearch` adapter
+  (PR #11); semantic retrieval remains `GET /search?mode=semantic`
 
 **In Progress**
 
@@ -1413,7 +1414,6 @@ imports; reconciled documentation drift left after Milestone 46.
 
 **Remaining**
 
-* Deprecated `GET /search/semantic` removal (PR #2)
 * Redis Compose removal decision (PR #2+)
 * Frozen ToolRegistry / ToolExecutor keep-or-delete decision (post-V1)
 
@@ -1423,7 +1423,7 @@ imports; reconciled documentation drift left after Milestone 46.
 
 **Next Recommended Work**
 
-* PR #2: remove deprecated semantic search route after confirming no external clients
+* Decide whether Compose Redis can be dropped now that the app does not use it
 
 ---
 

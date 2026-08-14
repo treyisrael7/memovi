@@ -17,7 +17,7 @@ from memovi_search.application.handlers import (
     SearchKnowledgeMaterializedHandler,
 )
 from memovi_search.application.ports import EventPublisher
-from memovi_search.application.queries import RetrieveKnowledge, SearchKnowledge, SemanticSearch
+from memovi_search.application.queries import RetrieveKnowledge, SearchKnowledge
 from memovi_search.application.services import EmbeddingGenerationService
 from memovi_search.domain.events import SearchIndexed
 from memovi_search.domain.providers import EmbeddingProvider
@@ -99,19 +99,6 @@ def build_search_knowledge(
     embedding_provider: EmbeddingProvider,
 ) -> SearchKnowledge:
     return SearchKnowledge(
-        retrieval_engine=build_retrieval_engine(
-            session,
-            embedding_provider=embedding_provider,
-        ),
-    )
-
-
-def build_semantic_search(
-    session: OrmSession,
-    *,
-    embedding_provider: EmbeddingProvider,
-) -> SemanticSearch:
-    return SemanticSearch(
         retrieval_engine=build_retrieval_engine(
             session,
             embedding_provider=embedding_provider,

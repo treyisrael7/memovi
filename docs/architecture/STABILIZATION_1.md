@@ -89,7 +89,8 @@ would be a large, cross-repo refactor with no runtime benefit.
 
 ### Deprecated search route
 
-`GET /search/semantic` and `SemanticSearch` query remain for backwards compatibility.
+Removed. Semantic retrieval is `GET /search?mode=semantic` on the unified
+search endpoint. The old `GET /search/semantic` adapter (`SemanticSearch`) is gone.
 
 ### Scaffold packages
 
@@ -116,7 +117,7 @@ in Milestone 46.
    helper without breaking existing clients (e.g. via API versioning).
 5. **Import root normalization** — Consider renaming `auth`/`documents` to `memovi_auth`/
    `memovi_documents` in a dedicated refactor milestone.
-6. **Remove deprecated `/search/semantic`** — After confirming no clients depend on it.
+6. **Remove deprecated `/search/semantic`** — Done. Canonical path is `GET /search?mode=semantic`.
 7. **Populate root integration tests** — Replace `tests/` placeholders with cross-package
    architecture tests.
 8. **Durable workflow history** — Replaced in-memory workflow history/library with

@@ -324,7 +324,7 @@ Search document projections, full-text search, embeddings, keyword/semantic/hybr
 ### Public interfaces
 
 * HTTP router: `memovi_search.api.router` (`prefix="/search"`)
-* Queries: `RetrieveKnowledge`, `SemanticSearch`, `SearchKnowledge`
+* Queries: `RetrieveKnowledge`, `SearchKnowledge`
 
 ### Commands
 
@@ -335,7 +335,6 @@ Search document projections, full-text search, embeddings, keyword/semantic/hybr
 
 * `RetrieveKnowledge` / `RetrieveKnowledgeQuery`
 * `SearchKnowledge` / `SearchKnowledgeQuery`
-* `SemanticSearch` / `SemanticSearchQuery`
 
 ### Services / handlers
 
@@ -374,7 +373,6 @@ Search document projections, full-text search, embeddings, keyword/semantic/hybr
 ### API routers
 
 * `GET /search`
-* `GET /search/semantic` (deprecated)
 
 ### Dependencies on other domains
 
@@ -567,7 +565,6 @@ Registered in `apps/api/src/api/routers.py`: auth, documents, conversations (int
 | Method | Route | Request | Response | Service |
 |--------|-------|---------|----------|---------|
 | GET | `/search` | `q`, `mode`, filters, `limit`, `offset` | `SearchResponse` | `RetrieveKnowledge` |
-| GET | `/search/semantic` | `q`, `limit` | `SearchResponse` (deprecated) | `SemanticSearch` |
 
 ## Conversations (Intelligence)
 

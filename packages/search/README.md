@@ -22,8 +22,8 @@ unified retrieval:
 - Production adapters: OpenAI, Ollama, Sentence Transformers (config-selected)
 - Deterministic `FakeEmbeddingProvider` for explicit local wiring and tests
 - Repository contracts: `SearchRepository` and `EmbeddingRepository`
-- Public HTTP API: `GET /search` with `mode` (hybrid default); `GET /search/semantic`
-  is deprecated and routes through the same engine
+- Public HTTP API: `GET /search` with `mode` (`keyword`, `semantic`, `hybrid`;
+  hybrid default)
 - Embedding vectors stored with PostgreSQL pgvector (`vector(384)` + HNSW cosine index)
 
 Search owns derived retrieval structures. It does not own canonical knowledge.
@@ -57,7 +57,8 @@ scores for presentation, then paginates.
 | `limit` | no | `25` | Maximum `100` |
 | `offset` | no | `0` | Must be non-negative |
 
-`GET /search/semantic` is deprecated; use `GET /search?mode=semantic`.
+Semantic retrieval is `GET /search?mode=semantic`. There is no separate
+`/search/semantic` route.
 
 ## Layout
 

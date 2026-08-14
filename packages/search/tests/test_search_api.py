@@ -159,14 +159,32 @@ def test_search_returns_matching_document(
     )
 
 
-def test_search_accepts_mode_parameter(
+@pytest.mark.parametrize(
+    ("mode", "expected"),
+    [
+        ("keyword", RetrievalMode.KEYWORD),
+        ("semantic", RetrievalMode.SEMANTIC),
+        ("hybrid", RetrievalMode.HYBRID),
+    ],
+)
+def test_search_accepts_keyword_semantic_and_hybrid_modes(
     search_client: tuple[TestClient, FakeRetrieveKnowledge],
+    mode: str,
+    expected: RetrievalMode,
 ) -> None:
     client, fake_search = search_client
-    response = client.get("/search", params={"q": "Memovi", "mode": "keyword"})
+    response = client.get("/search", params={"q": "Memovi", "mode": mode})
     assert response.status_code == 200
     assert fake_search.last_query is not None
-    assert fake_search.last_query.mode is RetrievalMode.KEYWORD
+    assert fake_search.last_query.mode is expected
+
+
+def test_deprecated_semantic_path_is_removed(
+    search_client: tuple[TestClient, FakeRetrieveKnowledge],
+) -> None:
+    client, _ = search_client
+    response = client.get("/search/semantic", params={"q": "Memovi"})
+    assert response.status_code == 404
 
 
 def test_search_applies_tag_id_filters(

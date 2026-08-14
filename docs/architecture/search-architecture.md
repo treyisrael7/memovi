@@ -84,7 +84,7 @@ Vectors represent derived knowledge rather than business entities. Embeddings sh
 
 Memovi keeps vector storage within PostgreSQL through pgvector to preserve a single operational database, transaction consistency, simplified backups, reduced operational overhead, shared metadata, and easier development.
 
-Search persists embeddings as `vector(N)` with an HNSW index using cosine distance, and exposes semantic retrieval through `SemanticSearch` / `GET /search/semantic`. Embeddings remain derived data regenerable from Memory.
+Search persists embeddings as `vector(N)` with an HNSW index using cosine distance, and exposes semantic retrieval through `GET /search?mode=semantic` on the unified search endpoint. Embeddings remain derived data regenerable from Memory.
 
 Dedicated vector databases may be evaluated in the future if operational scale requires them.
 

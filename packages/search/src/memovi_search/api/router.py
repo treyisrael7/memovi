@@ -10,15 +10,12 @@ from pydantic import AfterValidator
 from memovi_search.api.dependencies import (
     get_active_workspace_id,
     get_retrieve_knowledge,
-    get_semantic_search,
 )
 from memovi_search.api.schemas import SearchResponse, SearchResultItemResponse
 from memovi_search.application.dto import SearchFilters, SearchResultDto
 from memovi_search.application.queries import (
     RetrieveKnowledge,
     RetrieveKnowledgeQuery,
-    SemanticSearch,
-    SemanticSearchQuery,
 )
 from memovi_search.application.services import RetrievalMode
 
@@ -264,61 +261,6 @@ def search(
         DiagnosticEventName.SEARCH_EXECUTED,
         workspace_id=workspace_id.value,
         mode=mode,
-        result_count=len(results),
-    )
-    return _to_response(query=q, results=results)
-
-
-@router.get(
-    "/semantic",
-    response_model=SearchResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Semantic search indexed knowledge (deprecated)",
-    description=(
-        "Deprecated. Prefer GET /search?mode=semantic. "
-        "Routes through the unified RetrievalEngine in semantic mode."
-    ),
-    responses={
-        200: {"description": "Ranked semantic search results for the query."},
-        422: {"description": "Invalid or missing query parameters."},
-    },
-    deprecated=True,
-)
-def semantic_search(
-    q: Annotated[
-        NonBlankSearchQuery,
-        Query(
-            min_length=1,
-            description="Semantic search query. Required and must be non-empty.",
-        ),
-    ],
-    use_case: Annotated[SemanticSearch, Depends(get_semantic_search)],
-    workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
-    limit: Annotated[
-        int,
-        Query(
-            ge=1,
-            le=100,
-            description="Maximum number of results to return (default 25, max 100).",
-        ),
-    ] = 25,
-) -> SearchResponse:
-    with timed_operation(
-        "search.semantic",
-        metric_name="memovi.search.latency",
-        attributes={"operation": "search.semantic", "search.mode": "semantic"},
-    ):
-        results = use_case.execute(
-            SemanticSearchQuery(
-                query=q,
-                workspace_id=workspace_id,
-                limit=limit,
-            )
-        )
-    _DIAGNOSTICS.emit(
-        DiagnosticEventName.SEARCH_EXECUTED,
-        workspace_id=workspace_id.value,
-        mode="semantic",
         result_count=len(results),
     )
     return _to_response(query=q, results=results)
