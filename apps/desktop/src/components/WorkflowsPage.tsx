@@ -155,8 +155,6 @@ export function WorkflowsPage() {
     setError(null);
     try {
       await approveCapabilityExecution(workspaceId, pending.execution_id);
-      // Re-run remaining workflow from the start is not auto-resumed yet;
-      // refresh the stored result and prompt the user to run again if needed.
       const refreshed = await getWorkflowExecution(
         workspaceId,
         latestResult.instance_id,
@@ -190,6 +188,8 @@ export function WorkflowsPage() {
         latestResult.instance_id,
       );
       setLatestResult(refreshed);
+      const historyResponse = await listWorkflowHistory(workspaceId);
+      setHistory(historyResponse.items);
     } catch (err) {
       const message =
         err instanceof ApiRequestError
@@ -394,12 +394,18 @@ export function WorkflowsPage() {
                 </div>
               </dl>
 
+              {latestResult.status === "completed" &&
+              latestResult.metadata?.resumed_from_approval ? (
+                <p className="lede">
+                  Workflow resumed after approval and finished.
+                </p>
+              ) : null}
+
               {latestResult.status === "awaiting_approval" ? (
                 <div className="workflows-actions">
                   <p className="lede">
                     A capability step is waiting for approval. Approve to continue
-                    that step, then re-run the workflow if remaining steps did
-                    not execute.
+                    this workflow from that step — you do not need to run it again.
                   </p>
                   <Button
                     disabled={isRunning}

@@ -175,6 +175,7 @@ def configure_capability_execution(app: FastAPI) -> CapabilityExecutionEngine:
     # Local/unit app construction may run before migrations/tables exist.
     with contextlib.suppress(Exception):
         workflow_engine.recover_interrupted_workflows()
+        workflow_engine.recover_awaiting_approvals()
 
     app.state.capability_registry = registry
     app.state.capability_invoker = invoker

@@ -293,14 +293,40 @@ def test_4_pauses_for_approval(tmp_path: Path) -> None:
     assert provider.download_calls == 0
     assert not (root / "inbox" / "pending.txt").exists()
 
+    auth = make_auth_context(workspace_id=WORKSPACE)
     approved = engine.approve(
         result.step_results[0].execution_id,
         workspace_id=WORKSPACE,
-        context=make_auth_context(workspace_id=WORKSPACE),
+        context=auth,
     )
     assert approved.status.value == "completed"
+    resumed = workflow_engine.resume_after_capability(
+        execution_id=result.step_results[0].execution_id,
+        workspace_id=WORKSPACE,
+        auth_context=auth,
+    )
+    assert resumed is not None
+    assert resumed.status == "awaiting_approval"
+    assert resumed.completed_steps == ("download",)
+    assert resumed.step_results[0].status == "completed"
+    assert resumed.step_results[1].status == "pending_approval"
     assert provider.download_calls == 1
     assert (root / "inbox" / "pending.txt").exists()
+
+    engine.approve(
+        resumed.step_results[1].execution_id,
+        workspace_id=WORKSPACE,
+        context=auth,
+    )
+    finished = workflow_engine.resume_after_capability(
+        execution_id=resumed.step_results[1].execution_id,
+        workspace_id=WORKSPACE,
+        auth_context=auth,
+    )
+    assert finished is not None
+    assert finished.status == "completed"
+    assert finished.completed_steps == ("download", "verify")
+    assert provider.download_calls == 1
 
 
 def test_5_intentional_failure_stops_with_structured_error(tmp_path: Path) -> None:

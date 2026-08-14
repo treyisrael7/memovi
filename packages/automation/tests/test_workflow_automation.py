@@ -156,6 +156,173 @@ def test_stop_on_pending_approval(tmp_path: Path) -> None:
     assert result.step_results[0].status == "pending_approval"
 
 
+def _workspace() -> WorkspaceId:
+    return WorkspaceId("00000000-0000-4000-8000-000000000001")
+
+
+def _approve_and_resume(workflow_engine: WorkflowEngine, engine, paused, *, auth=None):
+    workspace = _workspace()
+    auth = auth or make_auth_context(workspace_id=workspace)
+    pending = next(
+        step
+        for step in paused.step_results
+        if step.status == "pending_approval" and step.execution_id
+    )
+    engine.approve(pending.execution_id, workspace_id=workspace, context=auth)
+    return workflow_engine.resume_after_capability(
+        execution_id=pending.execution_id,
+        workspace_id=workspace,
+        auth_context=auth,
+    )
+
+
+def test_approval_resumes_workflow_from_waiting_step(tmp_path: Path) -> None:
+    (tmp_path / "a.txt").write_text("x", encoding="utf-8")
+    workflow_engine, engine, _ = _stack(tmp_path, mode=PermissionMode.ASK_EVERY_TIME)
+    auth = make_auth_context(workspace_id=_workspace())
+
+    paused = workflow_engine.execute(
+        workflow_id="list-directory",
+        workspace_id=_workspace(),
+        auth_context=auth,
+        variables={"source_folder": str(tmp_path)},
+    )
+    assert paused.status == "awaiting_approval"
+
+    resumed = _approve_and_resume(workflow_engine, engine, paused, auth=auth)
+
+    assert resumed is not None
+    assert resumed.instance_id == paused.instance_id
+    assert resumed.status == "completed"
+    assert resumed.completed_steps == ("list",)
+    assert resumed.step_results[0].status == "completed"
+    assert resumed.step_results[0].execution_id == paused.step_results[0].execution_id
+    assert resumed.outputs["count"] == 1
+
+
+def test_approval_denial_cancels_workflow(tmp_path: Path) -> None:
+    (tmp_path / "a.txt").write_text("x", encoding="utf-8")
+    workflow_engine, engine, _ = _stack(tmp_path, mode=PermissionMode.ASK_EVERY_TIME)
+    workspace = _workspace()
+    auth = make_auth_context(workspace_id=workspace)
+
+    paused = workflow_engine.execute(
+        workflow_id="list-directory",
+        workspace_id=workspace,
+        auth_context=auth,
+        variables={"source_folder": str(tmp_path)},
+    )
+    pending_id = paused.step_results[0].execution_id
+    assert pending_id
+    engine.cancel(pending_id, workspace_id=workspace, context=auth)
+    denied = workflow_engine.resume_after_capability(
+        execution_id=pending_id,
+        workspace_id=workspace,
+        auth_context=auth,
+    )
+
+    assert denied is not None
+    assert denied.status == "cancelled"
+    assert denied.completed_steps == ()
+    assert denied.step_results[0].status == "cancelled"
+
+
+def test_mid_workflow_approval_does_not_restart_earlier_steps(tmp_path: Path) -> None:
+    nested = tmp_path / "nested"
+    nested.mkdir()
+    (nested / "file.txt").write_text("x", encoding="utf-8")
+    workflow_engine, engine, _ = _stack(tmp_path, mode=PermissionMode.ASK_EVERY_TIME)
+    auth = make_auth_context(workspace_id=_workspace())
+
+    paused = workflow_engine.execute(
+        workflow_id="inspect-then-list",
+        workspace_id=_workspace(),
+        auth_context=auth,
+        variables={"source_folder": str(nested)},
+    )
+    assert paused.status == "awaiting_approval"
+    assert paused.step_results[0].step_id == "metadata"
+    first_execution_id = paused.step_results[0].execution_id
+
+    after_first = _approve_and_resume(workflow_engine, engine, paused, auth=auth)
+    assert after_first is not None
+    assert after_first.status == "awaiting_approval"
+    assert after_first.completed_steps == ("metadata",)
+    assert after_first.step_results[0].execution_id == first_execution_id
+    assert after_first.step_results[1].status == "pending_approval"
+
+    finished = _approve_and_resume(workflow_engine, engine, after_first, auth=auth)
+    assert finished is not None
+    assert finished.status == "completed"
+    assert finished.completed_steps == ("metadata", "list")
+    assert finished.step_results[0].execution_id == first_execution_id
+    assert "file.txt" in finished.outputs["entries"]
+
+
+def test_duplicate_resume_does_not_reexecute_capability(tmp_path: Path) -> None:
+    (tmp_path / "a.txt").write_text("x", encoding="utf-8")
+    workflow_engine, engine, _ = _stack(tmp_path, mode=PermissionMode.ASK_EVERY_TIME)
+    workspace = _workspace()
+    auth = make_auth_context(workspace_id=workspace)
+
+    paused = workflow_engine.execute(
+        workflow_id="list-directory",
+        workspace_id=workspace,
+        auth_context=auth,
+        variables={"source_folder": str(tmp_path)},
+    )
+    pending_id = paused.step_results[0].execution_id
+    assert pending_id
+    engine.approve(pending_id, workspace_id=workspace, context=auth)
+    first = workflow_engine.resume_after_capability(
+        execution_id=pending_id,
+        workspace_id=workspace,
+        auth_context=auth,
+    )
+    audit_after_first = engine.list_audit(workspace_id=workspace)
+    second = workflow_engine.resume_after_capability(
+        execution_id=pending_id,
+        workspace_id=workspace,
+        auth_context=auth,
+    )
+    audit_after_second = engine.list_audit(workspace_id=workspace)
+
+    assert first is not None and second is not None
+    assert first.status == "completed"
+    assert second.status == "completed"
+    assert second.step_results[0].execution_id == first.step_results[0].execution_id
+    assert len(audit_after_second) == len(audit_after_first)
+
+
+def test_recover_continues_after_approval_without_duplicate(tmp_path: Path) -> None:
+    (tmp_path / "a.txt").write_text("x", encoding="utf-8")
+    workflow_engine, engine, history = _stack(tmp_path, mode=PermissionMode.ASK_EVERY_TIME)
+    workspace = _workspace()
+    auth = make_auth_context(workspace_id=workspace)
+
+    paused = workflow_engine.execute(
+        workflow_id="list-directory",
+        workspace_id=workspace,
+        auth_context=auth,
+        variables={"source_folder": str(tmp_path)},
+    )
+    pending_id = paused.step_results[0].execution_id
+    assert pending_id
+    engine.approve(pending_id, workspace_id=workspace, context=auth)
+    stored = history.get_result(paused.instance_id, workspace_id=workspace)
+    assert stored is not None
+    assert stored.status == "awaiting_approval"
+
+    recovered = workflow_engine.recover_awaiting_approvals()
+    assert len(recovered) == 1
+    assert recovered[0].instance_id == paused.instance_id
+    assert recovered[0].status == "completed"
+    assert recovered[0].completed_steps == ("list",)
+
+    again = workflow_engine.recover_awaiting_approvals()
+    assert again == ()
+
+
 def test_workflow_does_not_bypass_planner(tmp_path: Path) -> None:
     """Materialized plans are validated by CapabilityPlanner."""
     workflow_engine, _, _ = _stack(tmp_path)

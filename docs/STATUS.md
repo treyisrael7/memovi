@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-14 (Milestone 47).
+system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #7).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -583,7 +583,6 @@ structured history.
 
 * Loops, parallel execution, conditionals
 * Background / scheduled workflow runners
-* Resume remaining steps after Ask Every Time approval within one instance
 
 ---
 
@@ -1057,7 +1056,8 @@ unchanged; only library/history backends and startup recovery were added.
 * Definition CRUD: create / update / delete / duplicate / list (built-ins immutable)
 * Progressive execution checkpoints (`running` → terminal) with full result JSON
 * Startup recovery: interrupted `running` → `failed` (no duplicate resume);
-  `awaiting_approval` preserved
+  `awaiting_approval` preserved; approved-but-unfinished instances resume
+  remaining steps without resubmitting the decided capability
 * Metrics: duration, success/failure/awaiting/cancelled, recovery count
 * `docs/architecture/WORKFLOW_ENGINE.md` (+ updates to `WORKFLOW_AUTOMATION.md`)
 * Durable library/history/recovery tests
@@ -1068,7 +1068,6 @@ unchanged; only library/history backends and startup recovery were added.
 
 **Remaining**
 
-* Resume remaining workflow steps after capability approval within one instance
 * Background / scheduled workflow runners
 
 **Known Risks**
@@ -1493,7 +1492,6 @@ imports; reconciled documentation drift left after Milestone 46.
 * Durable approval/settings UX
 * Background jobs / scheduled workflows
 * Conditional/loop/parallel workflow features
-* Resume-after-approval for multi-step workflow instances
 
 **Known Risks**
 

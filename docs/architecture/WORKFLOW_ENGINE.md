@@ -104,9 +104,12 @@ Recovery rules:
 
 * Rows with status `running` are marked `failed` with
   `interrupted_by_restart` semantics (`recovered: true` in metadata)
-* Rows with status `awaiting_approval` are **left intact** so pending capability
-  approvals can continue through the Capability Execution Engine after restart
-* Interrupted runs are **not** auto-resumed — this avoids duplicate side effects
+* Rows with status `awaiting_approval` are **left intact**. If the waiting
+  capability execution is already completed, cancelled, or failed,
+  `recover_awaiting_approvals()` continues remaining steps without
+  resubmitting the decided capability.
+* Interrupted `running` runs are **not** auto-resumed — this avoids duplicate
+  side effects
 
 # Versioning
 
@@ -169,10 +172,11 @@ Durability-supporting library routes (optional for desktop):
 
 # Out of Scope
 
-* Auto-resume of remaining steps after approval across a full multi-step instance
 * Background / scheduled workflow runners
 * Loops, parallel fans, conditionals
 * A second workflow runtime
+* Auto-resume of mid-flight `running` instances interrupted by restart
+  (those remain failed to avoid duplicate side effects)
 
 # Related Documents
 

@@ -113,6 +113,36 @@ export function createMockBackend(): MockBackend {
   const originalFetch = globalThis.fetch;
   let xhrPatched = false;
   const OriginalXHR = globalThis.XMLHttpRequest;
+  let workflowResult: Record<string, unknown> = {
+    instance_id: "wf-instance-1",
+    workflow_id: "list-directory",
+    workflow_name: "List Directory",
+    workspace_id: DEFAULT_WORKSPACE_ID,
+    status: "awaiting_approval",
+    completed_steps: [],
+    failed_steps: [],
+    step_results: [
+      {
+        step_id: "list",
+        capability_id: "filesystem",
+        operation: "list_directory",
+        execution_id: "exec-wf-1",
+        status: "pending_approval",
+        output: null,
+        error_code: null,
+        error_message: null,
+        duration: 0,
+        plan_id: "plan-wf-1",
+      },
+    ],
+    duration: 0.01,
+    outputs: {},
+    errors: [],
+    audit_references: ["exec-wf-1"],
+    started_at: "2026-01-01T00:00:00.000Z",
+    finished_at: null,
+    metadata: {},
+  };
 
   function route(
     method: string,
@@ -607,29 +637,52 @@ export function createMockBackend(): MockBackend {
       path === "/workflows/history" ||
       path.startsWith("/workflows/history?")
     ) {
-      return { status: 200, body: { items: [], count: 0 } };
-    }
-    if (path.endsWith("/execute") && method === "POST") {
       return {
         status: 200,
         body: {
-          instance_id: "wf-instance-1",
-          workflow_id: "list-directory",
-          workflow_name: "List Directory",
-          workspace_id: DEFAULT_WORKSPACE_ID,
-          status: "completed",
-          completed_steps: ["list"],
-          failed_steps: [],
-          step_results: [],
-          duration: 0.01,
-          outputs: { count: 0 },
-          errors: [],
-          audit_references: [],
-          started_at: "2026-01-01T00:00:00.000Z",
-          finished_at: "2026-01-01T00:00:01.000Z",
-          metadata: {},
+          items: [
+            {
+              instance_id: workflowResult.instance_id,
+              workflow_id: workflowResult.workflow_id,
+              workflow_name: workflowResult.workflow_name,
+              workspace_id: workflowResult.workspace_id,
+              status: workflowResult.status,
+              executed_at: workflowResult.started_at,
+              duration: workflowResult.duration,
+              result_summary: { status: workflowResult.status },
+              executed_capabilities: ["filesystem"],
+              audit_references: workflowResult.audit_references,
+            },
+          ],
+          count: 1,
         },
       };
+    }
+    if (path === "/workflows/history/wf-instance-1" && method === "GET") {
+      return { status: 200, body: workflowResult };
+    }
+    if (path.endsWith("/execute") && method === "POST") {
+      workflowResult = {
+        ...workflowResult,
+        status: "awaiting_approval",
+        completed_steps: [],
+        step_results: [
+          {
+            step_id: "list",
+            capability_id: "filesystem",
+            operation: "list_directory",
+            execution_id: "exec-wf-1",
+            status: "pending_approval",
+            output: null,
+            error_code: null,
+            error_message: null,
+            duration: 0,
+            plan_id: "plan-wf-1",
+          },
+        ],
+        metadata: {},
+      };
+      return { status: 200, body: workflowResult };
     }
     if (path === "/capabilities") {
       return {
@@ -645,6 +698,48 @@ export function createMockBackend(): MockBackend {
               permission_mode: "ask_every_time",
             },
           ],
+        },
+      };
+    }
+    if (path === "/capabilities/executions/exec-wf-1/approve" && method === "POST") {
+      workflowResult = {
+        ...workflowResult,
+        status: "completed",
+        completed_steps: ["list"],
+        step_results: [
+          {
+            step_id: "list",
+            capability_id: "filesystem",
+            operation: "list_directory",
+            execution_id: "exec-wf-1",
+            status: "completed",
+            output: { entries: [], count: 0 },
+            error_code: null,
+            error_message: null,
+            duration: 0.02,
+            plan_id: "plan-wf-1",
+          },
+        ],
+        outputs: { count: 0 },
+        finished_at: "2026-01-01T00:00:01.000Z",
+        metadata: { resumed_from_approval: true },
+      };
+      return {
+        status: 200,
+        body: {
+          execution_id: "exec-wf-1",
+          capability_id: "filesystem",
+          workspace_id: DEFAULT_WORKSPACE_ID,
+          status: "completed",
+          permission_mode: "ask_every_time",
+          output: { entries: [], count: 0 },
+          error: null,
+          duration: 0.02,
+          conversation_id: null,
+          correlation_id: null,
+          created_at: "2026-01-01T00:00:00.000Z",
+          updated_at: "2026-01-01T00:00:01.000Z",
+          metadata: {},
         },
       };
     }

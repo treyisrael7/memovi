@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from threading import Lock
 from time import perf_counter
 from typing import cast
 
@@ -24,12 +25,19 @@ from memovi_automation.application.services.capability_planner import Capability
 from memovi_automation.application.services.plan_execution_service import PlanExecutionService
 from memovi_automation.application.services.workflow_validator import WorkflowValidator
 from memovi_automation.domain.exceptions import (
+    CapabilityExecutionNotFoundError,
     InvalidExecutionPlanError,
     InvalidWorkflowError,
     UnknownWorkflowError,
 )
 from memovi_automation.domain.value_objects.authenticated_execution_context import (
     AuthenticatedExecutionContext,
+)
+from memovi_automation.domain.value_objects.capability_execution_result import (
+    CapabilityExecutionResult,
+)
+from memovi_automation.domain.value_objects.capability_execution_status import (
+    CapabilityExecutionStatus,
 )
 from memovi_automation.domain.value_objects.execution_plan import ExecutionPlan
 from memovi_automation.domain.value_objects.workflow import (
@@ -38,6 +46,7 @@ from memovi_automation.domain.value_objects.workflow import (
     WorkflowExecutionResult,
     WorkflowHistoryEntry,
     WorkflowInstance,
+    WorkflowStep,
     WorkflowStepResult,
     read_output_path,
     substitute_value,
@@ -66,8 +75,11 @@ class WorkflowEngine:
         self._plan_execution = plan_execution
         self._history = history
         self._validator = validator or WorkflowValidator(registry=planner.registry)
+        self._instance_locks_guard = Lock()
+        self._instance_locks: dict[str, Lock] = {}
         if recover_on_init:
             self.recover_interrupted_workflows()
+            self.recover_awaiting_approvals()
 
     @property
     def library(self) -> WorkflowLibrary:
@@ -108,8 +120,10 @@ class WorkflowEngine:
     def recover_interrupted_workflows(self) -> tuple[WorkflowExecutionResult, ...]:
         """Mark interrupted ``running`` workflows failed without re-executing steps.
 
-        ``awaiting_approval`` rows are left intact so clients can continue through
-        the Capability Execution Engine approval path after restart.
+        ``awaiting_approval`` rows are left intact so pending capability
+        approvals can continue through the Capability Execution Engine after
+        restart. Call ``recover_awaiting_approvals`` afterward to continue
+        workflows whose waiting capability already finished.
         """
         recovered = self._history.fail_interrupted_executions(reason=_INTERRUPT_REASON)
         if recovered:
@@ -120,6 +134,83 @@ class WorkflowEngine:
                 recovered_count=len(recovered),
             )
         return recovered
+
+    def recover_awaiting_approvals(self) -> tuple[WorkflowExecutionResult, ...]:
+        """Continue workflows waiting on a capability that already finished.
+
+        Used after process restart when approval was recorded but remaining
+        workflow steps had not run yet. Still-pending approvals are left intact.
+        """
+        resumed: list[WorkflowExecutionResult] = []
+        for stored in self._history.list_by_status(status="awaiting_approval"):
+            pending = next(
+                (
+                    step
+                    for step in stored.step_results
+                    if step.status == "pending_approval" and step.execution_id
+                ),
+                None,
+            )
+            execution_id = pending.execution_id if pending is not None else None
+            if execution_id is None:
+                last = stored.step_results[-1] if stored.step_results else None
+                execution_id = last.execution_id if last is not None else None
+            if not execution_id:
+                continue
+            auth_context = _auth_context_from_result(stored)
+            if auth_context is None:
+                continue
+            try:
+                capability = self._plan_execution.engine.get(
+                    execution_id,
+                    workspace_id=WorkspaceId(stored.workspace_id),
+                )
+            except CapabilityExecutionNotFoundError:
+                continue
+            if capability.status is CapabilityExecutionStatus.PENDING_APPROVAL:
+                continue
+            continued = self.resume_after_capability(
+                execution_id=execution_id,
+                workspace_id=stored.workspace_id,
+                auth_context=auth_context,
+            )
+            if continued is not None:
+                resumed.append(continued)
+        return tuple(resumed)
+
+    def resume_after_capability(
+        self,
+        *,
+        execution_id: str,
+        workspace_id: WorkspaceId | str,
+        auth_context: AuthenticatedExecutionContext,
+    ) -> WorkflowExecutionResult | None:
+        """Continue a paused workflow after its waiting capability is decided.
+
+        Does not resubmit the approved/denied capability. Returns ``None`` when
+        the execution is not part of a workflow instance.
+        """
+        workspace = (
+            workspace_id.value
+            if isinstance(workspace_id, WorkspaceId)
+            else str(workspace_id).strip()
+        )
+        try:
+            capability = self._plan_execution.engine.get(
+                execution_id,
+                workspace_id=WorkspaceId(workspace),
+            )
+        except CapabilityExecutionNotFoundError:
+            return None
+        instance_id = _meta_str(capability.metadata, "workflow_instance_id")
+        if instance_id is None:
+            return None
+        with self._lock_for(instance_id):
+            return self._resume_locked(
+                capability=capability,
+                workspace=workspace,
+                auth_context=auth_context,
+            )
 
     def materialize_plan(
         self,
@@ -227,6 +318,8 @@ class WorkflowEngine:
         if request_id is not None:
             run_metadata.setdefault("request_id", request_id)
         run_metadata.setdefault("user_id", auth_context.user_id)
+        run_metadata.setdefault("session_id", auth_context.session_id)
+        run_metadata.setdefault("request_id", auth_context.request_id)
 
         instance = WorkflowInstance.create(
             workflow=definition,
@@ -236,14 +329,7 @@ class WorkflowEngine:
             correlation_id=resolved_correlation,
             metadata=run_metadata,
         )
-        started = perf_counter()
         started_at = datetime.now(UTC)
-        step_results: list[WorkflowStepResult] = []
-        completed: list[str] = []
-        failed: list[str] = []
-        errors: list[str] = []
-        audit_refs: list[str] = []
-        status = "completed"
 
         log_operation(
             LOGGER,
@@ -261,11 +347,11 @@ class WorkflowEngine:
             definition=definition,
             workspace=workspace,
             status="running",
-            completed=completed,
-            failed=failed,
-            step_results=step_results,
-            errors=errors,
-            audit_refs=audit_refs,
+            completed=[],
+            failed=[],
+            step_results=[],
+            errors=[],
+            audit_refs=[],
             outputs={},
             started_at=started_at,
             finished_at=None,
@@ -275,7 +361,194 @@ class WorkflowEngine:
             conversation_id=conversation_id,
         )
 
-        for step in definition.steps:
+        with self._lock_for(instance.instance_id):
+            return self._continue_steps(
+                definition=definition,
+                workspace=workspace,
+                auth_context=auth_context,
+                instance_id=instance.instance_id,
+                conversation_id=conversation_id,
+                correlation_id=instance.correlation_id,
+                request_id=request_id or auth_context.request_id,
+                run_metadata=run_metadata,
+                context=context,
+                started_at=started_at,
+                step_results=[],
+                completed=[],
+                failed=[],
+                errors=[],
+                audit_refs=[],
+                start_index=0,
+            )
+
+    def _lock_for(self, instance_id: str) -> Lock:
+        with self._instance_locks_guard:
+            lock = self._instance_locks.get(instance_id)
+            if lock is None:
+                lock = Lock()
+                self._instance_locks[instance_id] = lock
+            return lock
+
+    def _resume_locked(
+        self,
+        *,
+        capability: CapabilityExecutionResult,
+        workspace: str,
+        auth_context: AuthenticatedExecutionContext,
+    ) -> WorkflowExecutionResult | None:
+        instance_id = _meta_str(capability.metadata, "workflow_instance_id")
+        if instance_id is None:
+            return None
+        stored = self._history.get_result(
+            instance_id,
+            workspace_id=WorkspaceId(workspace),
+        )
+        if stored is None:
+            return None
+        if stored.status != "awaiting_approval":
+            return stored
+
+        definition = self.get_workflow(stored.workflow_id)
+        waiting_index = next(
+            (
+                index
+                for index, step in enumerate(stored.step_results)
+                if step.execution_id == capability.execution_id
+            ),
+            None,
+        )
+        if waiting_index is None:
+            return stored
+
+        context = _context_from_result(stored)
+        step_results = list(stored.step_results)
+        completed = list(stored.completed_steps)
+        failed = list(stored.failed_steps)
+        errors = list(stored.errors)
+        audit_refs = list(stored.audit_references)
+        waiting = step_results[waiting_index]
+        definition_step = definition.steps[waiting_index]
+        run_metadata = dict(stored.metadata)
+        run_metadata["resumed_from_approval"] = True
+        conversation_id = _meta_str(stored.metadata, "conversation_id")
+
+        if waiting.status == "pending_approval":
+            updated = _workflow_step_from_capability(
+                step=definition_step,
+                plan_id=waiting.plan_id,
+                execution=capability,
+            )
+            step_results[waiting_index] = updated
+            if capability.status is CapabilityExecutionStatus.COMPLETED:
+                if definition_step.step_id not in completed:
+                    completed.append(definition_step.step_id)
+                context = _bind_completed_step(definition_step, capability.output, context)
+            elif capability.status is CapabilityExecutionStatus.CANCELLED:
+                if definition_step.step_id not in failed:
+                    failed.append(definition_step.step_id)
+                if updated.error_message:
+                    errors.append(updated.error_message)
+                return self._finish(
+                    definition=definition,
+                    workspace=workspace,
+                    instance_id=instance_id,
+                    status="cancelled",
+                    completed=completed,
+                    failed=failed,
+                    step_results=step_results,
+                    errors=errors,
+                    audit_refs=audit_refs,
+                    context=context,
+                    started_at=stored.started_at,
+                    run_metadata=run_metadata,
+                    conversation_id=conversation_id,
+                    correlation_id=_meta_str(stored.metadata, "correlation_id"),
+                )
+            else:
+                if definition_step.step_id not in failed:
+                    failed.append(definition_step.step_id)
+                if updated.error_message:
+                    errors.append(updated.error_message)
+                return self._finish(
+                    definition=definition,
+                    workspace=workspace,
+                    instance_id=instance_id,
+                    status="failed",
+                    completed=completed,
+                    failed=failed,
+                    step_results=step_results,
+                    errors=errors,
+                    audit_refs=audit_refs,
+                    context=context,
+                    started_at=stored.started_at,
+                    run_metadata=run_metadata,
+                    conversation_id=conversation_id,
+                    correlation_id=_meta_str(stored.metadata, "correlation_id"),
+                )
+            self._persist_progress(
+                instance_id=instance_id,
+                definition=definition,
+                workspace=workspace,
+                status=(
+                    "awaiting_approval" if waiting_index + 1 < len(definition.steps) else "running"
+                ),
+                completed=completed,
+                failed=failed,
+                step_results=step_results,
+                errors=errors,
+                audit_refs=audit_refs,
+                outputs=_collect_outputs(definition, context),
+                started_at=stored.started_at,
+                finished_at=None,
+                duration=_elapsed(stored.started_at),
+                context=context,
+                run_metadata=run_metadata,
+                conversation_id=conversation_id,
+            )
+
+        return self._continue_steps(
+            definition=definition,
+            workspace=workspace,
+            auth_context=auth_context,
+            instance_id=instance_id,
+            conversation_id=conversation_id,
+            correlation_id=_meta_str(stored.metadata, "correlation_id") or instance_id,
+            request_id=auth_context.request_id,
+            run_metadata=run_metadata,
+            context=context,
+            started_at=stored.started_at,
+            step_results=step_results,
+            completed=completed,
+            failed=failed,
+            errors=errors,
+            audit_refs=audit_refs,
+            start_index=waiting_index + 1,
+        )
+
+    def _continue_steps(
+        self,
+        *,
+        definition: WorkflowDefinition,
+        workspace: str,
+        auth_context: AuthenticatedExecutionContext,
+        instance_id: str,
+        conversation_id: str | None,
+        correlation_id: str,
+        request_id: str | None,
+        run_metadata: Mapping[str, object],
+        context: WorkflowContext,
+        started_at: datetime,
+        step_results: list[WorkflowStepResult],
+        completed: list[str],
+        failed: list[str],
+        errors: list[str],
+        audit_refs: list[str],
+        start_index: int,
+    ) -> WorkflowExecutionResult:
+        status = "completed"
+        metadata = dict(run_metadata)
+
+        for step in definition.steps[start_index:]:
             step_started = perf_counter()
             try:
                 arguments = {
@@ -291,7 +564,7 @@ class WorkflowEngine:
                 arguments.setdefault("operation", step.operation)
                 step_meta: dict[str, object] = {
                     "workflow_id": definition.workflow_id,
-                    "workflow_instance_id": instance.instance_id,
+                    "workflow_instance_id": instance_id,
                     "workflow_step": step.step_id,
                 }
                 if request_id is not None:
@@ -310,10 +583,10 @@ class WorkflowEngine:
                         }
                     ],
                     conversation_id=conversation_id,
-                    correlation_id=instance.correlation_id,
+                    correlation_id=correlation_id,
                     metadata={
                         "workflow_id": definition.workflow_id,
-                        "workflow_instance_id": instance.instance_id,
+                        "workflow_instance_id": instance_id,
                         "source": "workflow_engine",
                         **({"request_id": request_id} if request_id is not None else {}),
                     },
@@ -339,7 +612,7 @@ class WorkflowEngine:
                     status="error",
                     duration_ms=(perf_counter() - step_started) * 1000,
                     workflow_id=definition.workflow_id,
-                    workflow_instance_id=instance.instance_id,
+                    workflow_instance_id=instance_id,
                     step_id=step.step_id,
                     capability_id=step.capability_id,
                     error=str(exc),
@@ -347,7 +620,6 @@ class WorkflowEngine:
                 break
 
             plan_result = self._plan_execution.execute_plan(plan, context=auth_context)
-            # Single-step plan → one step result
             plan_step = plan_result.step_results[0] if plan_result.step_results else None
             if plan_step is None:
                 failed.append(step.step_id)
@@ -359,7 +631,7 @@ class WorkflowEngine:
                     status="error",
                     duration_ms=(perf_counter() - step_started) * 1000,
                     workflow_id=definition.workflow_id,
-                    workflow_instance_id=instance.instance_id,
+                    workflow_instance_id=instance_id,
                     step_id=step.step_id,
                     capability_id=step.capability_id,
                     plan_id=plan.plan_id,
@@ -395,7 +667,7 @@ class WorkflowEngine:
                 status=step_log_status,
                 duration_ms=(perf_counter() - step_started) * 1000,
                 workflow_id=definition.workflow_id,
-                workflow_instance_id=instance.instance_id,
+                workflow_instance_id=instance_id,
                 step_id=step.step_id,
                 capability_id=step.capability_id,
                 plan_id=plan.plan_id,
@@ -420,16 +692,9 @@ class WorkflowEngine:
                 break
 
             completed.append(step.step_id)
-            context = context.with_step_output(step.step_id, plan_step.output)
-            if step.output_mapping:
-                bindings: dict[str, object] = {}
-                for name, path in step.output_mapping.items():
-                    bindings[name] = read_output_path(plan_step.output, path)
-                context = context.with_bound_values(bindings)
-
-            # Checkpoint after each successful step (no re-execution on restart).
+            context = _bind_completed_step(step, plan_step.output, context)
             self._persist_progress(
-                instance_id=instance.instance_id,
+                instance_id=instance_id,
                 definition=definition,
                 workspace=workspace,
                 status="running",
@@ -441,16 +706,50 @@ class WorkflowEngine:
                 outputs=_collect_outputs(definition, context),
                 started_at=started_at,
                 finished_at=None,
-                duration=perf_counter() - started,
+                duration=_elapsed(started_at),
                 context=context,
-                run_metadata=run_metadata,
+                run_metadata=metadata,
                 conversation_id=conversation_id,
             )
 
+        return self._finish(
+            definition=definition,
+            workspace=workspace,
+            instance_id=instance_id,
+            status=status,
+            completed=completed,
+            failed=failed,
+            step_results=step_results,
+            errors=errors,
+            audit_refs=audit_refs,
+            context=context,
+            started_at=started_at,
+            run_metadata=metadata,
+            conversation_id=conversation_id,
+            correlation_id=correlation_id,
+        )
+
+    def _finish(
+        self,
+        *,
+        definition: WorkflowDefinition,
+        workspace: str,
+        instance_id: str,
+        status: str,
+        completed: list[str],
+        failed: list[str],
+        step_results: list[WorkflowStepResult],
+        errors: list[str],
+        audit_refs: list[str],
+        context: WorkflowContext,
+        started_at: datetime,
+        run_metadata: Mapping[str, object],
+        conversation_id: str | None,
+        correlation_id: str | None,
+    ) -> WorkflowExecutionResult:
         finished_at = datetime.now(UTC)
-        outputs = _collect_outputs(definition, context)
         result = WorkflowExecutionResult(
-            instance_id=instance.instance_id,
+            instance_id=instance_id,
             workflow_id=definition.workflow_id,
             workflow_name=definition.name,
             workspace_id=workspace,
@@ -458,8 +757,8 @@ class WorkflowEngine:
             completed_steps=tuple(completed),
             failed_steps=tuple(failed),
             step_results=tuple(step_results),
-            duration=perf_counter() - started,
-            outputs=outputs,
+            duration=_elapsed(started_at),
+            outputs=_collect_outputs(definition, context),
             errors=tuple(errors),
             audit_references=tuple(audit_refs),
             started_at=started_at,
@@ -467,8 +766,8 @@ class WorkflowEngine:
             metadata={
                 "required_capabilities": list(definition.required_capabilities),
                 "conversation_id": conversation_id,
-                "correlation_id": instance.correlation_id,
-                **run_metadata,
+                "correlation_id": correlation_id,
+                **_with_resume_context(run_metadata, context),
             },
         )
         log_operation(
@@ -477,7 +776,7 @@ class WorkflowEngine:
             status="success" if status == "completed" else status,
             duration_ms=result.duration * 1000,
             workflow_id=definition.workflow_id,
-            workflow_instance_id=instance.instance_id,
+            workflow_instance_id=instance_id,
             workspace_id=workspace,
             completed_steps=len(completed),
             failed_steps=len(failed),
@@ -524,7 +823,7 @@ class WorkflowEngine:
             metadata={
                 "required_capabilities": list(definition.required_capabilities),
                 "conversation_id": conversation_id,
-                **dict(run_metadata),
+                **_with_resume_context(run_metadata, context),
             },
         )
         self._history.store_result(result)
@@ -633,6 +932,97 @@ def _meta_str(metadata: Mapping[str, object], key: str) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _elapsed(started_at: datetime) -> float:
+    return max(0.0, (datetime.now(UTC) - started_at).total_seconds())
+
+
+def _with_resume_context(
+    run_metadata: Mapping[str, object],
+    context: WorkflowContext,
+) -> dict[str, object]:
+    return {
+        **dict(run_metadata),
+        "resume_context": {
+            "variables": dict(context.variables),
+            "step_outputs": dict(context.step_outputs),
+        },
+    }
+
+
+def _context_from_result(result: WorkflowExecutionResult) -> WorkflowContext:
+    stored = result.metadata.get("resume_context")
+    if isinstance(stored, Mapping):
+        variables = stored.get("variables")
+        outputs = stored.get("step_outputs")
+        return WorkflowContext(
+            variables=dict(variables) if isinstance(variables, Mapping) else {},
+            step_outputs=dict(outputs) if isinstance(outputs, Mapping) else {},
+        )
+    variables: dict[str, object] = {}
+    summary = result.metadata.get("variables")
+    if isinstance(summary, Mapping):
+        variables = dict(summary)
+    step_outputs: dict[str, object] = {}
+    for step in result.step_results:
+        if step.status == "completed":
+            step_outputs[step.step_id] = step.output
+    return WorkflowContext(variables=variables, step_outputs=step_outputs)
+
+
+def _bind_completed_step(
+    step: WorkflowStep,
+    output: object,
+    context: WorkflowContext,
+) -> WorkflowContext:
+    context = context.with_step_output(step.step_id, output)
+    if step.output_mapping:
+        bindings = {
+            name: read_output_path(output, path) for name, path in step.output_mapping.items()
+        }
+        context = context.with_bound_values(bindings)
+    return context
+
+
+def _workflow_step_from_capability(
+    *,
+    step: WorkflowStep,
+    plan_id: str | None,
+    execution: CapabilityExecutionResult,
+) -> WorkflowStepResult:
+    error = execution.error
+    return WorkflowStepResult(
+        step_id=step.step_id,
+        capability_id=step.capability_id,
+        operation=step.operation,
+        execution_id=execution.execution_id,
+        status=execution.status.value,
+        output=execution.output,
+        error_code=None if error is None else error.code,
+        error_message=None if error is None else error.message,
+        duration=execution.duration,
+        plan_id=plan_id,
+    )
+
+
+def _auth_context_from_result(
+    result: WorkflowExecutionResult,
+) -> AuthenticatedExecutionContext | None:
+    user_id = _meta_str(result.metadata, "user_id")
+    session_id = _meta_str(result.metadata, "session_id")
+    request_id = _meta_str(result.metadata, "request_id") or result.instance_id
+    if user_id is None or session_id is None:
+        return None
+    return AuthenticatedExecutionContext.create(
+        user_id=user_id,
+        workspace_id=WorkspaceId(result.workspace_id),
+        session_id=session_id,
+        request_id=request_id,
+        conversation_id=_meta_str(result.metadata, "conversation_id"),
+        correlation_id=_meta_str(result.metadata, "correlation_id") or result.instance_id,
+        source="workflow_engine",
+    )
 
 
 def _step_output_refs(mapping: Mapping[str, object]) -> tuple[str, ...]:

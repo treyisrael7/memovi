@@ -82,9 +82,14 @@ Package path: `packages/automation/src/memovi_automation/`
 4. **Validate** — Definition checked against the capability registry
    (capabilities exist, operations supported, references resolve).
 5. **Execute** — `WorkflowEngine.execute` runs steps sequentially.
-6. **Record** — `WorkflowHistory` stores name, timestamp, workspace, duration,
+6. **Await approval** — Ask Every Time pauses the instance as
+   `awaiting_approval` without running later steps.
+7. **Resume** — Approving or denying the waiting capability through the
+   existing execution API continues the same instance from that step.
+   Completed steps are not resubmitted.
+8. **Record** — `WorkflowHistory` stores name, timestamp, workspace, duration,
    result summary, and executed capabilities.
-7. **Review** — Desktop or API clients inspect history and full results.
+9. **Review** — Desktop or API clients inspect history and full results.
 
 # Execution Model
 
@@ -95,7 +100,9 @@ For each step, in order:
 2. Create a validated `ExecutionPlan` via the Capability Planner.
 3. Submit the plan through `PlanExecutionService` (engine permissions + audit).
 4. On success, apply `output_mapping` into `WorkflowContext`.
-5. Stop on `failed`, `cancelled`, or `awaiting_approval`.
+5. Stop on `failed` or `cancelled`. On `awaiting_approval`, persist the
+   instance and resume it from the waiting step after the existing capability
+   approval/cancel API records a decision.
 
 `materialize_plan` can preview a full plan when all inputs resolve from
 variables alone (no prior-step references).

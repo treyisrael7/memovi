@@ -285,8 +285,8 @@ Each page consumes existing platform APIs only; none owns business logic:
 * Collections → Collections API (`/collections`) owned by Memory
 * Tags → Tags + resource-metadata APIs (`/tags`, `/resource-metadata`) owned by Memory
 * Search → Search API (`/search`), optional `collection_id` and `tag_id` filters
-* Workflows → `/workflows` API (library, execute, history); approvals still via
-  Capability Execution Engine
+* Workflows → `/workflows` API (library, execute, history); approvals via
+  Capability Execution Engine, which then resumes the waiting workflow instance
 * Activity → composes `/documents`, `/memory`, `/workflows/history`, and
   `/capabilities/executions/audit` into one timeline, client-side
 * Settings → `/conversations/models`, `/workspaces`, `/capabilities`, and the

@@ -7,6 +7,7 @@ from memovi_automation.api.dependencies import (
     get_active_workspace_id,
     get_authenticated_execution_context,
     get_capability_execution_engine,
+    get_workflow_engine,
 )
 from memovi_automation.api.schemas import (
     CapabilityErrorResponse,
@@ -24,6 +25,7 @@ from memovi_automation.api.schemas import (
 from memovi_automation.application.services.capability_execution_engine import (
     CapabilityExecutionEngine,
 )
+from memovi_automation.application.services.workflow_engine import WorkflowEngine
 from memovi_automation.domain.exceptions import (
     AuthorizationDeniedError,
     CapabilityExecutionNotFoundError,
@@ -42,6 +44,20 @@ from memovi_automation.domain.value_objects.authenticated_execution_context impo
 )
 
 router = APIRouter(prefix="/capabilities", tags=["capabilities"])
+
+
+def _resume_workflow_after_capability(
+    workflow_engine: WorkflowEngine,
+    *,
+    execution_id: str,
+    workspace_id: WorkspaceId,
+    auth_context: AuthenticatedExecutionContext,
+) -> None:
+    workflow_engine.resume_after_capability(
+        execution_id=execution_id,
+        workspace_id=workspace_id,
+        auth_context=auth_context,
+    )
 
 
 def _execution_response(result: CapabilityExecutionResult) -> CapabilityExecutionResponse:
@@ -275,6 +291,7 @@ def get_execution(
 def approve_execution(
     execution_id: str,
     engine: Annotated[CapabilityExecutionEngine, Depends(get_capability_execution_engine)],
+    workflow_engine: Annotated[WorkflowEngine, Depends(get_workflow_engine)],
     workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
     auth_context: Annotated[
         AuthenticatedExecutionContext,
@@ -292,10 +309,28 @@ def approve_execution(
     except AuthorizationDeniedError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     except InvalidCapabilityArgumentsError as exc:
+        try:
+            current = engine.get(execution_id, workspace_id=workspace_id)
+        except CapabilityExecutionNotFoundError:
+            current = None
+        if current is not None and current.status is not CapabilityExecutionStatus.PENDING_APPROVAL:
+            _resume_workflow_after_capability(
+                workflow_engine,
+                execution_id=execution_id,
+                workspace_id=workspace_id,
+                auth_context=auth_context,
+            )
+            return _execution_response(current)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(exc),
         ) from exc
+    _resume_workflow_after_capability(
+        workflow_engine,
+        execution_id=execution_id,
+        workspace_id=workspace_id,
+        auth_context=auth_context,
+    )
     return _execution_response(result)
 
 
@@ -307,6 +342,7 @@ def approve_execution(
 def cancel_execution(
     execution_id: str,
     engine: Annotated[CapabilityExecutionEngine, Depends(get_capability_execution_engine)],
+    workflow_engine: Annotated[WorkflowEngine, Depends(get_workflow_engine)],
     workspace_id: Annotated[WorkspaceId, Depends(get_active_workspace_id)],
     auth_context: Annotated[
         AuthenticatedExecutionContext,
@@ -323,4 +359,10 @@ def cancel_execution(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except AuthorizationDeniedError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    _resume_workflow_after_capability(
+        workflow_engine,
+        execution_id=execution_id,
+        workspace_id=workspace_id,
+        auth_context=auth_context,
+    )
     return _execution_response(result)

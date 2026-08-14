@@ -136,11 +136,13 @@ describe("desktop critical path smoke", () => {
       "/tmp",
     );
     await user.click(screen.getByRole("button", { name: /^Run Workflow$/i }));
-    await waitFor(() => {
-      expect(backend.calls().some((call) => call.includes("/execute"))).toBe(
-        true,
-      );
-    });
+    expect(
+      await screen.findByText(/waiting for approval/i),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^Approve$/i }));
+    expect(
+      await screen.findByText(/resumed after approval and finished/i),
+    ).toBeInTheDocument();
 
     // Settings persistence (theme + model)
     await user.click(screen.getByRole("button", { name: /^Settings$/i }));
