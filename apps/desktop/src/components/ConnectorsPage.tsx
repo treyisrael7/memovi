@@ -8,16 +8,19 @@ import {
   syncFilesystemFolder,
 } from "../api/connectors";
 import type { FilesystemFolder } from "../api/types";
+import { folderDisplayName } from "../connectors/folderPath";
 import { useAppState } from "../state/AppStateContext";
 import { Alert } from "./ui/Alert";
 import { Button } from "./ui/Button";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { EmptyState } from "./ui/EmptyState";
+import { FilePicker } from "./ui/FilePicker";
 import { LoadingState } from "./ui/LoadingState";
 import { SectionHeader } from "./ui/SectionHeader";
 import { StatusBadge, type StatusTone } from "./ui/StatusBadge";
 import { TextInput } from "./ui/TextInput";
 import { useToast } from "./ui/ToastContext";
+import { Tooltip } from "./ui/Tooltip";
 
 function formatTimestamp(value: string | null | undefined): string {
   if (!value) return "Never";
@@ -173,18 +176,27 @@ export function ConnectorsPage() {
       <section className="panel">
         <h2 className="panel-title">Add folder</h2>
         <p className="muted">
-          Enter an absolute path to a notes folder, Obsidian vault, or project
-          docs directory on this machine.
+          Choose a folder with Browse…, or enter an absolute path to a notes
+          folder, Obsidian vault, or project docs directory on this machine.
         </p>
         <div className="stack connector-add-form">
-          <TextInput
-            label="Folder path"
-            name="root_path"
-            placeholder="C:\Users\you\Documents\notes"
-            value={rootPath}
-            onChange={(event) => setRootPath(event.target.value)}
-            disabled={!canUseBackend || isAdding}
-          />
+          <div className="connector-path-row">
+            <TextInput
+              label="Folder path"
+              name="root_path"
+              placeholder="C:\Users\you\Documents\notes"
+              value={rootPath}
+              onChange={(event) => setRootPath(event.target.value)}
+              disabled={!canUseBackend || isAdding}
+            />
+            <FilePicker
+              mode="directory"
+              buttonLabel="Browse..."
+              disabled={!canUseBackend || isAdding}
+              defaultPath={rootPath}
+              onDirectorySelected={setRootPath}
+            />
+          </div>
           <TextInput
             label="Display name (optional)"
             name="display_name"
@@ -227,7 +239,13 @@ export function ConnectorsPage() {
               <div className="connector-folder-header">
                 <div>
                   <strong>{folder.display_name}</strong>
-                  <p className="muted connector-folder-path">{folder.root_path}</p>
+                  <p className="muted connector-folder-path">
+                    <Tooltip content={folder.root_path}>
+                      <span title={folder.root_path}>
+                        {folderDisplayName(folder.root_path)}
+                      </span>
+                    </Tooltip>
+                  </p>
                 </div>
                 <StatusBadge
                   label={folder.sync_status}

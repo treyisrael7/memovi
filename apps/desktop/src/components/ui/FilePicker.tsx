@@ -1,21 +1,48 @@
-import { useId, useRef, type ChangeEvent, type ReactNode } from "react";
+import {
+  useId,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+} from "react";
 
+import { pickDirectory } from "../../native/dialog";
 import { Button } from "./Button";
 import { cx } from "./utils";
 
-export interface FilePickerProps {
+interface FilePickerBaseProps {
   label?: string;
-  accept?: string;
-  multiple?: boolean;
   disabled?: boolean;
   buttonLabel?: string;
-  onFilesSelected: (files: FileList) => void;
   children?: ReactNode;
   className?: string;
 }
 
-/** Hidden file input triggered by a design-system button. */
-export function FilePicker({
+export interface FilePickerFilesProps extends FilePickerBaseProps {
+  mode?: "files";
+  accept?: string;
+  multiple?: boolean;
+  onFilesSelected: (files: FileList) => void;
+}
+
+export interface FilePickerDirectoryProps extends FilePickerBaseProps {
+  mode: "directory";
+  dialogTitle?: string;
+  defaultPath?: string;
+  onDirectorySelected: (path: string) => void;
+}
+
+export type FilePickerProps = FilePickerFilesProps | FilePickerDirectoryProps;
+
+/** Hidden file input or native OS folder dialog, triggered by a design-system button. */
+export function FilePicker(props: FilePickerProps) {
+  if (props.mode === "directory") {
+    return <DirectoryPicker {...props} />;
+  }
+  return <FilesPicker {...props} />;
+}
+
+function FilesPicker({
   label = "Choose files",
   accept,
   multiple = true,
@@ -24,7 +51,7 @@ export function FilePicker({
   onFilesSelected,
   children,
   className,
-}: FilePickerProps) {
+}: FilePickerFilesProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inputId = useId();
 
@@ -53,6 +80,50 @@ export function FilePicker({
           disabled={disabled}
           onClick={() => inputRef.current?.click()}
           aria-controls={inputId}
+        >
+          {buttonLabel}
+        </Button>
+      )}
+      <span className="visually-hidden">{label}</span>
+    </div>
+  );
+}
+
+function DirectoryPicker({
+  label = "Choose folder",
+  disabled = false,
+  buttonLabel = "Browse...",
+  dialogTitle = "Select folder",
+  defaultPath,
+  onDirectorySelected,
+  children,
+  className,
+}: FilePickerDirectoryProps) {
+  const [isPicking, setIsPicking] = useState(false);
+
+  async function handleBrowse() {
+    if (disabled || isPicking) return;
+    setIsPicking(true);
+    try {
+      const selected = await pickDirectory({
+        title: dialogTitle,
+        defaultPath: defaultPath?.trim() || undefined,
+      });
+      if (selected) {
+        onDirectorySelected(selected);
+      }
+    } finally {
+      setIsPicking(false);
+    }
+  }
+
+  return (
+    <div className={cx("ui-file-picker", className)}>
+      {children ?? (
+        <Button
+          variant="secondary"
+          disabled={disabled || isPicking}
+          onClick={() => void handleBrowse()}
         >
           {buttonLabel}
         </Button>

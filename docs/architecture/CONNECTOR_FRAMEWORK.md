@@ -352,8 +352,12 @@ Out of scope for this milestone: filesystem watchers and scheduled sync.
 ## Desktop
 
 The Connectors page supports add folder, remove folder, manual sync, last sync
-time, sync status, imported document count, and error state. It does not
-redesign navigation beyond adding the Connectors surface.
+time, sync status, imported document count, and error state. Desktop add-folder
+uses `FilePicker` in directory mode to open the native OS folder dialog; the
+selected path fills the existing path field. Manual path entry still works.
+Canceling the dialog leaves the current value unchanged. Folder validation and
+creation remain the existing filesystem connector API. It does not redesign
+navigation beyond adding the Connectors surface.
 
 # Events
 

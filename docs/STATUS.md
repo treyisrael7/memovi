@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-10 (Milestone 47).
+system on a reusable backend platform. Last reviewed: 2026-08-14 (Milestone 47).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -1277,6 +1277,8 @@ folders import and sync through Documents — without a second ingestion pipelin
 * Connector HTTP API (`/connectors`, filesystem folders + manual sync)
 * Desktop Connectors page: add/remove folder, sync now, status, last sync,
   imported count, errors
+* Desktop add-folder Browse… uses the native OS folder picker (`FilePicker`
+  directory mode); manual path entry remains available
 * `docs/architecture/CONNECTOR_FRAMEWORK.md` updated for filesystem lifecycle
   and future provider expectations
 * Unit tests for filesystem sync and connector document ingest
@@ -1292,7 +1294,6 @@ folders import and sync through Documents — without a second ingestion pipelin
 
 **Known Risks**
 
-* Desktop add-folder uses an absolute path string (no native folder picker yet)
 * Rename detection is best-effort via content hash within a single sync pass
 
 **Next Recommended Work**

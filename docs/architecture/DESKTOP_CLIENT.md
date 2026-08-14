@@ -63,14 +63,15 @@ apps/desktop/
                              # "seed" handoffs (e.g. open Chat/Knowledge/
                              # Documents from another page with context)
     styles/                 # Tokens (theme.css), component styles, shell/page CSS
-  src-tauri/                # Tauri / Rust host (windowing only)
+  src-tauri/                # Tauri / Rust host (windowing + native OS dialogs)
 ```
 
 The design system is documented in
 [`../design/DESIGN_SYSTEM.md`](../design/DESIGN_SYSTEM.md).
 
-The Rust host owns native window lifecycle. Product UI and API consumption live
-in the TypeScript frontend. Backend domains stay in Python packages.
+The Rust host owns native window lifecycle and operating-system dialogs such as
+the folder picker. Product UI and API consumption live in the TypeScript
+frontend. Backend domains stay in Python packages.
 
 # Backend Communication
 

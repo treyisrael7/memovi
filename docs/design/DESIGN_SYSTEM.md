@@ -120,7 +120,7 @@ Legacy aliases (`--bg-app`, `--accent`, …) remain for existing shell CSS.
 | `Dropdown` | Native select |
 | `Checkbox` | Binary options |
 | `Toggle` | On/off switches |
-| `FilePicker` | File selection trigger |
+| `FilePicker` | File selection trigger, or native OS folder dialog (`mode="directory"`) |
 
 ### Feedback
 

@@ -2412,6 +2412,21 @@ button.linkish {
   max-width: 36rem;
 }
 
+.connector-path-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+
+.connector-path-row .ui-field {
+  flex: 1;
+}
+
+.connector-path-row .ui-file-picker {
+  flex-shrink: 0;
+  padding-bottom: 0;
+}
+
 .connector-folder-list {
   list-style: none;
   margin: 1rem 0 0;
