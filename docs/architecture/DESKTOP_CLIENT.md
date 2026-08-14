@@ -304,7 +304,6 @@ Desktop Documents
   │
   ├─ GET    /documents                     list + processing status
   ├─ GET    /documents/{id}                detail
-  ├─ GET    /memory                        knowledge presence → Indexed badge
   ├─ POST   /documents                     upload (multipart, progress via XHR)
   ├─ POST   /documents/{id}/reprocess      re-queue ingestion / retry
   └─ DELETE /documents/{id}                remove document + artifact + knowledge
@@ -312,13 +311,14 @@ Desktop Documents
 
 Each document reports `processing_status` (`pending` → `extracting` /
 `normalizing` → `completed` / `failed` / `cancelled`) plus optional attempt and
-timing fields. Failure reasons surface in the detail pane with a primary
-**Retry processing** action. While any document is in flight — or Documents
-`completed` but Memory has not listed knowledge yet — the page polls on a short
-interval so status advances without a manual refresh. Deletion is confirmed
-through the shared `ConfirmDialog` before the API call runs. "Ask about this
-document" opens a grounded conversation, gated on processing and indexing
-having finished.
+timing fields. Failure reasons surface in the detail pane (without stack traces)
+with a primary **Retry processing** action. While any document is in flight the
+page polls on a short interval so status advances without a manual refresh;
+polling stops on terminal statuses (`completed` / `failed` / `cancelled`) and
+when leaving the page. Deletion is confirmed through the shared `ConfirmDialog`
+before the API call runs. When a document transitions to `completed`, desktop
+shows a one-shot toast: "Document ready to search." **Search it** and **Ask
+about this** are enabled for completed documents.
 
 # Search
 

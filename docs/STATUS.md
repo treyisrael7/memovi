@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #7).
+system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #8).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -144,7 +144,7 @@ import local folders through Documents.
 
 **Next Recommended Work**
 
-* Harden processing status visibility and expand supported ingest formats as needed
+* Harden processing status visibility (desktop honest lifecycle in PR #8) and expand supported ingest formats as needed
 * Next provider connector on the shared framework
 
 ---
@@ -1175,24 +1175,26 @@ without product redesign or new desktop features.
 
 # Milestone 42 — Knowledge Indexing & Processing Experience
 
-**Overall Status:** Complete
+**Overall Status:** Complete (honest Documents-status UX in PR #8)
 
-Desktop exposes the existing Documents processing lifecycle clearly: stage,
-progress, failure reasons, retry, and indexed readiness — without redesigning
-ingestion or inventing a parallel job system.
+Desktop exposes the existing Documents processing lifecycle clearly: received,
+processing, ready, or failed — without redesigning ingestion, inventing a job
+API, or presenting stages the Documents status field cannot distinguish.
 
 **Completed**
 
-* Shared presentation map over backend statuses (`pending` → `cancelled`) plus
-  derived Indexed / Indexing / Not yet indexed from Memory knowledge presence
-* Documents detail: progress, estimated stage, attempt/timing fields, failure
-  alerts, Retry processing, summary strip for in-flight / failed / indexing
+* Shared presentation map over backend statuses (`pending` → `cancelled`)
+* Documents detail: StatusBadge, LoadingState while in flight, upload ProgressBar
+  (real transfer percent only), failure alerts, Retry processing, Search it /
+  Ask about this when `completed`
+* One-shot toast on transition to `completed`: "Document ready to search."
+* Conditional polling while jobs are in flight; stop on terminal status and unmount
 * Activity: upload started, in-progress, completed, failed/cancelled, re-index
-  requested; Processing filter; light poll while work is in flight
-* Search: indexing banner, document picker status labels, actionable empty
-  states when content is still processing or failed
-* `docs/architecture/DOCUMENT_PIPELINE.md` user-visible + indexing lifecycle
-* Unit tests for presentation helpers; smoke assertions updated
+  requested; Processing filter; light poll while work is in flight (unchanged
+  client-side synthesis)
+* Search: in-flight banner and empty states when content is still processing or failed
+* `docs/architecture/DOCUMENT_PIPELINE.md` user-visible lifecycle
+* Unit tests for presentation helpers; DocumentsPage tests; smoke assertions
 
 **In Progress**
 
@@ -1205,10 +1207,8 @@ ingestion or inventing a parallel job system.
 
 **Known Risks**
 
-* "Indexing" after Documents `completed` depends on Memory list lag; brief
-  windows may show Indexing until knowledge appears
-* Presentation labels (Chunking / Indexing) are UX estimates over the existing
-  Documents + Memory APIs, not new backend enums
+* Downstream Memory / Search / embedding work after Documents `completed` is not
+  a separate user-visible Documents stage; search may lag briefly after Ready
 
 **Next Recommended Work**
 

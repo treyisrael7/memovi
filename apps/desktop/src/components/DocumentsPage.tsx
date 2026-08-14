@@ -16,9 +16,10 @@ import {
   reprocessDocument,
   uploadDocument,
 } from "../api/documents";
-import { listKnowledge } from "../api/memory";
 import type { DocumentSummary } from "../api/types";
 import {
+  DOCUMENT_READY_TOAST,
+  formatFailureReason,
   presentIndexedState,
   presentProcessingStatus,
   shouldPollProcessing,
@@ -43,7 +44,7 @@ interface UploadTask {
   error?: string;
 }
 
-const POLL_INTERVAL_MS = 2500;
+export const DOCUMENT_STATUS_POLL_INTERVAL_MS = 2500;
 
 function formatTimestamp(value: string | null | undefined): string {
   if (!value) return "—";
@@ -71,9 +72,6 @@ export function DocumentsPage() {
     connection.status === "connected" || connection.status === "degraded";
 
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
-  const [knowledgeDocumentIds, setKnowledgeDocumentIds] = useState<Set<string>>(
-    () => new Set(),
-  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +83,10 @@ export function DocumentsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [reprocessingId, setReprocessingId] = useState<string | null>(null);
   const hasLoadedOnceRef = useRef(false);
-  const previousKnowledgeRef = useRef<Set<string>>(new Set());
+  const previousStatusRef = useRef<Map<string, string | null>>(new Map());
+  const mountedRef = useRef(true);
+  const refreshInFlightRef = useRef(false);
+  const pendingRefreshRef = useRef(false);
 
   const selectedDocument = useMemo(
     () => documents.find((doc) => doc.id === selectedId) ?? null,
@@ -93,108 +94,104 @@ export function DocumentsPage() {
   );
 
   const needsPolling = documents.some((doc) =>
-    shouldPollProcessing(
-      doc.processing_status,
-      knowledgeDocumentIds.has(doc.id),
-    ),
+    shouldPollProcessing(doc.processing_status),
   );
 
-  const inFlightCount = documents.filter((doc) =>
-    presentProcessingStatus(doc.processing_status, {
-      hasKnowledge: knowledgeDocumentIds.has(doc.id),
-    }).isInFlight,
+  const inFlightCount = documents.filter(
+    (doc) => presentProcessingStatus(doc.processing_status).isInFlight,
   ).length;
 
   const failedCount = documents.filter(
     (doc) => doc.processing_status === "failed",
   ).length;
 
-  const indexingCount = documents.filter((doc) => {
-    const indexed = presentIndexedState(
-      doc.processing_status,
-      knowledgeDocumentIds.has(doc.id),
-    );
-    return indexed.state === "indexing";
-  }).length;
+  const applyDocumentList = useCallback(
+    (items: DocumentSummary[]) => {
+      if (hasLoadedOnceRef.current) {
+        for (const document of items) {
+          const previous = previousStatusRef.current.has(document.id)
+            ? previousStatusRef.current.get(document.id)
+            : undefined;
+          if (
+            document.processing_status === "completed" &&
+            previous !== "completed"
+          ) {
+            showToast(DOCUMENT_READY_TOAST, "ok");
+          }
+        }
+      }
+      previousStatusRef.current = new Map(
+        items.map((document) => [
+          document.id,
+          document.processing_status ?? null,
+        ]),
+      );
+      hasLoadedOnceRef.current = true;
+      setDocuments(items);
+      setSelectedId((current) => {
+        if (current && items.some((item) => item.id === current)) {
+          return current;
+        }
+        return items[0]?.id ?? null;
+      });
+    },
+    [showToast],
+  );
 
   const refresh = useCallback(async () => {
     if (!workspaceId || !canUseBackend) {
       setDocuments([]);
-      setKnowledgeDocumentIds(new Set());
       return;
     }
+    if (refreshInFlightRef.current) {
+      pendingRefreshRef.current = true;
+      return;
+    }
+    refreshInFlightRef.current = true;
     try {
-      const [docsPayload, knowledgePayload] = await Promise.all([
-        listDocuments(workspaceId),
-        listKnowledge(workspaceId).catch(() => ({ items: [], count: 0 })),
-      ]);
-      const nextKnowledge = new Set(
-        knowledgePayload.items.map((item) => item.document_id),
-      );
-      if (hasLoadedOnceRef.current) {
-        for (const document of docsPayload.items) {
-          const newlyReady =
-            document.processing_status === "completed" &&
-            nextKnowledge.has(document.id) &&
-            !previousKnowledgeRef.current.has(document.id);
-          if (newlyReady) {
-            showToast("Your document is ready to search.", "ok");
-          }
-        }
-      }
-      previousKnowledgeRef.current = nextKnowledge;
-      hasLoadedOnceRef.current = true;
-      setDocuments(docsPayload.items);
-      setKnowledgeDocumentIds(nextKnowledge);
-      setSelectedId((current) => {
-        if (current && docsPayload.items.some((item) => item.id === current)) {
-          return current;
-        }
-        return docsPayload.items[0]?.id ?? null;
-      });
+      do {
+        pendingRefreshRef.current = false;
+        const docsPayload = await listDocuments(workspaceId);
+        if (!mountedRef.current) return;
+        applyDocumentList(docsPayload.items);
+      } while (pendingRefreshRef.current && mountedRef.current);
     } catch (err) {
+      if (!mountedRef.current) return;
       setError(
         err instanceof ApiRequestError
           ? err.message
           : "Failed to load documents.",
       );
+    } finally {
+      refreshInFlightRef.current = false;
     }
-  }, [workspaceId, canUseBackend, showToast]);
+  }, [workspaceId, canUseBackend, applyDocumentList]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!workspaceId || !canUseBackend) {
       setDocuments([]);
-      setKnowledgeDocumentIds(new Set());
       setSelectedId(null);
       hasLoadedOnceRef.current = false;
-      previousKnowledgeRef.current = new Set();
+      previousStatusRef.current = new Map();
       return;
     }
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    void Promise.all([
-      listDocuments(workspaceId),
-      listKnowledge(workspaceId).catch(() => ({ items: [], count: 0 })),
-    ])
-      .then(([docsPayload, knowledgePayload]) => {
-        if (cancelled) return;
-        const nextKnowledge = new Set(
-          knowledgePayload.items.map((item) => item.document_id),
-        );
-        previousKnowledgeRef.current = nextKnowledge;
-        hasLoadedOnceRef.current = true;
-        setDocuments(docsPayload.items);
-        setKnowledgeDocumentIds(nextKnowledge);
-        setSelectedId((current) => {
-          if (current && docsPayload.items.some((item) => item.id === current)) {
-            return current;
-          }
-          return docsPayload.items[0]?.id ?? null;
-        });
+    void listDocuments(workspaceId)
+      .then((docsPayload) => {
+        if (cancelled || !mountedRef.current) return;
+        applyDocumentList(docsPayload.items);
       })
       .catch((err: unknown) => {
-        if (!cancelled) {
+        if (!cancelled && mountedRef.current) {
           setError(
             err instanceof ApiRequestError
               ? err.message
@@ -203,12 +200,12 @@ export function DocumentsPage() {
         }
       })
       .finally(() => {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled && mountedRef.current) setIsLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [workspaceId, canUseBackend]);
+  }, [workspaceId, canUseBackend, applyDocumentList]);
 
   useEffect(() => {
     if (!documentSeed) return;
@@ -222,7 +219,7 @@ export function DocumentsPage() {
     }
     const timer = window.setInterval(() => {
       void refresh();
-    }, POLL_INTERVAL_MS);
+    }, DOCUMENT_STATUS_POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, [needsPolling, workspaceId, canUseBackend, refresh]);
 
@@ -293,7 +290,7 @@ export function DocumentsPage() {
     setReprocessingId(document.id);
     try {
       await reprocessDocument(workspaceId, document.id);
-      showToast(`Re-index requested for ${document.name}.`, "ok");
+      showToast(`Processing queued again for ${document.name}.`, "ok");
       try {
         sessionStorage.setItem(
           `memovi.reprocess.${document.id}`,
@@ -303,9 +300,15 @@ export function DocumentsPage() {
         // Activity uses this hint when present; ignore storage failures.
       }
       const updated = await getDocument(workspaceId, document.id);
-      setDocuments((current) =>
-        current.map((item) => (item.id === document.id ? updated : item)),
-      );
+      if (mountedRef.current) {
+        setDocuments((current) =>
+          current.map((item) => (item.id === document.id ? updated : item)),
+        );
+        previousStatusRef.current.set(
+          updated.id,
+          updated.processing_status ?? null,
+        );
+      }
       void refresh();
     } catch (err) {
       showToast(
@@ -327,6 +330,7 @@ export function DocumentsPage() {
       setDocuments((current) =>
         current.filter((item) => item.id !== pendingDelete.id),
       );
+      previousStatusRef.current.delete(pendingDelete.id);
       if (selectedId === pendingDelete.id) {
         setSelectedId(null);
       }
@@ -362,26 +366,22 @@ export function DocumentsPage() {
     }
   }
 
-  const selectedHasKnowledge = selectedDocument
-    ? knowledgeDocumentIds.has(selectedDocument.id)
-    : false;
   const selectedView = selectedDocument
-    ? presentProcessingStatus(selectedDocument.processing_status, {
-        hasKnowledge: selectedHasKnowledge,
-      })
+    ? presentProcessingStatus(selectedDocument.processing_status)
     : null;
   const selectedIndexed = selectedDocument
-    ? presentIndexedState(
-        selectedDocument.processing_status,
-        selectedHasKnowledge,
-      )
+    ? presentIndexedState(selectedDocument.processing_status)
+    : null;
+  const selectedIsReady = selectedDocument?.processing_status === "completed";
+  const failureReason = selectedDocument
+    ? formatFailureReason(selectedDocument.processing_failure_reason)
     : null;
 
   return (
     <div className="documents-page">
       <SectionHeader
         title="Documents"
-        description="Import documents to turn them into searchable, connected knowledge. Track processing here from upload through indexing."
+        description="Import documents to turn them into searchable, connected knowledge. Track processing here from upload through ready to search."
         level={1}
       />
 
@@ -431,20 +431,13 @@ export function DocumentsPage() {
 
       {error ? <Alert tone="bad">{error}</Alert> : null}
 
-      {!error && (inFlightCount > 0 || indexingCount > 0 || failedCount > 0) ? (
+      {!error && (inFlightCount > 0 || failedCount > 0) ? (
         <div className="documents-status-summary" role="status">
           {inFlightCount > 0 ? (
             <span>
               {inFlightCount === 1
                 ? "1 document processing"
                 : `${inFlightCount} documents processing`}
-            </span>
-          ) : null}
-          {indexingCount > 0 ? (
-            <span>
-              {indexingCount === 1
-                ? "1 document indexing for search"
-                : `${indexingCount} documents indexing for search`}
             </span>
           ) : null}
           {failedCount > 0 ? (
@@ -476,13 +469,8 @@ export function DocumentsPage() {
         ) : (
           <ul className="documents-list">
             {documents.map((document) => {
-              const hasKnowledge = knowledgeDocumentIds.has(document.id);
-              const badge = processingStatusBadge(document.processing_status, {
-                hasKnowledge,
-              });
-              const view = presentProcessingStatus(document.processing_status, {
-                hasKnowledge,
-              });
+              const badge = processingStatusBadge(document.processing_status);
+              const view = presentProcessingStatus(document.processing_status);
               return (
                 <li key={document.id}>
                   <button
@@ -510,7 +498,7 @@ export function DocumentsPage() {
           {!selectedDocument || !selectedView || !selectedIndexed ? (
             <EmptyState
               title="Select a document"
-              description="Choose a document from the list to see processing progress, indexing status, and recovery actions."
+              description="Choose a document from the list to see processing status and what you can do next."
             />
           ) : (
             <>
@@ -526,22 +514,19 @@ export function DocumentsPage() {
                   <StatusBadge
                     {...processingStatusBadge(
                       selectedDocument.processing_status,
-                      { hasKnowledge: selectedHasKnowledge },
                     )}
                   />
-                  {selectedIndexed.label !== selectedView.label ? (
-                    <StatusBadge
-                      label={selectedIndexed.label}
-                      tone={selectedIndexed.tone}
-                    />
-                  ) : null}
                 </div>
               </div>
 
               <div className="document-processing-panel">
-                <p className="document-processing-stage">
-                  {selectedView.explanation}
-                </p>
+                {selectedView.isInFlight ? (
+                  <LoadingState label={selectedView.explanation} />
+                ) : (
+                  <p className="document-processing-stage">
+                    {selectedView.explanation}
+                  </p>
+                )}
                 <p className="muted document-processing-hint">
                   {selectedIndexed.detail}
                 </p>
@@ -554,21 +539,18 @@ export function DocumentsPage() {
 
               {selectedDocument.processing_status === "failed" ? (
                 <Alert tone="bad" className="document-detail-error">
-                  {selectedDocument.processing_failure_reason?.trim()
-                    ? selectedDocument.processing_failure_reason
-                    : "Processing failed."}{" "}
-                  Try Retry processing. If it keeps failing, check that the file
-                  type is supported (PDF, Markdown, or plain text) or upload
+                  Processing failed
+                  {failureReason ? `: ${failureReason}` : "."} Try processing
                   again.
                 </Alert>
               ) : null}
 
               {selectedDocument.processing_status === "cancelled" ? (
                 <Alert tone="warn" className="document-detail-error">
-                  {selectedDocument.processing_failure_reason?.trim()
-                    ? selectedDocument.processing_failure_reason
+                  {failureReason
+                    ? failureReason
                     : "Processing was cancelled—often because a newer reprocess replaced it."}{" "}
-                  Use Retry processing to run it again.
+                  Try processing again.
                 </Alert>
               ) : null}
 
@@ -611,8 +593,7 @@ export function DocumentsPage() {
               </dl>
 
               <div className="document-detail-actions">
-                {selectedHasKnowledge &&
-                selectedDocument.processing_status === "completed" ? (
+                {selectedIsReady ? (
                   <>
                     <Button onClick={() => setActivePage("search")}>
                       Search it
@@ -622,7 +603,7 @@ export function DocumentsPage() {
                       onClick={() => void handleAskAbout(selectedDocument)}
                       disabled={!canUseBackend}
                     >
-                      Ask about it
+                      Ask about this
                     </Button>
                   </>
                 ) : (
@@ -631,7 +612,7 @@ export function DocumentsPage() {
                     disabled
                     title="Available once this document is ready"
                   >
-                    Ask about it
+                    Ask about this
                   </Button>
                 )}
                 <Button

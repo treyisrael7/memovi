@@ -73,7 +73,7 @@ describe("desktop critical path smoke", () => {
     ).toBeInTheDocument();
     expect((await screen.findAllByText(/^Ready$/i)).length).toBeGreaterThan(0);
     expect(
-      (await screen.findAllByText(/ready to search and ask about/i)).length,
+      (await screen.findAllByText(/This is ready to search/i)).length,
     ).toBeGreaterThan(0);
     expect(
       screen.getByRole("button", { name: /^Search it$/i }),
@@ -94,7 +94,9 @@ describe("desktop critical path smoke", () => {
     expect((await screen.findAllByText("uploaded.txt")).length).toBeGreaterThan(
       0,
     );
-    expect(await screen.findByText(/^Queued$/i)).toBeInTheDocument();
+    expect((await screen.findAllByText(/^Received$/i)).length).toBeGreaterThan(
+      0,
+    );
 
     // Search
     await user.click(screen.getByRole("button", { name: /^Search$/i }));

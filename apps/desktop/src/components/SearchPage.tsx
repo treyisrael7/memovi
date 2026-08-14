@@ -128,7 +128,7 @@ export function SearchPage() {
           doc.processing_status,
           knowledgeDocumentIds.has(doc.id),
         );
-        return state.state === "not_indexed" || state.state === "indexing";
+        return state.state === "not_indexed";
       }),
     [documents, knowledgeDocumentIds],
   );
@@ -160,15 +160,17 @@ export function SearchPage() {
       listCollections(workspaceId),
       listTags(workspaceId).catch(() => ({ items: [], count: 0 })),
     ])
-      .then(([docsPayload, knowledgePayload, collectionsPayload, tagsPayload]) => {
-        if (cancelled) return;
-        setDocuments(docsPayload.items);
-        setKnowledgeDocumentIds(
-          new Set(knowledgePayload.items.map((item) => item.document_id)),
-        );
-        setCollections(collectionsPayload.items);
-        setTags(tagsPayload.items);
-      })
+      .then(
+        ([docsPayload, knowledgePayload, collectionsPayload, tagsPayload]) => {
+          if (cancelled) return;
+          setDocuments(docsPayload.items);
+          setKnowledgeDocumentIds(
+            new Set(knowledgePayload.items.map((item) => item.document_id)),
+          );
+          setCollections(collectionsPayload.items);
+          setTags(tagsPayload.items);
+        },
+      )
       .catch(() => undefined);
     return () => {
       cancelled = true;
@@ -282,12 +284,12 @@ export function SearchPage() {
       return `${selectedDocument.name} is ${selectedIndexed.label.toLowerCase()}. ${selectedIndexed.detail} Open Documents to track progress or retry.`;
     }
     if (processingDocs.length > 0) {
-      return `${processingDocs.length} document${processingDocs.length === 1 ? " is" : "s are"} still processing and will not appear in search until indexing completes.`;
+      return `${processingDocs.length} document${processingDocs.length === 1 ? " is" : "s are"} still processing and will not appear in search until processing finishes.`;
     }
     if (failedDocs.length > 0) {
       return `${failedDocs.length} document${failedDocs.length === 1 ? " failed" : "s failed"} processing. Open Documents to retry, then search again.`;
     }
-    return "Try a different query or scope. Documents that are still processing are excluded from search until they are indexed.";
+    return "Try a different query or scope. Documents that are still processing are excluded from search until they are ready.";
   })();
 
   return (
@@ -338,7 +340,10 @@ export function SearchPage() {
                 );
                 return {
                   value: document.id,
-                  label: `${document.name} · ${processing.label} · ${indexed.label}`,
+                  label:
+                    indexed.label === processing.label
+                      ? `${document.name} · ${processing.label}`
+                      : `${document.name} · ${processing.label} · ${indexed.label}`,
                 };
               })}
             />
@@ -417,8 +422,8 @@ export function SearchPage() {
           title="Search your knowledge"
           description={
             documents.length === 0
-              ? "Import documents first. Search only includes content that has finished processing and indexing."
-              : "Find documents and extracted knowledge across your workspace. Content still processing will not appear until it is indexed."
+              ? "Import documents first. Search only includes content that has finished processing."
+              : "Find documents and extracted knowledge across your workspace. Content still processing will not appear until it is ready."
           }
           action={
             documents.length === 0 ? (
@@ -467,9 +472,7 @@ export function SearchPage() {
                   onClick={() => openKnowledgeItem(result.knowledge_item_id)}
                 >
                   <span className="search-result-source">
-                    <span>
-                      {source?.name ?? "Unknown source"}
-                    </span>
+                    <span>{source?.name ?? "Unknown source"}</span>
                     <StatusBadge label={indexed.label} tone={indexed.tone} />
                   </span>
                   <span>score {result.score.toFixed(3)}</span>

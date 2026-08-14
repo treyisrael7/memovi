@@ -148,32 +148,34 @@ No parallel processing-status API is introduced.
 Desktop maps the Documents job statuses above into product language. It does
 **not** invent a second backend status model.
 
-| Backend `processing_status` | User-visible label | Estimated stage (UI copy) |
+| Backend `processing_status` | User-visible label | UI copy |
 | --- | --- | --- |
-| *(client upload in progress)* | Uploaded | Upload progress |
-| `pending` | Queued | Waiting for a worker |
-| `extracting` | Processing | Extracting text |
-| `normalizing` | Chunking | Normalizing and preparing knowledge |
-| `completed` (knowledge not yet present) | Indexing | Indexing for search |
-| `completed` (knowledge present) | Completed | Knowledge ready and indexed |
-| `failed` | Failed | Processing failed — retry available |
-| `cancelled` | Cancelled | Superseded or stopped — retry available |
+| *(client upload in progress)* | Uploading | Upload progress (real transfer percent only) |
+| `pending` | Received | Memovi received this document. It is waiting to be processed. |
+| `extracting` | Processing | Memovi is processing this document. |
+| `normalizing` | Processing | Memovi is processing this document. |
+| `completed` | Ready | This is ready to search. |
+| `failed` | Failed | Processing failed. Try processing again. |
+| `cancelled` | Cancelled | Processing stopped. Try processing again. |
 
-## Indexed status (presentation)
+The desktop does **not** invent later pipeline stages (knowledge materialization,
+search indexing, embeddings) as Documents statuses. Those continue after
+`completed` but are not distinguishable from `GET /documents`.
 
-Indexed readiness is derived from the existing Documents job plus Memory
-knowledge for that `document_id` (same APIs the desktop already calls):
+## Search readiness (presentation)
 
-| Condition | Indexed badge |
+Search readiness follows the same Documents `processing_status` field. The
+document list is the source of truth.
+
+| Condition | Search cue |
 | --- | --- |
-| Job in flight (`pending` / `extracting` / `normalizing`) | Not yet indexed |
-| `completed` and no knowledge item yet | Indexing |
-| `completed` and knowledge exists | Indexed |
-| `failed` | Failed indexing |
-| `cancelled` | Not indexed |
+| Job in flight (`pending` / `extracting` / `normalizing`) | Not ready — still processing |
+| `completed` | Ready to search |
+| `failed` | Processing failed |
+| `cancelled` | Not ready |
 
 Search uses these cues so documents still processing are not silently ignored:
-empty results and banners explain that unindexed documents are excluded until
+empty results and banners explain that in-flight documents are excluded until
 processing finishes.
 
 ## Retry behavior (user-facing)
@@ -202,9 +204,10 @@ Search indexes the knowledge item
 Embeddings enrich search documents (async)
 ```
 
-Desktop presents the Memory catch-up window as **Indexing** when the Documents
-job is `completed` but knowledge for that document is not listed yet. Embedding
-generation remains a Search concern and is not a separate Documents status.
+Desktop presents Documents `completed` as **Ready to search**. Downstream Memory
+materialization, search indexing, and embedding generation remain backend
+concerns and are not shown as extra Documents stages. Embedding generation
+is not a separate Documents status.
 
 # Observability
 

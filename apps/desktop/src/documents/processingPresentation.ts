@@ -1,10 +1,9 @@
 /**
- * User-visible presentation over the Documents processing_status values.
- * Does not invent a parallel status model — maps backend enums and optional
- * knowledge presence (post-completion indexing) for desktop UX.
+ * User-visible presentation over Documents `processing_status` values.
+ * Does not invent stages the backend cannot distinguish (no embedding /
+ * knowledge-materialization substeps). The document list is the source of truth.
  *
- * Never invents indeterminate progress percentages. Stages shown here are only
- * what can be inferred from Documents status + whether knowledge exists yet.
+ * Never invents indeterminate progress percentages.
  */
 
 export const DOCUMENT_PROCESSING_STATUSES = [
@@ -23,21 +22,10 @@ export type ProcessingTone = "ok" | "warn" | "bad" | "idle";
 
 /** High-level lifecycle label shown in badges. */
 export type LifecycleLabel =
-  | "Queued"
-  | "Processing"
-  | "Indexing"
-  | "Ready"
-  | "Failed"
-  | "Cancelled"
-  | "Unknown";
+  "Received" | "Processing" | "Ready" | "Failed" | "Cancelled" | "Unknown";
 
 export type IndexedState =
-  | "indexed"
-  | "indexing"
-  | "not_indexed"
-  | "failed"
-  | "cancelled"
-  | "unknown";
+  "indexed" | "not_indexed" | "failed" | "cancelled" | "unknown";
 
 export interface ProcessingPresentation {
   /** Canonical backend status when recognized. */
@@ -65,77 +53,53 @@ export interface IndexedPresentation {
 
 const IN_FLIGHT = new Set<string>(["pending", "extracting", "normalizing"]);
 
+export const DOCUMENT_READY_TOAST = "Document ready to search.";
+
 /**
  * Map Documents processing_status → user-facing lifecycle presentation.
  *
  * Backend owns: pending | extracting | normalizing | completed | failed | cancelled.
- * "Indexing" is inferred only when processing completed but knowledge is not
- * present yet (materialization / search catch-up).
+ * extracting vs normalizing are both shown as "Processing" — the UI cannot
+ * honestly show embedding or search-index substeps from this field.
  */
 export function presentProcessingStatus(
   status: string | null | undefined,
-  options?: { hasKnowledge?: boolean },
+  _options?: { hasKnowledge?: boolean; hasModel?: boolean },
 ): ProcessingPresentation {
   const normalized = (status ?? "").toLowerCase();
-  const hasKnowledge = options?.hasKnowledge === true;
 
   switch (normalized) {
     case "pending":
       return {
         status: "pending",
-        label: "Queued",
+        label: "Received",
         tone: "idle",
-        explanation: "Waiting for Memovi to start reading this document.",
+        explanation:
+          "Memovi received this document. It is waiting to be processed.",
         nextActionHint: null,
         isInFlight: true,
         canRetry: false,
         requiresAttention: false,
       };
     case "extracting":
-      return {
-        status: "extracting",
-        label: "Processing",
-        tone: "warn",
-        explanation: "Reading the document and extracting its text.",
-        nextActionHint: null,
-        isInFlight: true,
-        canRetry: false,
-        requiresAttention: false,
-      };
     case "normalizing":
       return {
-        status: "normalizing",
+        status: normalized as "extracting" | "normalizing",
         label: "Processing",
         tone: "warn",
-        explanation: "Preparing the document so Memovi can understand it.",
+        explanation: "Memovi is processing this document.",
         nextActionHint: null,
         isInFlight: true,
         canRetry: false,
         requiresAttention: false,
       };
     case "completed":
-      if (!hasKnowledge && options?.hasKnowledge === false) {
-        return {
-          status: "completed",
-          label: "Indexing",
-          tone: "warn",
-          explanation: "Generating searchable knowledge from this document.",
-          nextActionHint: null,
-          isInFlight: false,
-          canRetry: true,
-          requiresAttention: false,
-        };
-      }
       return {
         status: "completed",
         label: "Ready",
         tone: "ok",
-        explanation: hasKnowledge
-          ? "This document is ready to search and ask about."
-          : "Processing finished. Memovi will show it as ready once knowledge appears.",
-        nextActionHint: hasKnowledge
-          ? "Search it or ask a question about it."
-          : null,
+        explanation: "This is ready to search.",
+        nextActionHint: "Search it or ask about this document.",
         isInFlight: false,
         canRetry: true,
         requiresAttention: false,
@@ -145,9 +109,8 @@ export function presentProcessingStatus(
         status: "failed",
         label: "Failed",
         tone: "bad",
-        explanation: "Memovi could not finish processing this document.",
-        nextActionHint:
-          "Try Retry processing. If it fails again, check the file format or re-upload.",
+        explanation: "Processing failed.",
+        nextActionHint: "Try processing again.",
         isInFlight: false,
         canRetry: true,
         requiresAttention: true,
@@ -157,9 +120,8 @@ export function presentProcessingStatus(
         status: "cancelled",
         label: "Cancelled",
         tone: "idle",
-        explanation:
-          "Processing stopped—often because a newer reprocess replaced it.",
-        nextActionHint: "Use Retry processing to run it again.",
+        explanation: "Processing stopped before this document was ready.",
+        nextActionHint: "Try processing again.",
         isInFlight: false,
         canRetry: true,
         requiresAttention: true,
@@ -172,7 +134,7 @@ export function presentProcessingStatus(
         explanation: status
           ? `Unrecognized status: ${status}`
           : "Processing status is unavailable.",
-        nextActionHint: status ? "Try Retry processing." : null,
+        nextActionHint: status ? "Try processing again." : null,
         isInFlight: false,
         canRetry: Boolean(status),
         requiresAttention: false,
@@ -180,10 +142,14 @@ export function presentProcessingStatus(
   }
 }
 
-/** Indexed / not-yet-indexed presentation derived from job status + knowledge. */
+/**
+ * Search-readiness presentation derived only from Documents processing_status.
+ * Knowledge presence and embedding availability are not distinct backend
+ * document states, so they are not shown as separate stages.
+ */
 export function presentIndexedState(
   status: string | null | undefined,
-  hasKnowledge: boolean | undefined,
+  _hasKnowledge?: boolean,
 ): IndexedPresentation {
   const normalized = (status ?? "").toLowerCase();
 
@@ -200,7 +166,7 @@ export function presentIndexedState(
       state: "cancelled",
       label: "Not ready",
       tone: "idle",
-      detail: "Processing was cancelled. Retry to make it searchable.",
+      detail: "Processing was cancelled. Try processing again.",
     };
   }
   if (IN_FLIGHT.has(normalized)) {
@@ -212,27 +178,11 @@ export function presentIndexedState(
     };
   }
   if (normalized === "completed") {
-    if (hasKnowledge === true) {
-      return {
-        state: "indexed",
-        label: "Ready",
-        tone: "ok",
-        detail: "Available in search and conversations.",
-      };
-    }
-    if (hasKnowledge === false) {
-      return {
-        state: "indexing",
-        label: "Indexing",
-        tone: "warn",
-        detail: "Generating searchable knowledge.",
-      };
-    }
     return {
-      state: "unknown",
+      state: "indexed",
       label: "Ready",
       tone: "ok",
-      detail: "Processing complete.",
+      detail: "Available in search and conversations.",
     };
   }
   return {
@@ -249,13 +199,43 @@ export function isProcessingInFlight(
   return IN_FLIGHT.has((status ?? "").toLowerCase());
 }
 
-/** Whether status updates should keep polling (job in flight or indexing lag). */
+/** Whether status updates should keep polling (non-terminal Documents job). */
 export function shouldPollProcessing(
   status: string | null | undefined,
-  hasKnowledge: boolean | undefined,
+  _hasKnowledge?: boolean,
 ): boolean {
-  if (isProcessingInFlight(status)) return true;
-  return (
-    (status ?? "").toLowerCase() === "completed" && hasKnowledge === false
-  );
+  return isProcessingInFlight(status);
+}
+
+/** User-safe failure copy; never returns stack frames or tracebacks. */
+export function formatFailureReason(
+  reason: string | null | undefined,
+): string | null {
+  if (!reason?.trim()) return null;
+  const trimmed = reason.trim();
+  const looksLikeTrace =
+    /traceback \(most recent call last\)/i.test(trimmed) ||
+    /file ".+", line \d+/i.test(trimmed) ||
+    /^\s*at \S+/m.test(trimmed) ||
+    trimmed.includes("\n    at ");
+
+  if (looksLikeTrace) {
+    const lines = trimmed
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const last = lines[lines.length - 1] ?? "";
+    const lastLooksSafe =
+      last.length > 0 &&
+      last.length <= 200 &&
+      !/^file /i.test(last) &&
+      !last.startsWith("at ") &&
+      !/traceback/i.test(last);
+    return lastLooksSafe ? last : "Processing failed.";
+  }
+
+  if (trimmed.length > 280) {
+    return `${trimmed.slice(0, 277)}…`;
+  }
+  return trimmed;
 }
