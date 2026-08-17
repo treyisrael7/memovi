@@ -54,6 +54,141 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  desktop-live-smoke:
+    name: Desktop live API smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      MEMOVI_LIVE_API: "1"
+      MEMOVI_ENV: local
+      INTELLIGENCE_PROVIDER: fake
+      SEARCH_EMBEDDING_PROVIDER: fake
+      MEMOVI_OBJECT_STORAGE: minio
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: memovi
+      POSTGRES_USER: memovi_app
+      POSTGRES_PASSWORD: memovi_local_pg_9f4c8e2d7a6b41c3
+      MINIO_SERVER_URL: http://127.0.0.1:9000
+      MINIO_ROOT_USER: memovi_minio_admin
+      MINIO_ROOT_PASSWORD: memovi_local_minio_5c7f1e9a3b6d4a82
+      MINIO_BUCKET: memovi-documents
+      MINIO_REGION_NAME: us-east-1
+      UV_LINK_MODE: copy
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install Python dependencies
+        run: uv sync --all-packages --all-groups
+
+      - name: Start Postgres and MinIO
+        run: docker compose up -d
+
+      - name: Wait for infrastructure
+        run: |
+          for attempt in $(seq 1 30); do
+            if docker compose exec -T postgres pg_isready -h 127.0.0.1 -U memovi_app -d memovi; then
+              echo "Postgres is ready"
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "Postgres did not become ready"
+              docker compose logs postgres
+              exit 1
+            fi
+            sleep 2
+          done
+          for attempt in $(seq 1 30); do
+            if curl -fsS "http://127.0.0.1:9000/minio/health/live" >/dev/null; then
+              echo "MinIO is ready"
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "MinIO did not become ready"
+              docker compose logs minio
+              exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Apply database migrations
+        run: uv run --group runtime alembic upgrade head
+
+      - name: Start FastAPI and run live smoke
+        run: |
+          uv run --no-sync uvicorn api.main:app \
+            --host 127.0.0.1 \
+            --port 8000 \
+            --app-dir apps/api/src \
+            > api-live.log 2>&1 &
+          API_PID=$!
+          echo "$API_PID" > api-live.pid
+          trap 'kill "$API_PID" || true' EXIT
+
+          for attempt in $(seq 1 45); do
+            if curl -fsS "http://127.0.0.1:8000/ready" >/dev/null; then
+              echo "API is ready"
+              break
+            fi
+            if [ "$attempt" -eq 45 ]; then
+              echo "API did not become ready"
+              cat api-live.log || true
+              docker compose logs postgres minio || true
+              exit 1
+            fi
+            sleep 2
+          done
+
+          pnpm --filter @memovi/desktop test:smoke:live
+
+      - name: Dump logs on failure
+        if: failure()
+        run: |
+          echo "===== API log ====="
+          cat api-live.log || true
+          echo "===== Compose logs ====="
+          docker compose logs postgres minio || true
+
+      - name: Stop API and infrastructure
+        if: always()
+        run: |
+          if [ -f api-live.pid ]; then
+            kill "$(cat api-live.pid)" || true
+          fi
+          docker compose down
+
   desktop-package:
     name: Desktop packaging
     runs-on: ubuntu-latest

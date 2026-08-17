@@ -1,7 +1,7 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #12).
+system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #14).
 
 * [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
 * [`STATUS.md`](STATUS.md) describes where Memovi is today.
@@ -1149,9 +1149,9 @@ without product redesign or new desktop features.
 * In-memory API stub (`src/test/mockBackend.ts`) for stable workflow tests
 * Unit tests for session preferences and API client helpers
 * GitHub Actions workflow `.github/workflows/desktop.yml` (typecheck,
-  unit, smoke, Vite build artifact, Tauri packaging artifact)
-* Task commands: `desktop:test`, `desktop:smoke`, `desktop:build`,
-  `desktop:check`
+  unit, mock smoke, Vite build artifact, live API smoke, Tauri packaging artifact)
+* Task commands: `desktop:test`, `desktop:smoke`, `desktop:smoke:live`,
+  `desktop:build`, `desktop:check`
 * `docs/testing/DESKTOP_TESTING.md` (CI, layers, local run, release checklist)
 
 **In Progress**
@@ -1166,8 +1166,8 @@ without product redesign or new desktop features.
 
 **Known Risks**
 
-* Smoke tests stub the API; they do not replace Backend CI or live release
-  checklist validation
+* Mock smoke stubs the API; live API smoke covers the real FastAPI path in jsdom
+  and does not launch the native Tauri window
 * Full Tauri packaging on Linux is slower than the Vite job; Cargo cache helps
 
 **Next Recommended Work**
@@ -1496,6 +1496,47 @@ unused fields on `ReasoningResult`.
 
 * Continue Phase 1 V1 platform completion; do not reintroduce an Intelligence
   tool-execution stack
+
+---
+
+# Milestone 50 — V1 Cleanup Sprint PR #14
+
+**Overall Status:** Complete
+
+Added one live desktop critical-path smoke test: the existing React shell
+against a real FastAPI process (Postgres, MinIO, in-process worker, search,
+fake reasoning/embeddings). Mock Vitest smoke remains the fast PR gate. Native
+Tauri window automation was not introduced.
+
+**Completed**
+
+* `apps/desktop/src/smoke/liveCriticalPath.smoke.test.tsx` (gated on `MEMOVI_LIVE_API=1`)
+* Test-only jsdom cookie bridge for HttpOnly session cookies
+* Dedicated GitHub Actions job `desktop-live-smoke`
+* `task desktop:smoke:live` / `pnpm test:smoke:live`
+* `docs/testing/DESKTOP_TESTING.md` layer split (unit, mock smoke, live API,
+  packaging, manual native verification)
+
+**In Progress**
+
+* None
+
+**Remaining**
+
+* Optional OS-native window launch automation beyond jsdom (future)
+* Multi-platform packaging matrix (macOS / Windows) in CI when release hosts
+  are available
+
+**Known Risks**
+
+* Live smoke depends on Docker (Postgres + MinIO) and API readiness in CI
+* Documents **Ready** is processing completion; the test retries search until
+  the unique phrase is indexed
+
+**Next Recommended Work**
+
+* Keep mock smoke fast; keep live smoke on the real MinIO path; do not add a
+  browser E2E framework for V1
 
 ---
 

@@ -101,6 +101,13 @@ tasks:
     cmds:
       - pnpm --filter {{.DESKTOP_PACKAGE}} test:smoke
 
+  desktop:smoke:live:
+    desc: Live desktop smoke against a running FastAPI (Postgres + MinIO + API required).
+    env:
+      MEMOVI_LIVE_API: "1"
+    cmds:
+      - pnpm --filter {{.DESKTOP_PACKAGE}} test:smoke:live
+
   desktop:build:
     desc: Build the desktop Vite shell (TypeScript + Vite).
     cmds:

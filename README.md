@@ -181,7 +181,8 @@ client (build, smoke, packaging) through GitHub Actions. See
 - `task desktop` starts the flagship Tauri desktop client.
 - `task desktop:typecheck` runs TypeScript checks for the desktop client.
 - `task desktop:test` runs desktop unit and critical-path smoke tests.
-- `task desktop:smoke` runs desktop critical-path smoke tests only.
+- `task desktop:smoke` runs desktop critical-path mock smoke tests only.
+- `task desktop:smoke:live` runs the live API desktop smoke (requires a running FastAPI, Postgres, and MinIO).
 - `task desktop:build` builds the desktop Vite shell.
 - `task desktop:check` runs desktop typecheck, tests, and Vite build.
 - `task docker-up` starts local infrastructure.

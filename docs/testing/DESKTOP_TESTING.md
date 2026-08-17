@@ -2,8 +2,8 @@
 
 How Memovi validates the flagship desktop client (`apps/desktop`) before release.
 
-Desktop is a first-class CI citizen. Failures in desktop build, packaging, or
-critical-path smoke tests fail CI.
+Desktop is a first-class CI citizen. Failures in desktop build, packaging, mock
+smoke, or live API smoke fail CI.
 
 This document covers CI, test layers, local commands, expected runtimes, and
 release validation. It does not change product behavior.
@@ -16,12 +16,27 @@ release validation. It does not change product behavior.
 | --- | --- | --- | --- |
 | Unit | `apps/desktop/src/**/*.test.ts(x)` | Pure helpers, API client behavior, preference persistence | ~2–5 s |
 | Integration (backend) | `packages/**/tests`, API suites | Platform contracts the desktop calls | separate Backend CI |
-| Desktop smoke | `apps/desktop/src/smoke/*.smoke.test.tsx` | Critical user journey against an in-memory API stub | ~5–15 s |
+| Mock critical-path smoke | `apps/desktop/src/smoke/criticalPath.smoke.test.tsx` | Critical UI journey against an in-memory API stub | ~5–15 s |
+| Live API smoke | `apps/desktop/src/smoke/liveCriticalPath.smoke.test.tsx` | Same React shell against a real FastAPI process (Postgres + MinIO + worker + search + fake providers) | ~30–90 s after infra is up |
 | Packaging | Tauri `tauri build` in CI | Native bundle still produces installable artifacts | ~10–30 min (cold cache) |
+| Manual native-app release verification | Release host | Launch the real Tauri window, native dialogs, workflows | operator-driven |
 
-Backend and optional web tests stay in their own workflows. Desktop smoke tests
-do **not** replace API integration tests; they prove the shell can complete the
-critical journey when the API responds correctly.
+Backend and optional web tests stay in their own workflows.
+
+**Mock smoke** is the fast PR gate. It proves the shell can complete the
+critical journey when the API responds correctly. It does **not** prove the
+desktop talks to the real backend.
+
+**Live API smoke** closes that gap: real session cookies, real upload to MinIO,
+real document processing, real search indexing, real conversation SSE, real
+citations, and desktop source navigation. It still runs in **jsdom** via Vitest
++ Testing Library. It does **not** launch the native Tauri window.
+
+**Packaging** proves the Linux bundle still compiles. It does not interact with
+the UI.
+
+**Manual native-app verification** remains required for OS window launch, native
+folder dialogs, and host-specific packaging.
 
 ---
 
@@ -29,7 +44,7 @@ critical journey when the API responds correctly.
 
 Prefer stable, high-value workflow coverage over brittle UI assertions.
 
-Smoke tests focus on:
+Mock smoke focuses on:
 
 * Application startup (auth gate)
 * Authentication
@@ -41,17 +56,34 @@ Smoke tests focus on:
 * Settings persistence (theme)
 * Sign-out / shutdown path
 
+Live API smoke focuses on the knowledge critical path only:
+
+* Register a unique user against the real API
+* Upload a unique-phrase document
+* Wait for Documents **Ready** (`processing_status=completed`)
+* Retry keyword search until the unique phrase is indexed (Ready is not the
+  same as Memory/Search/embedding completion)
+* Ask a question in Conversations and wait for the fake reasoning SSE answer
+* Click a citation and land on the Knowledge/source view
+
 They intentionally avoid:
 
 * Pixel / screenshot comparisons
 * Timing-sensitive layout assertions
 * Exhaustive page coverage
+* Playwright, Cypress, WebDriver, `tauri-driver`, or native window automation
 
 Implementation notes:
 
 * Framework: **Vitest** + Testing Library + jsdom (already Vite-native; no extra E2E framework)
-* Network: `src/test/mockBackend.ts` stubs critical REST paths in-process
-* Runtime target: **under 30 seconds** for the full desktop Vitest suite locally or in CI
+* Mock network: `src/test/mockBackend.ts` stubs critical REST paths in-process
+* Live network: real `fetch` / upload XHR to `http://127.0.0.1:8000`
+* jsdom origin is `http://127.0.0.1:1420` so SameSite=Lax cookies match the
+  desktop client. A test-only cookie bridge (`src/test/liveApiCookies.ts`)
+  records `Set-Cookie` and attaches `Cookie` because Node/jsdom do not share a
+  browser cookie jar. Production auth is unchanged.
+* Live smoke is skipped unless `MEMOVI_LIVE_API=1`
+* Mock suite runtime target: **under 30 seconds**. Live smoke timeout: **90 seconds**.
 
 ---
 
@@ -59,14 +91,14 @@ Implementation notes:
 
 Workflow: [`.github/workflows/desktop.yml`](../../.github/workflows/desktop.yml)
 
-### Job: `desktop` (build & smoke)
+### Job: `desktop` (build & mock smoke)
 
 Runs on every push / PR:
 
 1. `pnpm install --frozen-lockfile`
 2. Typecheck (`tsc --noEmit`)
 3. Unit tests (`pnpm test:unit`)
-4. Critical-path smoke (`pnpm test:smoke`)
+4. Critical-path mock smoke (`pnpm test:smoke`) — does **not** run live smoke
 5. Vite production build (`pnpm build`)
 6. Upload `apps/desktop/dist` as artifact `memovi-desktop-dist`
 
@@ -74,6 +106,26 @@ Any failure fails CI.
 
 Local Prettier (`task desktop:format-check`) is available; it is not a CI gate
 yet because much of the existing shell source predates a shared format pass.
+
+### Job: `desktop-live-smoke` (real API)
+
+Runs on every push / PR, in parallel with the mock smoke job. Sets
+`MEMOVI_LIVE_API=1` (CI must not skip this job).
+
+1. Install Node/pnpm and Python/uv dependencies
+2. `docker compose up -d` (Postgres + MinIO from the existing Compose file)
+3. Wait until Postgres and MinIO are reachable
+4. `alembic upgrade head`
+5. Start FastAPI with `INTELLIGENCE_PROVIDER=fake`,
+   `SEARCH_EMBEDDING_PROVIDER=fake`, and `MEMOVI_OBJECT_STORAGE=minio`
+   (not in-memory storage)
+6. Wait for `GET /ready`
+7. `pnpm test:smoke:live`
+8. On failure, dump API and Compose logs
+9. Stop the API process and `docker compose down`
+
+This job does **not** install WebKit, xvfb, Redis, or a browser framework, and
+it does **not** launch Tauri.
 
 ### Job: `desktop-package` (packaging)
 
@@ -84,11 +136,12 @@ Runs after `desktop` succeeds:
 3. `pnpm tauri build` from `apps/desktop`
 4. Upload Linux bundle artifacts (`memovi-desktop-linux-bundle`)
 
-Packaging failures fail CI.
+Packaging failures fail CI. Packaging does not run the live smoke.
 
 Expected CI runtime:
 
-* Build & smoke job: ~3–8 minutes
+* Build & mock smoke job: ~3–8 minutes
+* Live API smoke job: ~5–12 minutes depending on image pull and Cargo-less Python sync
 * Packaging job: ~10–30 minutes depending on Cargo cache warmth
 
 ---
@@ -98,14 +151,17 @@ Expected CI runtime:
 From the repository root:
 
 ```bash
-# Full desktop check (types, unit+smoke, Vite build)
+# Full desktop check (types, unit+mock smoke, Vite build)
 task desktop:check
 
-# Unit + smoke
+# Unit + mock smoke
 task desktop:test
 
-# Smoke only
+# Mock smoke only (fast; no API required)
 task desktop:smoke
+
+# Live API smoke (requires Postgres, MinIO, migrated DB, and `task backend`)
+task desktop:smoke:live
 
 # Vite shell build
 task desktop:build
@@ -115,12 +171,26 @@ task desktop:typecheck
 task desktop:format-check
 ```
 
+`task desktop:smoke:live` sets `MEMOVI_LIVE_API=1` and runs only the live file.
+It does not start infrastructure. Typical local sequence:
+
+```bash
+task docker-up
+task db:migrate
+task backend   # terminal 1; fake providers + MinIO by default
+task desktop:smoke:live
+```
+
+Without `MEMOVI_LIVE_API=1`, the live test skips cleanly. `task ci` / `task ci:desktop`
+stay on the fast mock path and do not start this live job.
+
 From the package:
 
 ```bash
 pnpm --filter @memovi/desktop test
 pnpm --filter @memovi/desktop test:unit
 pnpm --filter @memovi/desktop test:smoke
+MEMOVI_LIVE_API=1 pnpm --filter @memovi/desktop test:smoke:live
 pnpm --filter @memovi/desktop build
 ```
 
@@ -130,7 +200,7 @@ Native packaging (requires Rust + host Tauri prerequisites):
 pnpm --filter @memovi/desktop tauri:build
 ```
 
-Manual product smoke against a live backend:
+Manual native-window smoke against a live backend:
 
 ```bash
 task backend   # terminal 1
@@ -144,12 +214,13 @@ Then walk the [release checklist](#release-checklist) below.
 ## Release checklist
 
 Use this before tagging or distributing a desktop build. Automated CI covers
-build, packaging, and critical-path smoke; this checklist covers live backend
-and packaging sanity on the release host.
+build, mock smoke, live API smoke, and packaging. This checklist covers the
+native window and host packaging sanity.
 
 ### Automated (must be green)
 
-* [ ] Desktop CI `desktop` job green (format, typecheck, unit, smoke, Vite build)
+* [ ] Desktop CI `desktop` job green (typecheck, unit, mock smoke, Vite build)
+* [ ] Desktop CI `desktop-live-smoke` job green (real FastAPI + MinIO path)
 * [ ] Desktop CI `desktop-package` job green (Tauri packaging)
 * [ ] Artifacts available: `memovi-desktop-dist`, `memovi-desktop-linux-bundle` (or platform equivalent)
 
@@ -161,6 +232,7 @@ and packaging sanity on the release host.
 * [ ] Document upload works; processing status progresses
 * [ ] Search returns results for known content
 * [ ] Conversations load and accept a message
+* [ ] Native folder dialogs work (Connectors)
 * [ ] Workflow execution works (library → configure → run; approvals if prompted)
 * [ ] Settings persist across restart (theme / model preference)
 * [ ] Sign out returns to auth gate; clean quit
@@ -173,10 +245,12 @@ and packaging sanity on the release host.
 ```
 apps/desktop/
   src/
-    **/*.test.ts(x)          # unit
-    smoke/*.smoke.test.tsx   # critical-path smoke
-    test/mockBackend.ts      # in-memory API stub
-    test/setup.ts            # Vitest/jsdom setup
+    **/*.test.ts(x)                    # unit
+    smoke/criticalPath.smoke.test.tsx  # mock critical-path smoke
+    smoke/liveCriticalPath.smoke.test.tsx  # live API smoke (MEMOVI_LIVE_API=1)
+    test/mockBackend.ts                # in-memory API stub
+    test/liveApiCookies.ts             # test-only jsdom cookie bridge
+    test/setup.ts                      # Vitest/jsdom setup
 .github/workflows/desktop.yml
 docs/testing/DESKTOP_TESTING.md
 ```

@@ -13,10 +13,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --exclude '**/liveCriticalPath.smoke.test.*'",
     "test:watch": "vitest",
     "test:unit": "vitest run src --exclude '**/*.smoke.test.*'",
-    "test:smoke": "vitest run src/smoke"
+    "test:smoke": "vitest run src/smoke --exclude '**/liveCriticalPath.smoke.test.*'",
+    "test:smoke:live": "vitest run src/smoke/liveCriticalPath.smoke.test.tsx"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

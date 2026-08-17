@@ -1,0 +1,272 @@
+/**
+ * Live critical-path smoke: desktop React shell against a real FastAPI process.
+ *
+ * Requires MEMOVI_LIVE_API=1 plus Postgres, MinIO, and the API with fake
+ * intelligence/embedding providers. Does not launch the native Tauri window.
+ *
+ * Expected runtime: under 90 seconds when infrastructure is already up.
+ */
+
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+import App from "../App";
+import { API_BASE_URL, DEFAULT_WORKSPACE_ID } from "../api/config";
+import { searchKnowledge } from "../api/search";
+import { installLiveApiCookieBridge } from "../test/liveApiCookies";
+
+const LIVE_ENABLED = isLiveApiEnabled();
+const LIVE_TIMEOUT_MS = 90_000;
+const STEP_TIMEOUT_MS = 35_000;
+const SEARCH_RETRY_MS = 250;
+const UNIQUE_PHRASE = `zynthorpaxqv7${Date.now()}${Math.random()
+  .toString(36)
+  .slice(2, 8)}`;
+const DOCUMENT_NAME = "live-smoke.txt";
+const DOCUMENT_BODY = [
+  "MEMOVI_LIVE_SMOKE_UNIQUE_PHRASE",
+  "",
+  `${UNIQUE_PHRASE} is the lattice token for this run.`,
+].join("\n");
+
+function isLiveApiEnabled(): boolean {
+  const env = (
+    globalThis as { process?: { env?: Record<string, string | undefined> } }
+  ).process?.env;
+  return env?.MEMOVI_LIVE_API === "1";
+}
+
+function failLive(step: string, detail?: string): never {
+  throw new Error(
+    detail ? `Live smoke: ${step}. ${detail}` : `Live smoke: ${step}.`,
+  );
+}
+
+async function assertApiReachable(): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/health`, {
+      headers: { Accept: "application/json" },
+    });
+  } catch (error) {
+    failLive(
+      "API unavailable",
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+  if (!response.ok) {
+    failLive("API unavailable", `/health returned HTTP ${response.status}`);
+  }
+}
+
+async function waitForSearchHit(phrase: string): Promise<void> {
+  const deadline = Date.now() + STEP_TIMEOUT_MS;
+  let lastDetail = "no search attempt completed";
+  while (Date.now() < deadline) {
+    try {
+      const payload = await searchKnowledge(DEFAULT_WORKSPACE_ID, {
+        q: phrase,
+        mode: "keyword",
+      });
+      if (payload.results.some((result) => result.text.includes(phrase))) {
+        return;
+      }
+      lastDetail = `keyword search returned ${payload.count} result(s) without ${phrase}`;
+    } catch (error) {
+      lastDetail = error instanceof Error ? error.message : String(error);
+    }
+    await new Promise((resolve) => {
+      window.setTimeout(resolve, SEARCH_RETRY_MS);
+    });
+  }
+  failLive("search never returned unique phrase", lastDetail);
+}
+
+describe.skipIf(!LIVE_ENABLED)("desktop live critical path", () => {
+  let uninstallCookies: (() => void) | undefined;
+
+  beforeEach(() => {
+    expect(window.location.origin).toBe("http://127.0.0.1:1420");
+    uninstallCookies = installLiveApiCookieBridge();
+  });
+
+  afterEach(() => {
+    uninstallCookies?.();
+    uninstallCookies = undefined;
+  });
+
+  it(
+    "registers, uploads, waits for processing and search, chats, and opens a citation",
+    async () => {
+      await assertApiReachable();
+
+      const user = userEvent.setup();
+      const email = `live-smoke-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}@memovi.test`;
+      const password = "password123";
+      const { unmount } = render(<App />);
+
+      expect(
+        await screen.findByRole("heading", { name: /Sign in/i }),
+      ).toBeInTheDocument();
+
+      await user.click(
+        screen.getByRole("button", { name: /Create an account/i }),
+      );
+      expect(
+        await screen.findByRole("heading", { name: /Create your account/i }),
+      ).toBeInTheDocument();
+
+      await user.type(screen.getByLabelText(/^Email$/i), email);
+      await user.type(screen.getByLabelText(/^Password$/i), password);
+      await user.type(screen.getByLabelText(/^Confirm password$/i), password);
+      await user.click(
+        screen.getByRole("button", { name: /^Create account$/i }),
+      );
+
+      try {
+        await waitFor(() => {
+          expect(
+            screen.getByRole("navigation", { name: /Primary/i }),
+          ).toBeInTheDocument();
+        });
+      } catch {
+        const authError = screen.queryByRole("alert");
+        failLive(
+          "registration failed",
+          authError?.textContent?.trim() ||
+            "shell did not reach the authenticated workspace",
+        );
+      }
+
+      await user.click(screen.getByRole("button", { name: /^Documents$/i }));
+      expect(
+        await screen.findByRole("heading", { name: /^Documents$/i }),
+      ).toBeInTheDocument();
+
+      const fileInput = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement | null;
+      if (!fileInput) {
+        failLive("upload failed", "no file input was rendered");
+      }
+      const file = new File([DOCUMENT_BODY], DOCUMENT_NAME, {
+        type: "text/plain",
+      });
+      await user.upload(fileInput, file);
+
+      try {
+        expect(
+          await screen.findByText(/Uploaded — queued for processing/i),
+        ).toBeInTheDocument();
+      } catch {
+        failLive(
+          "upload failed",
+          screen.queryByText(/failed to upload/i)?.textContent?.trim() ||
+            "upload confirmation never appeared",
+        );
+      }
+
+      try {
+        await waitFor(
+          () => {
+            expect(screen.getAllByText(/^Ready$/i).length).toBeGreaterThan(0);
+          },
+          { timeout: STEP_TIMEOUT_MS },
+        );
+      } catch {
+        const failed = screen.queryAllByText(/^Failed$/i);
+        failLive(
+          "document never became Ready",
+          failed.length > 0
+            ? "processing status is Failed"
+            : "processing status did not reach completed/Ready",
+        );
+      }
+
+      await waitForSearchHit(UNIQUE_PHRASE);
+
+      await user.click(screen.getByRole("button", { name: /^Search$/i }));
+      const searchBox = await screen.findByPlaceholderText(
+        /Search documents and knowledge/i,
+      );
+      await user.clear(searchBox);
+      await user.type(searchBox, `${UNIQUE_PHRASE}{enter}`);
+      try {
+        expect(
+          await screen.findByText(new RegExp(UNIQUE_PHRASE), undefined, {
+            timeout: 15_000,
+          }),
+        ).toBeInTheDocument();
+      } catch {
+        failLive(
+          "search never returned unique phrase",
+          "Search page did not render the indexed snippet",
+        );
+      }
+
+      await user.click(
+        screen.getByRole("button", { name: /^Conversations$/i }),
+      );
+      expect(
+        await screen.findByRole("complementary", { name: /Conversations/i }),
+      ).toBeInTheDocument();
+
+      const composer = await screen.findByPlaceholderText(/Ask Memovi/i);
+      const question = `What is ${UNIQUE_PHRASE}?`;
+      await user.type(composer, question);
+      await user.click(screen.getByRole("button", { name: /^Send$/i }));
+
+      try {
+        expect(
+          await screen.findByText(/Answer for/i, undefined, {
+            timeout: STEP_TIMEOUT_MS,
+          }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getAllByText(new RegExp(UNIQUE_PHRASE)).length,
+        ).toBeGreaterThan(0);
+      } catch {
+        const chatError =
+          screen.queryByRole("alert")?.textContent?.trim() ||
+          screen.queryByText(/failed/i)?.textContent?.trim();
+        failLive(
+          "chat did not produce SSE response",
+          chatError || "fake reasoning answer never appeared",
+        );
+      }
+
+      let citation: HTMLElement;
+      try {
+        citation = await screen.findByRole("button", {
+          name: /Open source:/i,
+        });
+      } catch {
+        failLive(
+          "citation missing",
+          "no citation chip was rendered for the uploaded document",
+        );
+      }
+      await user.click(citation);
+
+      try {
+        expect(
+          await screen.findByRole("heading", { name: /^Knowledge/i }),
+        ).toBeInTheDocument();
+        expect(
+          await screen.findByText(new RegExp(UNIQUE_PHRASE)),
+        ).toBeInTheDocument();
+      } catch {
+        failLive(
+          "citation navigation failed",
+          "Knowledge/source view did not show the uploaded knowledge",
+        );
+      }
+
+      unmount();
+    },
+    LIVE_TIMEOUT_MS,
+  );
+});

@@ -63,7 +63,8 @@ release checklist are documented in
 [`docs/testing/DESKTOP_TESTING.md`](../../docs/testing/DESKTOP_TESTING.md).
 
 ```bash
-task desktop:test    # unit + smoke
-task desktop:smoke   # critical path only
-task desktop:check   # types, tests, Vite build
+task desktop:test         # unit + mock smoke
+task desktop:smoke        # mock critical path only
+task desktop:smoke:live   # real FastAPI (see DESKTOP_TESTING.md)
+task desktop:check        # types, tests, Vite build
 ```

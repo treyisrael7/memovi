@@ -38,12 +38,17 @@ export default defineConfig(async () => ({
 
   test: {
     environment: "jsdom",
+    environmentOptions: {
+      jsdom: {
+        url: "http://127.0.0.1:1420",
+      },
+    },
     globals: false,
     setupFiles: ["./src/test/setup.ts"],
     css: true,
     restoreMocks: true,
     clearMocks: true,
-    // Unit + smoke typically finish in under 30s locally / CI.
+    // Unit + mock smoke typically finish in under 30s. Live smoke sets its own timeout.
     testTimeout: 20_000,
     include: ["src/**/*.{test,spec}.{ts,tsx}", "src/**/*.smoke.test.{ts,tsx}"],
   },
