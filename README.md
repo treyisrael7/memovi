@@ -1,247 +1,279 @@
 # Memovi
 
-> Your knowledge, organized. AI that remembers what matters.
+> Knowledge is the product. Memory is the architecture. AI is a consumer of
+> knowledge — not its owner.
 
-Memovi is a desktop-first, AI-native knowledge operating system.
+Memovi is an **open source**, **MIT licensed**, **self-hosted**, **desktop-first**
+knowledge operating system. You run it on your machine. It is not a hosted AI
+subscription, not an AI wrapper, and not merely “chat with PDFs.”
 
-It is built around a reusable backend platform that turns fragmented documents,
-notes, conversations, code, and external services into durable, searchable
-memory. The flagship product experience is a desktop application. The same API
-powers an optional web client and can support future mobile or CLI clients
-without changing backend domain architecture.
-
-Knowledge is the product. AI is a consumer of that knowledge. Clients are
-replaceable; the FastAPI platform boundary stays stable.
+It turns documents, notes, conversations, code, and connected folders into
+durable, organized, searchable knowledge that you control. The flagship client
+is a Tauri desktop app. A FastAPI modular monolith is the platform boundary.
+Clients do not own business logic. You bring your own model provider (or use
+the built-in fake providers for local development).
 
 This README is the developer entry point.
 
+* License: [`LICENSE`](LICENSE) (MIT)
+* Contributing: [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)
 * Product direction: [`docs/PRODUCT_VISION.md`](docs/PRODUCT_VISION.md)
 * Documentation hub: [`docs/README.md`](docs/README.md)
 * Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+* Configuration: [`docs/architecture/CONFIGURATION.md`](docs/architecture/CONFIGURATION.md)
+* Desktop testing: [`docs/testing/DESKTOP_TESTING.md`](docs/testing/DESKTOP_TESTING.md)
 * Roadmap / status: [`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/STATUS.md`](docs/STATUS.md)
+* Later vision: [`docs/ROADMAP_V2.md`](docs/ROADMAP_V2.md)
+
+## What exists today
+
+The core V1 product path is implemented:
+
+* Desktop client (`apps/desktop`) with first-run/home, documents, search, chat,
+  collections, tags, connectors, workflows, settings, and diagnostics
+* Local authentication and workspaces
+* Document upload, processing, and durable knowledge
+* Filesystem folder connector
+* Keyword, semantic, and hybrid search (`GET /search?mode=keyword|semantic|hybrid`)
+* RAG conversations with citations and navigation to the cited source
+* Capability framework, planner, execution, and workflows (including approval/resume)
+* PostgreSQL for durable application data; MinIO for persistent object storage
+* Fake reasoning and fake embedding providers for local/dev; OpenAI for real chat
+* Live desktop ↔ FastAPI smoke against real Postgres and MinIO
+
+## Product journey
+
+```text
+Install
+  → start local infrastructure
+  → run migrations
+  → start the API
+  → launch desktop
+  → configure an AI provider (optional; fake is the default)
+  → connect or upload knowledge
+  → wait for processing
+  → search
+  → ask questions
+  → inspect cited knowledge
+  → optionally run approved capabilities / workflows
+```
 
 ## Prerequisites
 
 - Python 3.14
 - [`uv`](https://docs.astral.sh/uv/)
 - Node.js 24 with Corepack
-- pnpm 10.33.4
+- pnpm 10.33.4 (pinned; `task setup` activates it via Corepack)
 - [`Task`](https://taskfile.dev/)
 - Docker Desktop or Docker Engine with Compose
 - Git
-- GitHub CLI
-- Rust toolchain (`rustup`) for the desktop client
-- Host C++ / linker tools required by [Tauri](https://v2.tauri.app/start/prerequisites/)
+- Rust toolchain (`rustup`) and host C++ / linker tools required by
+  [Tauri](https://v2.tauri.app/start/prerequisites/) — needed to run the desktop
+  client, not to run the API
+
+GitHub CLI is optional (useful for some contributor workflows). It is not
+required to install, run, or test Memovi.
 
 VS Code users can use the Dev Container instead of installing most tools
 directly. See [`docs/development/dev-container.md`](docs/development/dev-container.md).
 
-## Installation
+## Quick start
 
-Install Task, then set up the repository:
-
-```bash
-task setup
-```
-
-This installs Python dependencies, installs optional web-workspace dependencies,
-enables the pinned pnpm version, and installs pre-commit hooks.
-
-If you are not using Task, the equivalent commands are documented in
-[`docs/development/developer-tooling.md`](docs/development/developer-tooling.md).
-
-## Repository Layout
-
-```text
-.
-|-- apps/
-|   |-- api/                  # FastAPI composition root (platform API)
-|   |-- desktop/              # Flagship Tauri desktop client (shell)
-|   `-- web/                  # Optional web client workspace (shell)
-|-- packages/
-|   |-- auth/
-|   |-- automation/           # Capability Framework + Filesystem, Terminal, Git, Browser, workflows
-|   |-- connectors/
-|   |-- config/
-|   |-- documents/
-|   |-- intelligence/
-|   |-- memory/
-|   |-- observability/
-|   |-- search/
-|   |-- shared/
-|   `-- workspace/
-|-- database/
-|-- docker/
-|-- docs/                     # Product, planning, architecture, development docs
-|   |-- README.md             # Documentation hub
-|   |-- PRODUCT_VISION.md
-|   |-- ARCHITECTURE.md
-|   |-- ROADMAP.md
-|   |-- STATUS.md
-|   |-- architecture/         # Architecture deep-dives
-|   `-- development/          # Local development docs
-|-- scripts/
-|-- tests/                    # Reserved for future cross-package tests (placeholders today)
-|-- .devcontainer/            # VS Code Dev Container definition
-|-- .github/workflows/        # Repository validation workflows
-|-- compose.yml               # Local PostgreSQL and MinIO
-|-- pyproject.toml            # Python workspace and tooling config
-|-- pnpm-workspace.yaml       # pnpm workspace config
-`-- Taskfile.yml              # Repository task runner
-```
-
-The API app is the composition root for the reusable backend platform: health,
-local authentication, documents, search, and conversation reasoning. Auth owns
-its domain model, use cases, SQLAlchemy repositories, Alembic migration, and
-tests inside `packages/auth`. Search owns ranked full-text, semantic, and hybrid
-retrieval and exposes `GET /search` with `mode=keyword|semantic|hybrid` (hybrid
-default). Desktop and other clients consume these APIs; they do not own business
-logic.
-
-The flagship desktop client lives in `apps/desktop` (Tauri + React shell). It
-consumes the platform API and does not own business logic. `apps/web` remains an
-optional client shell. See
-[`docs/architecture/DESKTOP_CLIENT.md`](docs/architecture/DESKTOP_CLIENT.md).
-
-## Development Workflow
-
-Start from a clean setup:
+Install Task, then from the repository root:
 
 ```bash
 task setup
 ```
 
-Start local infrastructure and the optional web development server:
+That installs Python dependencies, JavaScript workspace dependencies (including
+the optional web client), the pinned pnpm version, and pre-commit hooks.
 
-```bash
-task dev
-```
+Copy `.env.example` to `.env` when you want local overrides (provider keys,
+ports, credentials). Compose and the API also work from the documented local
+defaults if you skip this at first.
 
-Start local infrastructure and the backend API development server:
-
-```bash
-task backend
-```
-
-Start the flagship desktop client (requires Rust / Tauri prerequisites):
-
-```bash
-task desktop
-```
-
-The API defaults to the built-in **fake** reasoning provider. That is enough to
-explore documents, search, and the desktop shell. To use a real model for Chat:
-
-1. Copy `.env.example` to `.env` if you have not already.
-2. Set `OPENAI_API_KEY` and `INTELLIGENCE_PROVIDER=openai` in that backend `.env`.
-3. Restart the API (`task backend`).
-4. In the desktop app, open **Settings → Diagnostics** and click **Recheck now**.
-
-Do not enter API keys in the desktop client. Provider credentials stay in the
-API process environment. See
-[`docs/architecture/CONFIGURATION.md`](docs/architecture/CONFIGURATION.md).
-
-The API health endpoint is available at `http://localhost:8000/health`.
-Local authentication endpoints are available under `http://localhost:8000/auth`.
-Full-text, semantic, and hybrid search are available at `http://localhost:8000/search`.
-
-Run the full GitHub Actions–parity suite before opening a pull request or
-finishing a milestone:
-
-```bash
-task ci
-```
-
-That runs backend (Ruff, Black, MyPy, Pytest), desktop (typecheck, unit, smoke,
-Vite build), and optional web (lint, typecheck, build). Linux-only Tauri
-packaging remains GitHub Actions–only.
-
-For narrower checks while iterating:
-
-```bash
-task backend:check
-task lint
-task format
-task typecheck
-task test
-```
-
-Pre-commit runs formatting, linting, type checks, and file hygiene checks before
-commits. CI validates the backend, optional web workspace, and flagship desktop
-client (build, smoke, packaging) through GitHub Actions. See
-[`docs/testing/DESKTOP_TESTING.md`](docs/testing/DESKTOP_TESTING.md).
-
-## Task Commands
-
-- `task setup` installs dependencies and Git hooks.
-- `task backend` starts Docker infrastructure and the backend API dev server.
-- `task backend:check` runs backend lint, format check, typecheck, and tests.
-- `task backend:dev` is an alias for `task backend`.
-- `task frontend` runs optional web-workspace lint, format check, typecheck, and build.
-- `task desktop` starts the flagship Tauri desktop client.
-- `task desktop:typecheck` runs TypeScript checks for the desktop client.
-- `task desktop:test` runs desktop unit and critical-path smoke tests.
-- `task desktop:smoke` runs desktop critical-path mock smoke tests only.
-- `task desktop:smoke:live` runs the live API desktop smoke (requires a running FastAPI, Postgres, and MinIO).
-- `task desktop:build` builds the desktop Vite shell.
-- `task desktop:check` runs desktop typecheck, tests, and Vite build.
-- `task docker-up` starts local infrastructure.
-- `task docker-down` stops local infrastructure.
-- `task db:migrate` starts PostgreSQL and applies Alembic migrations.
-- `task backend:process -- <processing_job_id>` runs document processing locally.
-- `task lint` runs backend and web-workspace linters.
-- `task format` formats backend and web-workspace files.
-- `task typecheck` runs backend and web-workspace type checks.
-- `task test` runs tests.
-- `task ci` runs full local CI parity (backend + desktop + frontend).
-- `task ci:backend` / `task ci:desktop` / `task ci:frontend` run those slices alone.
-- `task dev` starts Docker infrastructure and the optional web-workspace dev server.
-
-Run `task --list` for the full command list, including scoped backend and
-web-workspace subtasks.
-
-## Docker Services
-
-Local infrastructure is defined in `compose.yml`:
-
-- PostgreSQL 18 with pgvector on `127.0.0.1:5432`
-- MinIO API on `127.0.0.1:9000` (required for document uploads unless `MEMOVI_OBJECT_STORAGE=memory` is set for local development)
-- MinIO console on `127.0.0.1:9001`
-
-Start services:
-
-```bash
-task docker-up
-```
-
-Stop services:
-
-```bash
-task docker-down
-```
-
-Service credentials, health checks, volumes, and configuration are documented in
-[`docs/development/local-infrastructure.md`](docs/development/local-infrastructure.md). Copy
-`.env.example` to `.env` when you need local overrides.
-
-Run database migrations before using persisted API features. PostgreSQL must be running:
+Apply database migrations. `task db:migrate` starts PostgreSQL if needed, then
+runs Alembic. **`task backend` does not run migrations.**
 
 ```bash
 task db:migrate
 ```
 
-Or start infrastructure first, then migrate manually:
+Start the API in one terminal. This starts Docker Compose (PostgreSQL and MinIO)
+if those containers are not already running, then serves the API on
+`127.0.0.1:8000`. It does not apply migrations.
 
 ```bash
-task docker-up
-uv run alembic upgrade head
+task backend
 ```
+
+In a second terminal, start the desktop client:
+
+```bash
+task desktop
+```
+
+Then: register or sign in, upload or connect knowledge, wait until processing
+is complete, search, and ask questions. Capabilities and workflows are available
+when you want host actions with approval.
+
+Health: `http://127.0.0.1:8000/health`.  
+Auth: `http://127.0.0.1:8000/auth`.  
+Search: `http://127.0.0.1:8000/search`.
+
+Equivalent commands without Task are in
+[`docs/development/developer-tooling.md`](docs/development/developer-tooling.md).
+
+## Local storage
+
+`compose.yml` provides:
+
+- **PostgreSQL 18** with pgvector on `127.0.0.1:5432` — durable application data
+  (users, sessions, documents metadata, knowledge, search indexes, jobs)
+- **MinIO** on `127.0.0.1:9000` (console `127.0.0.1:9001`) — persistent object
+  storage for uploaded files
+
+The API defaults to MinIO (`MEMOVI_OBJECT_STORAGE=minio`). If MinIO is down,
+startup fails. There is no silent fallback.
+
+`MEMOVI_OBJECT_STORAGE=memory` is development/testing-only, ephemeral, and
+allowed only when `MEMOVI_ENV` is a development value (`local`, `development`,
+`dev`, or `test`). Do not use it as the normal path.
+
+```bash
+task docker-up      # start Postgres + MinIO without starting the API
+task docker-down    # stop them (data volumes are kept)
+```
+
+Details: [`docs/development/local-infrastructure.md`](docs/development/local-infrastructure.md).
+
+## Providers
+
+Two settings are independent. Both default to **fake** for local development.
+
+| Variable | What it controls | Default |
+| --- | --- | --- |
+| `INTELLIGENCE_PROVIDER` | Chat / reasoning (`fake` or `openai`) | `fake` |
+| `SEARCH_EMBEDDING_PROVIDER` | Semantic search vectors (`fake`, `openai`, `ollama`, or `sentence_transformer`) | `fake` |
+
+**Fake reasoning** (`INTELLIGENCE_PROVIDER=fake`) returns a deterministic answer
+from retrieved knowledge. No network model call. Enough to exercise chat,
+citations, and the desktop shell.
+
+**Fake embeddings** (`SEARCH_EMBEDDING_PROVIDER=fake`) emit deterministic local
+vectors. Keyword search still uses PostgreSQL full-text search. Semantic/hybrid
+modes run, but they are not a production embedding model.
+
+Fake providers are for development, tests, and offline demos. They are not
+equivalent to a production AI provider.
+
+### Real OpenAI reasoning
+
+Do not enter API keys in the desktop client. Credentials stay in the API
+process environment.
+
+1. Copy `.env.example` to `.env` if you have not already.
+2. Set:
+
+   ```bash
+   INTELLIGENCE_PROVIDER=openai
+   OPENAI_API_KEY=<your key>
+   ```
+
+3. Restart the API (`task backend`).
+4. In the desktop app, open **Settings → Diagnostics** and click **Recheck now**.
+
+Optional: `OPENAI_MODEL` or `INTELLIGENCE_MODEL` (default `gpt-4o-mini` when
+the provider is `openai`). Full variable list:
+[`docs/architecture/CONFIGURATION.md`](docs/architecture/CONFIGURATION.md).
+
+V1 reasoning adapters in this repository are **fake** and **openai**. Do not
+assume other names in config enums are live adapters.
+
+## Repository layout
+
+```text
+.
+|-- apps/
+|   |-- api/                  # FastAPI composition root (platform API)
+|   |-- desktop/              # Flagship Tauri desktop client
+|   `-- web/                  # Optional web client workspace (shell)
+|-- packages/                 # Domain packages (auth, documents, memory, …)
+|-- database/                 # Alembic migrations
+|-- docs/
+|-- compose.yml               # Local PostgreSQL and MinIO
+|-- pyproject.toml
+|-- pnpm-workspace.yaml
+`-- Taskfile.yml
+```
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
+[`docs/architecture/DESKTOP_CLIENT.md`](docs/architecture/DESKTOP_CLIENT.md).
+
+## Testing
+
+| Check | Command | What it proves |
+| --- | --- | --- |
+| Backend unit/integration | `task test` or `task ci:backend` | Python tests (needs Postgres for suites that use it) |
+| Desktop unit + mock smoke | `task desktop:test` | Desktop unit tests and mock-backend critical path |
+| Mock desktop smoke only | `task desktop:smoke` | Critical UI path against an in-memory API stub |
+| Live desktop/API smoke | `task desktop:smoke:live` | Same React shell against real FastAPI + Postgres + MinIO |
+| Local CI parity | `task ci` | Backend lint/types/tests + desktop typecheck/unit/mock smoke/Vite build + optional web lint/types/build |
+
+`task ci` does **not** run live smoke, does **not** launch a native Tauri
+window, and does **not** run Tauri packaging. Linux Tauri packaging runs in
+GitHub Actions (`.github/workflows/desktop.yml`).
+
+Live smoke (`task desktop:smoke:live`) requires Postgres, MinIO, migrated
+schema, and a running API. It sets `MEMOVI_LIVE_API=1`. It uses **fake**
+reasoning and embedding providers for determinism. It runs in jsdom (Vitest);
+it is not native window automation.
+
+Typical live-smoke sequence:
+
+```bash
+task db:migrate
+task backend              # terminal 1
+task desktop:smoke:live   # terminal 2
+```
+
+Narrower local checks:
+
+```bash
+task backend:check
+task desktop:check
+task lint
+task format
+task typecheck
+```
+
+Desktop testing details: [`docs/testing/DESKTOP_TESTING.md`](docs/testing/DESKTOP_TESTING.md).
+
+## Task commands
+
+- `task setup` — install dependencies and Git hooks
+- `task backend` — start Docker infrastructure and the API (does **not** migrate)
+- `task db:migrate` — start PostgreSQL if needed and apply Alembic migrations
+- `task desktop` — start the Tauri desktop client
+- `task docker-up` / `task docker-down` — start/stop Postgres and MinIO
+- `task test` — backend pytest
+- `task desktop:test` / `task desktop:smoke` / `task desktop:smoke:live`
+- `task desktop:check` — desktop typecheck, tests (unit + mock smoke), Vite build
+- `task ci` / `task ci:backend` / `task ci:desktop` / `task ci:frontend`
+- `task dev` — Docker infrastructure and the optional web-workspace dev server
+
+Run `task --list` for the full list.
 
 ## Status
 
-Memovi is in early development. The repository currently provides the reusable
-backend platform (Python workspace, FastAPI composition root, local
-infrastructure, developer tooling, CI, Dev Container foundation, and local
-session-based authentication), a flagship desktop shell in `apps/desktop`, and
-an optional web client shell. Desktop product pages (chat, documents, settings)
-build on this foundation next.
+Memovi is **0.1.0** in a **pre-alpha / public-development** stage. The core V1
+product path above is implemented. Current work is release polish, contributor
+readiness, packaging, and operational hardening — not building the first
+desktop pages, chat, documents, or capabilities from scratch.
+
+This is not a finished stable 1.0 release. Metadata in `pyproject.toml` still
+uses Development Status :: 2 - Pre-Alpha.
+
+## License
+
+Memovi is licensed under the [MIT License](LICENSE).
