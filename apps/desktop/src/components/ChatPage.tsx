@@ -794,6 +794,7 @@ export function ChatPage() {
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const lastFailedUserMessage = useRef<string | null>(null);
+  const skipMessageReloadForRef = useRef<string | null>(null);
 
   const canUseBackend =
     connection.status === "connected" || connection.status === "degraded";
@@ -945,6 +946,10 @@ export function ChatPage() {
   useEffect(() => {
     if (!workspaceId || !activeConversationId || !canUseBackend) {
       setMessages([]);
+      return;
+    }
+
+    if (skipMessageReloadForRef.current === activeConversationId) {
       return;
     }
 
@@ -1111,6 +1116,7 @@ export function ChatPage() {
         },
         ...current,
       ]);
+      skipMessageReloadForRef.current = created.conversation_id;
       setActiveConversationId(created.conversation_id);
     }
 
@@ -1237,6 +1243,9 @@ export function ChatPage() {
       }
     } finally {
       abortRef.current = null;
+      if (skipMessageReloadForRef.current === conversationId) {
+        skipMessageReloadForRef.current = null;
+      }
       setIsStreaming(false);
     }
   }
@@ -1464,7 +1473,7 @@ export function ChatPage() {
               title="Start a conversation"
               description="Create a conversation to start chatting with Memovi."
             />
-          ) : isLoadingMessages ? (
+          ) : isLoadingMessages && !isStreaming ? (
             <LoadingState label="Loading messages…" />
           ) : messages.length === 0 ? (
             <EmptyState

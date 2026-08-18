@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import type { AvailableModel } from "../api/types";
+import { createConversation, streamMessage } from "../api/conversations";
+import type { AvailableModel, SendMessageResponse } from "../api/types";
 import { ChatPage } from "./ChatPage";
+import { ToastProvider } from "./ui/ToastContext";
 
 const listConversations = vi.fn();
 const listMessages = vi.fn();
@@ -129,5 +131,58 @@ describe("ChatPage provider setup", () => {
     expect(
       screen.queryByText(/AI provider not configured/i),
     ).not.toBeInTheDocument();
+  });
+
+  it("keeps streamed citations when the first send creates a conversation", async () => {
+    listConversations.mockResolvedValue({ conversations: [] });
+    vi.mocked(createConversation).mockResolvedValue({
+      conversation_id: "conv-new",
+      title: "New conversation",
+      created_at: "2026-01-01T00:00:00.000Z",
+    });
+    listMessages.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          window.setTimeout(() => {
+            resolve({ conversation_id: "conv-new", messages: [] });
+          }, 30);
+        }),
+    );
+    vi.mocked(streamMessage).mockImplementation(async (input) => {
+      input.onToken("Answer for 'hello'");
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, 60);
+      });
+      input.onDone({
+        conversation_id: "conv-new",
+        assistant_message: "Answer for 'hello'",
+        citations: [
+          {
+            document_id: "doc-1",
+            chunk_id: "chunk-1",
+            document_title: "live-smoke.txt",
+            score: 0.9,
+          },
+        ],
+        provider: "fake",
+        model: "fake-reasoning-v1",
+      } as SendMessageResponse);
+    });
+
+    const user = userEvent.setup();
+    render(
+      <ToastProvider>
+        <ChatPage />
+      </ToastProvider>,
+    );
+
+    await user.type(await screen.findByPlaceholderText(/Ask Memovi/i), "hello");
+    await user.click(screen.getByRole("button", { name: /^Send$/i }));
+
+    expect(
+      await screen.findByRole("button", {
+        name: /Open source: live-smoke.txt/i,
+      }),
+    ).toBeInTheDocument();
   });
 });

@@ -8,11 +8,12 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import App from "../App";
 import { API_BASE_URL, DEFAULT_WORKSPACE_ID } from "../api/config";
+import { listKnowledge } from "../api/memory";
 import { searchKnowledge } from "../api/search";
 import { installLiveApiCookieBridge } from "../test/liveApiCookies";
 
@@ -20,14 +21,23 @@ const LIVE_ENABLED = isLiveApiEnabled();
 const LIVE_TIMEOUT_MS = 90_000;
 const STEP_TIMEOUT_MS = 35_000;
 const SEARCH_RETRY_MS = 250;
-const UNIQUE_PHRASE = `zynthorpaxqv7${Date.now()}${Math.random()
-  .toString(36)
-  .slice(2, 8)}`;
+
+function randomLetters(length: number): string {
+  const alphabet = "abcdefghijklmnopqrstuvwxyz";
+  let output = "";
+  for (let index = 0; index < length; index += 1) {
+    output += alphabet[Math.floor(Math.random() * alphabet.length)] ?? "x";
+  }
+  return output;
+}
+
+// Letter-only token so Postgres english FTS does not split on digits.
+const UNIQUE_PHRASE = `quorzivelt${randomLetters(8)}`;
 const DOCUMENT_NAME = "live-smoke.txt";
 const DOCUMENT_BODY = [
-  "MEMOVI_LIVE_SMOKE_UNIQUE_PHRASE",
+  "Memovi live smoke document.",
   "",
-  `${UNIQUE_PHRASE} is the lattice token for this run.`,
+  `The lattice token ${UNIQUE_PHRASE} is unique to this run.`,
 ].join("\n");
 
 function isLiveApiEnabled(): boolean {
@@ -40,6 +50,18 @@ function isLiveApiEnabled(): boolean {
 function failLive(step: string, detail?: string): never {
   throw new Error(
     detail ? `Live smoke: ${step}. ${detail}` : `Live smoke: ${step}.`,
+  );
+}
+
+async function waitForVisibleText(
+  pattern: RegExp,
+  timeout: number = STEP_TIMEOUT_MS,
+): Promise<void> {
+  await waitFor(
+    () => {
+      expect(screen.getAllByText(pattern).length).toBeGreaterThan(0);
+    },
+    { timeout },
   );
 }
 
@@ -60,17 +82,25 @@ async function assertApiReachable(): Promise<void> {
   }
 }
 
-async function waitForSearchHit(phrase: string): Promise<void> {
+async function waitForSearchHit(phrase: string): Promise<string> {
   const deadline = Date.now() + STEP_TIMEOUT_MS;
   let lastDetail = "no search attempt completed";
+  let knowledgeCount = 0;
   while (Date.now() < deadline) {
+    try {
+      const knowledge = await listKnowledge(DEFAULT_WORKSPACE_ID);
+      knowledgeCount = knowledge.count ?? knowledge.items.length;
+    } catch (error) {
+      lastDetail = error instanceof Error ? error.message : String(error);
+    }
     try {
       const payload = await searchKnowledge(DEFAULT_WORKSPACE_ID, {
         q: phrase,
         mode: "keyword",
       });
-      if (payload.results.some((result) => result.text.includes(phrase))) {
-        return;
+      const hit = payload.results.find((result) => result.text.includes(phrase));
+      if (hit) {
+        return hit.document_id;
       }
       lastDetail = `keyword search returned ${payload.count} result(s) without ${phrase}`;
     } catch (error) {
@@ -80,7 +110,10 @@ async function waitForSearchHit(phrase: string): Promise<void> {
       window.setTimeout(resolve, SEARCH_RETRY_MS);
     });
   }
-  failLive("search never returned unique phrase", lastDetail);
+  failLive(
+    "search never returned unique phrase",
+    `${lastDetail}. knowledge items=${knowledgeCount}`,
+  );
 }
 
 describe.skipIf(!LIVE_ENABLED)("desktop live critical path", () => {
@@ -120,7 +153,9 @@ describe.skipIf(!LIVE_ENABLED)("desktop live critical path", () => {
       ).toBeInTheDocument();
 
       await user.type(screen.getByLabelText(/^Email$/i), email);
-      await user.type(screen.getByLabelText(/^Password$/i), password);
+      // Register Password includes the "At least 8 characters" hint inside the
+      // <label>, so the accessible name is not exactly "Password".
+      await user.type(screen.getByLabelText(/^Password/i), password);
       await user.type(screen.getByLabelText(/^Confirm password$/i), password);
       await user.click(
         screen.getByRole("button", { name: /^Create account$/i }),
@@ -146,11 +181,25 @@ describe.skipIf(!LIVE_ENABLED)("desktop live critical path", () => {
         await screen.findByRole("heading", { name: /^Documents$/i }),
       ).toBeInTheDocument();
 
-      const fileInput = document.querySelector(
-        'input[type="file"]',
-      ) as HTMLInputElement | null;
+      try {
+        await waitFor(() => {
+          expect(
+            screen.getByRole("button", { name: /^Choose files$/i }),
+          ).toBeEnabled();
+        });
+      } catch {
+        failLive(
+          "upload failed",
+          "Documents file picker stayed disabled — backend connection or workspace was not ready",
+        );
+      }
+
+      const fileInput = [
+        ...document.querySelectorAll('input[type="file"]'),
+      ].find((input) => !(input as HTMLInputElement).disabled) as
+        HTMLInputElement | undefined;
       if (!fileInput) {
-        failLive("upload failed", "no file input was rendered");
+        failLive("upload failed", "no enabled file input was rendered");
       }
       const file = new File([DOCUMENT_BODY], DOCUMENT_NAME, {
         type: "text/plain",
@@ -159,13 +208,22 @@ describe.skipIf(!LIVE_ENABLED)("desktop live critical path", () => {
 
       try {
         expect(
-          await screen.findByText(/Uploaded — queued for processing/i),
+          await screen.findByText(
+            /Uploaded — queued for processing/i,
+            undefined,
+            {
+              timeout: 15_000,
+            },
+          ),
         ).toBeInTheDocument();
       } catch {
+        const failed =
+          screen.queryByText(/failed to upload/i)?.textContent?.trim() ||
+          screen.queryByText(/^Failed:/i)?.textContent?.trim();
         failLive(
           "upload failed",
-          screen.queryByText(/failed to upload/i)?.textContent?.trim() ||
-            "upload confirmation never appeared",
+          failed ||
+            `upload confirmation never appeared. UI: ${document.body.textContent?.slice(0, 400) ?? ""}`,
         );
       }
 
@@ -186,7 +244,7 @@ describe.skipIf(!LIVE_ENABLED)("desktop live critical path", () => {
         );
       }
 
-      await waitForSearchHit(UNIQUE_PHRASE);
+      const uploadedDocumentId = await waitForSearchHit(UNIQUE_PHRASE);
 
       await user.click(screen.getByRole("button", { name: /^Search$/i }));
       const searchBox = await screen.findByPlaceholderText(
@@ -214,33 +272,101 @@ describe.skipIf(!LIVE_ENABLED)("desktop live critical path", () => {
         await screen.findByRole("complementary", { name: /Conversations/i }),
       ).toBeInTheDocument();
 
-      const composer = await screen.findByPlaceholderText(/Ask Memovi/i);
-      const question = `What is ${UNIQUE_PHRASE}?`;
-      await user.type(composer, question);
-      await user.click(screen.getByRole("button", { name: /^Send$/i }));
-
+      // Shared default workspace can already contain earlier live-smoke threads.
+      await user.click(
+        screen.getByRole("button", { name: /^New Conversation$/i }),
+      );
       try {
         expect(
-          await screen.findByText(/Answer for/i, undefined, {
-            timeout: STEP_TIMEOUT_MS,
+          await screen.findByText(/Ask a question below/i, undefined, {
+            timeout: 15_000,
           }),
         ).toBeInTheDocument();
-        expect(
-          screen.getAllByText(new RegExp(UNIQUE_PHRASE)).length,
-        ).toBeGreaterThan(0);
       } catch {
-        const chatError =
-          screen.queryByRole("alert")?.textContent?.trim() ||
-          screen.queryByText(/failed/i)?.textContent?.trim();
         failLive(
           "chat did not produce SSE response",
-          chatError || "fake reasoning answer never appeared",
+          "could not start a new conversation",
         );
       }
 
-      let citation: HTMLElement;
+      const composer = await screen.findByPlaceholderText(/Ask Memovi/i);
+      const question = `What is ${UNIQUE_PHRASE}?`;
+      await user.type(composer, question);
+      const sendButton = screen.getByRole("button", { name: /^Send$/i });
       try {
-        citation = await screen.findByRole("button", {
+        await waitFor(() => {
+          expect(sendButton).toBeEnabled();
+        });
+      } catch {
+        failLive(
+          "chat did not produce SSE response",
+          "Send stayed disabled — backend connection was not ready for conversations",
+        );
+      }
+      await user.click(sendButton);
+
+      try {
+        await waitFor(
+          () => {
+            const matched = [
+              ...document.querySelectorAll(
+                '[data-role="assistant"] .message-body',
+              ),
+            ].some((node) => {
+              const text = node.textContent ?? "";
+              return /Answer for/i.test(text) && text.includes(UNIQUE_PHRASE);
+            });
+            expect(matched).toBe(true);
+          },
+          { timeout: STEP_TIMEOUT_MS },
+        );
+      } catch {
+        const alerts = screen
+          .queryAllByRole("alert")
+          .map((node) => node.textContent?.trim())
+          .filter((text): text is string => Boolean(text));
+        const failedMessages = [
+          ...document.querySelectorAll('[data-failed="true"] .message-body'),
+        ]
+          .map((node) => node.textContent?.trim())
+          .filter((text): text is string => Boolean(text));
+        const assistantPreview = [
+          ...document.querySelectorAll(".message-body"),
+        ]
+          .map((node) => node.textContent?.trim())
+          .filter((text): text is string => Boolean(text))
+          .slice(-3)
+          .join(" | ");
+        failLive(
+          "chat did not produce SSE response",
+          alerts[0] ||
+            failedMessages[0] ||
+            assistantPreview ||
+            "fake reasoning answer never appeared",
+        );
+      }
+
+      let chips: HTMLElement[];
+      try {
+        await waitFor(
+          () => {
+            const assistants = [
+              ...document.querySelectorAll('[data-role="assistant"]'),
+            ];
+            const latest = assistants.at(-1);
+            expect(latest).toBeTruthy();
+            const found = within(latest as HTMLElement).getAllByRole(
+              "button",
+              { name: /Open source:/i },
+            );
+            expect(found.length).toBeGreaterThan(0);
+          },
+          { timeout: STEP_TIMEOUT_MS },
+        );
+        const latest = [
+          ...document.querySelectorAll('[data-role="assistant"]'),
+        ].at(-1) as HTMLElement;
+        chips = within(latest).getAllByRole("button", {
           name: /Open source:/i,
         });
       } catch {
@@ -249,19 +375,39 @@ describe.skipIf(!LIVE_ENABLED)("desktop live critical path", () => {
           "no citation chip was rendered for the uploaded document",
         );
       }
+
+      const citation = chips.find((chip) => {
+        const name = chip.getAttribute("aria-label") ?? chip.textContent ?? "";
+        return name.includes(uploadedDocumentId);
+      });
+      if (!citation) {
+        const labels = chips
+          .map((chip) => chip.getAttribute("aria-label") ?? chip.textContent ?? "")
+          .join(", ");
+        failLive(
+          "citation missing",
+          `no chip for uploaded document ${uploadedDocumentId}; chips were ${labels}`,
+        );
+      }
       await user.click(citation);
 
       try {
         expect(
-          await screen.findByRole("heading", { name: /^Knowledge/i }),
+          await screen.findByRole("heading", { name: /^Knowledge$/i }),
         ).toBeInTheDocument();
-        expect(
-          await screen.findByText(new RegExp(UNIQUE_PHRASE)),
-        ).toBeInTheDocument();
+        await waitForVisibleText(new RegExp(UNIQUE_PHRASE));
       } catch {
+        const headings = screen
+          .queryAllByRole("heading")
+          .map((node) => node.textContent?.trim())
+          .filter((text): text is string => Boolean(text))
+          .slice(0, 8)
+          .join(" | ");
         failLive(
           "citation navigation failed",
-          "Knowledge/source view did not show the uploaded knowledge",
+          headings
+            ? `visible headings: ${headings}`
+            : "Knowledge/source view did not show the uploaded knowledge",
         );
       }
 

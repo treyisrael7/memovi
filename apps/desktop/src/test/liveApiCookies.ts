@@ -4,6 +4,9 @@
  * Node's fetch and jsdom's XMLHttpRequest do not share a browser cookie jar,
  * and production session cookies are HttpOnly. This helper records Set-Cookie
  * from API responses and attaches Cookie on subsequent API requests.
+ *
+ * Uploads use XMLHttpRequest; jsdom's XHR status is not reliably writable, so
+ * API XHR is implemented with fetch while preserving the uploadDocument shape.
  * Production auth and cookie flags are unchanged.
  */
 
@@ -57,128 +60,287 @@ function cookieHeader(store: Map<string, string>): string {
     .join("; ");
 }
 
+async function readFormPartBytes(value: FormDataEntryValue): Promise<Uint8Array> {
+  if (typeof value === "string") {
+    return new TextEncoder().encode(value);
+  }
+
+  if (typeof FileReader !== "undefined") {
+    const fromReader = await new Promise<Uint8Array | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        if (result instanceof ArrayBuffer) {
+          resolve(new Uint8Array(result));
+          return;
+        }
+        if (typeof result === "string") {
+          resolve(new TextEncoder().encode(result));
+          return;
+        }
+        resolve(null);
+      };
+      reader.onerror = () => resolve(null);
+      try {
+        reader.readAsArrayBuffer(value);
+      } catch {
+        resolve(null);
+      }
+    });
+    if (fromReader && fromReader.byteLength > 0) {
+      return fromReader;
+    }
+  }
+
+  if (typeof value.arrayBuffer === "function") {
+    return new Uint8Array(await value.arrayBuffer());
+  }
+
+  const buffered = (value as { _buffer?: ArrayBuffer | Uint8Array })._buffer;
+  if (buffered) {
+    return buffered instanceof Uint8Array
+      ? buffered
+      : new Uint8Array(buffered);
+  }
+
+  throw new Error(
+    `Unsupported upload part type: ${Object.prototype.toString.call(value)}`,
+  );
+}
+
+/** jsdom FormData/File is not accepted by Node fetch; encode multipart bytes. */
+async function formDataToMultipart(form: FormData): Promise<{
+  body: Uint8Array;
+  contentType: string;
+}> {
+  const boundary = `----MemoviLiveSmoke${crypto.randomUUID().replace(/-/g, "")}`;
+  const encoder = new TextEncoder();
+  const chunks: Uint8Array[] = [];
+
+  const push = (data: string | Uint8Array) => {
+    chunks.push(typeof data === "string" ? encoder.encode(data) : data);
+  };
+
+  for (const [name, value] of form.entries()) {
+    push(`--${boundary}\r\n`);
+    if (typeof value === "string") {
+      push(`Content-Disposition: form-data; name="${name}"\r\n\r\n`);
+      push(`${value}\r\n`);
+    } else {
+      const filename = "name" in value && value.name ? value.name : "upload.bin";
+      const type =
+        "type" in value && value.type ? value.type : "application/octet-stream";
+      push(
+        `Content-Disposition: form-data; name="${name}"; filename="${filename}"\r\n`,
+      );
+      push(`Content-Type: ${type}\r\n\r\n`);
+      const bytes = await readFormPartBytes(value);
+      const decoded = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+      if (
+        bytes.byteLength === 0 ||
+        decoded === "[object File]" ||
+        decoded === "[object Blob]"
+      ) {
+        throw new Error(
+          `Upload file part '${filename}' did not contain document bytes ` +
+            `(${bytes.byteLength} bytes, preview=${JSON.stringify(decoded.slice(0, 80))})`,
+        );
+      }
+      push(bytes);
+      push(`\r\n`);
+    }
+  }
+  push(`--${boundary}--\r\n`);
+
+  const length = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
+  const body = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return {
+    body,
+    contentType: `multipart/form-data; boundary=${boundary}`,
+  };
+}
+
+class LiveApiXMLHttpRequest {
+  static readonly UNSENT = 0;
+  static readonly OPENED = 1;
+  static readonly HEADERS_RECEIVED = 2;
+  static readonly LOADING = 3;
+  static readonly DONE = 4;
+
+  status = 0;
+  statusText = "";
+  responseText = "";
+  response: string | null = "";
+  readyState = LiveApiXMLHttpRequest.UNSENT;
+  withCredentials = false;
+  onload: ((this: XMLHttpRequest, ev: ProgressEvent) => void) | null = null;
+  onerror: ((this: XMLHttpRequest, ev: ProgressEvent) => void) | null = null;
+  onabort: ((this: XMLHttpRequest, ev: ProgressEvent) => void) | null = null;
+  upload: { onprogress: ((ev: ProgressEvent) => void) | null } = {
+    onprogress: null,
+  };
+
+  private method = "GET";
+  private url = "";
+  private headers = new Headers();
+
+  constructor(
+    private readonly originalFetch: typeof fetch,
+    private readonly store: Map<string, string>,
+    private readonly apiBase: string,
+  ) {}
+
+  open(method: string, url: string | URL): void {
+    this.method = method;
+    this.url = String(url);
+    this.headers = new Headers();
+    this.readyState = LiveApiXMLHttpRequest.OPENED;
+  }
+
+  setRequestHeader(name: string, value: string): void {
+    this.headers.set(name, value);
+  }
+
+  abort(): void {
+    this.onabort?.call(
+      this as unknown as XMLHttpRequest,
+      new ProgressEvent("abort"),
+    );
+  }
+
+  send(body?: Document | XMLHttpRequestBodyInit | null): void {
+    if (!isApiUrl(this.url, this.apiBase)) {
+      this.onerror?.call(
+        this as unknown as XMLHttpRequest,
+        new ProgressEvent("error"),
+      );
+      return;
+    }
+
+    if (this.store.size > 0 && !this.headers.has("Cookie")) {
+      this.headers.set("Cookie", cookieHeader(this.store));
+    }
+
+    this.readyState = LiveApiXMLHttpRequest.LOADING;
+
+    void (async () => {
+      try {
+        const headers = new Headers(this.headers);
+        if (this.store.size > 0 && !headers.has("Cookie")) {
+          headers.set("Cookie", cookieHeader(this.store));
+        }
+
+        let fetchBody: BodyInit | null | undefined =
+          body && !(body instanceof Document) ? (body as BodyInit) : null;
+        if (typeof FormData !== "undefined" && body instanceof FormData) {
+          const multipart = await formDataToMultipart(body);
+          fetchBody = multipart.body;
+          headers.set("Content-Type", multipart.contentType);
+          this.upload.onprogress?.(
+            new ProgressEvent("progress", {
+              lengthComputable: true,
+              loaded: multipart.body.byteLength,
+              total: multipart.body.byteLength,
+            }),
+          );
+        }
+
+        const response = await this.originalFetch(this.url, {
+          method: this.method,
+          headers,
+          body: fetchBody,
+        });
+        ingestCookies(response.headers, this.store);
+        const text = await response.text();
+        this.status = response.status;
+        this.statusText = response.statusText;
+        this.responseText = text;
+        this.response = text;
+        this.readyState = LiveApiXMLHttpRequest.DONE;
+        this.onload?.call(
+          this as unknown as XMLHttpRequest,
+          new ProgressEvent("load"),
+        );
+      } catch (error: unknown) {
+        const detail = error instanceof Error ? error.message : String(error);
+        this.status = 599;
+        this.statusText = "Network Error";
+        this.responseText = JSON.stringify({ detail });
+        this.response = this.responseText;
+        this.readyState = LiveApiXMLHttpRequest.DONE;
+        this.onload?.call(
+          this as unknown as XMLHttpRequest,
+          new ProgressEvent("load"),
+        );
+      }
+    })();
+  }
+}
+
 export function installLiveApiCookieBridge(
   apiBase: string = API_BASE_URL,
 ): () => void {
   const store = new Map<string, string>();
   const originalFetch = globalThis.fetch.bind(globalThis);
   const OriginalXHR = globalThis.XMLHttpRequest;
-  const proto = OriginalXHR.prototype;
-  const originalOpen = proto.open;
-  const originalSetRequestHeader = proto.setRequestHeader;
-  const originalSend = proto.send;
-
-  const xhrMethod = new WeakMap<XMLHttpRequest, string>();
-  const xhrUrl = new WeakMap<XMLHttpRequest, string>();
-  const xhrHeaders = new WeakMap<XMLHttpRequest, Headers>();
 
   globalThis.fetch = (async (
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> => {
     const url = requestUrl(input);
-    const headers = new Headers(init?.headers);
+    const headers = new Headers(
+      input instanceof Request ? input.headers : undefined,
+    );
+    if (init?.headers) {
+      new Headers(init.headers).forEach((value, key) => {
+        headers.set(key, value);
+      });
+    }
     if (isApiUrl(url, apiBase) && store.size > 0 && !headers.has("Cookie")) {
       headers.set("Cookie", cookieHeader(store));
     }
-    const response = await originalFetch(input, { ...init, headers });
+    // jsdom AbortSignal is not an undici AbortSignal; passing it makes chat SSE
+    // hang or throw "Expected signal to be an instance of AbortSignal".
+    const { signal: _jsdomSignal, ...restInit } = init ?? {};
+    const fetchInput =
+      input instanceof Request
+        ? new Request(url, {
+            method: input.method,
+            headers,
+            body: input.body,
+            credentials: input.credentials,
+            redirect: input.redirect,
+          })
+        : input;
+    const response = await originalFetch(fetchInput, {
+      ...restInit,
+      headers,
+      signal: undefined,
+    });
     if (isApiUrl(url, apiBase)) {
       ingestCookies(response.headers, store);
     }
     return response;
   }) as typeof fetch;
 
-  proto.open = function open(
-    this: XMLHttpRequest,
-    method: string,
-    url: string | URL,
-    async?: boolean,
-    username?: string | null,
-    password?: string | null,
-  ) {
-    xhrMethod.set(this, method);
-    xhrUrl.set(this, String(url));
-    xhrHeaders.set(this, new Headers());
-    return originalOpen.call(
-      this,
-      method,
-      url,
-      async ?? true,
-      username,
-      password,
-    );
-  } as typeof proto.open;
-
-  proto.setRequestHeader = function setRequestHeader(
-    this: XMLHttpRequest,
-    name: string,
-    value: string,
-  ) {
-    xhrHeaders.get(this)?.set(name, value);
-    if (name.toLowerCase() === "cookie") {
-      return;
-    }
-    return originalSetRequestHeader.call(this, name, value);
-  };
-
-  proto.send = function send(
-    this: XMLHttpRequest,
-    body?: Document | XMLHttpRequestBodyInit | null,
-  ) {
-    const url = xhrUrl.get(this) ?? "";
-    if (!isApiUrl(url, apiBase)) {
-      return originalSend.call(this, body);
-    }
-
-    const method = xhrMethod.get(this) ?? "POST";
-    const headers = xhrHeaders.get(this) ?? new Headers();
-    if (store.size > 0 && !headers.has("Cookie")) {
-      headers.set("Cookie", cookieHeader(store));
-    }
-
-    const xhr = this;
-    void originalFetch(url, {
-      method,
-      headers,
-      body: body as BodyInit | null | undefined,
-      credentials: "include",
-    })
-      .then(async (response) => {
-        ingestCookies(response.headers, store);
-        const text = await response.text();
-        Object.defineProperty(xhr, "status", {
-          configurable: true,
-          get: () => response.status,
-        });
-        Object.defineProperty(xhr, "statusText", {
-          configurable: true,
-          get: () => response.statusText,
-        });
-        Object.defineProperty(xhr, "responseText", {
-          configurable: true,
-          get: () => text,
-        });
-        Object.defineProperty(xhr, "response", {
-          configurable: true,
-          get: () => text,
-        });
-        Object.defineProperty(xhr, "readyState", {
-          configurable: true,
-          get: () => XMLHttpRequest.DONE,
-        });
-        xhr.onload?.call(xhr, new ProgressEvent("load"));
-        xhr.dispatchEvent(new Event("load"));
-      })
-      .catch(() => {
-        xhr.onerror?.call(xhr, new ProgressEvent("error"));
-        xhr.dispatchEvent(new Event("error"));
-      });
-  };
+  function BridgedXHR() {
+    return new LiveApiXMLHttpRequest(originalFetch, store, apiBase);
+  }
+  BridgedXHR.UNSENT = LiveApiXMLHttpRequest.UNSENT;
+  BridgedXHR.OPENED = LiveApiXMLHttpRequest.OPENED;
+  BridgedXHR.HEADERS_RECEIVED = LiveApiXMLHttpRequest.HEADERS_RECEIVED;
+  BridgedXHR.LOADING = LiveApiXMLHttpRequest.LOADING;
+  BridgedXHR.DONE = LiveApiXMLHttpRequest.DONE;
+  globalThis.XMLHttpRequest = BridgedXHR as unknown as typeof XMLHttpRequest;
 
   return () => {
     globalThis.fetch = originalFetch;
-    proto.open = originalOpen;
-    proto.setRequestHeader = originalSetRequestHeader;
-    proto.send = originalSend;
+    globalThis.XMLHttpRequest = OriginalXHR;
   };
 }
