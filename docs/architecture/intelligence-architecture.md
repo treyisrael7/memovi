@@ -30,10 +30,10 @@ Intelligence owns:
 * Retrieval-Augmented Generation
 * Prompt construction
 * Provider routing
-* AI summaries
-* Planning
 * Reasoning
-* Future autonomous workflows
+* Conversation persistence and traces
+
+**Future / V2:** AI summaries as a product pipeline, autonomous agents.
 
 Intelligence does not own:
 
@@ -46,8 +46,8 @@ Artificial intelligence is a consumer of knowledge rather than its owner.
 
 # Package Foundation
 
-The Intelligence package (`packages/intelligence`) establishes domain boundaries before
-provider integrations land.
+The Intelligence package (`packages/intelligence`) owns the reasoning pipeline
+and conversation API. OpenAI and fake providers are wired in V1.
 
 Core immutable concepts:
 
@@ -131,7 +131,8 @@ ReasoningResult
 Application ports remain:
 
 * `KnowledgeRetriever` — Search-facing retrieval port owned by Intelligence
-* `ReasoningProvider` — future AI provider boundary (`reason(prompt) -> ReasoningResult`)
+* `ReasoningProvider` — adapter boundary (`reason(prompt) -> ReasoningResult`).
+  V1 registered adapters: `fake`, `openai`.
 
 Infrastructure currently provides a deterministic `FakeReasoningProvider` for tests and
 an `OpenAIReasoningProvider` adapter that maps provider-agnostic prompts to Chat
@@ -142,8 +143,9 @@ ports without coupling packages across domain boundaries.
 
 `SendConversationMessage` loads conversation history, runs `Reason`, then appends the
 user and assistant turns through `ConversationService`. The Conversation REST API exposes
-create/get conversation, list messages, and send message endpoints under `/conversations`.
-Desktop (and other) client UX, streaming/realtime channels, and agents remain out of scope until later milestones.
+create/get conversation, list messages, send message, and SSE stream endpoints under
+`/conversations`. The desktop client consumes that API. Autonomous agents are not
+implemented.
 
 
 # Provider Isolation
@@ -157,7 +159,10 @@ Intelligence `ToolRegistry` / `ToolExecutor`.
 
 Replacing one AI provider with another should require minimal architectural change because knowledge storage, retrieval, and memory remain independent from provider implementations.
 
-The architecture supports the project technologies identified for AI, including Ollama, OpenAI, Anthropic, and Sentence Transformers, without making any one provider the foundation of the platform.
+V1 reasoning adapters are `fake` and `openai`. Embedding adapters (Search) may
+use `fake`, `openai`, `ollama`, or `sentence_transformer`. Anthropic and Gemini
+are reserved configuration names for **future** reasoning adapters, not live V1
+implementations. No provider is the foundation of knowledge storage.
 
 # Retrieval-Augmented Generation
 
@@ -237,7 +242,7 @@ See [`knowledge-processing-pipeline.md`](knowledge-processing-pipeline.md).
 * The Knowledge Platform must not depend on Intelligence.
 * Provider-specific logic remains isolated within Intelligence.
 * RAG uses Search and Memory rather than direct persistence access.
-* AI summaries are derived and should not become the source of truth.
+* Future AI summaries, if added, are derived and must not become the source of truth.
 * Future agents consume platform capabilities without redefining ownership.
 * Knowledge remains independently useful when no language model is available.
 * Provider selection lives in Intelligence `ModelGateway` / `ReasoningProvider`.

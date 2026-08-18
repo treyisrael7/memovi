@@ -72,19 +72,17 @@ Information should never skip stages unless explicitly justified.
 
 # Stage 1 - Acquisition
 
-Knowledge enters Memovi through a connector.
+Knowledge enters Memovi through upload or a connector.
+
+**V1:** desktop/API document upload, and the filesystem connector (manual sync).
 
 Examples include:
 
-* Local files
-* GitHub
-* Gmail
-* Slack
-* Notion
-* Obsidian
-* Google Drive
-* REST APIs
-* Future integrations
+* Desktop file upload
+* Filesystem connector (manual sync)
+
+**Future / V2** acquisition sources may include GitHub, Gmail, Slack, Notion,
+Google Drive, and other connectors. V1 does not ship those adapters.
 
 Each connector authenticates with its external system, discovers available content, and retrieves raw data.
 
@@ -136,16 +134,17 @@ Document processing enriches raw information.
 
 Processing occurs asynchronously through domain events.
 
-Typical processing stages include:
+**V1 processing:**
 
-* OCR
-* Parsing
-* Chunk generation
-* Language detection
-* Entity extraction
-* Embedding generation
-* AI summaries
-* Metadata enrichment
+* Parse PDF, Markdown, and plain text
+* Chunk generation (Memory materialization)
+* Embedding generation (Search)
+
+Each step is asynchronous relative to upload: PostgreSQL job → in-process
+worker → in-process event handlers.
+
+**Future / V2 processing** (not live workers): OCR, language detection, entity
+extraction, AI summaries, graph construction.
 
 Each processing step performs one responsibility before publishing another event.
 
@@ -157,20 +156,20 @@ See [`event-architecture.md`](event-architecture.md).
 
 Raw information becomes structured knowledge.
 
-Examples include:
-
 * Searchable passages
-* Relationships
-* Collections (organizational memberships; see [`COLLECTIONS.md`](COLLECTIONS.md))
+* Collections
 * Tags
-* Entities
+* Provenance relationships (`document_of`, `chunk_of`)
 * Version history
+
+Explorer “concepts” and “relationships” are inspection projections. They are
+**not** a knowledge graph.
 
 Future platform capabilities may also include:
 
 * Knowledge graphs
 * Temporal memory
-* Semantic relationships
+* Semantic entity extraction
 * Topic clustering
 
 Knowledge creation is where information becomes useful beyond simple storage.
@@ -233,50 +232,43 @@ See [`intelligence-architecture.md`](intelligence-architecture.md).
 # Canonical Processing Flow
 
 ```text
-PDF
-Slack
-GitHub
-Gmail
-Notion
+Upload (PDF / Markdown / text)
+or Filesystem connector (manual sync)
         │
         ▼
-Connector
+Normalized Document (Postgres + MinIO)
         │
         ▼
-Normalized Document
+DocumentCreated + processing job
         │
         ▼
-Stored
+DocumentProcessingWorker (in-process)
         │
         ▼
-DocumentUploaded Event
+ProcessingCompleted
         │
         ▼
-OCR
+Memory materialization (chunks)
         │
         ▼
-Chunking
+KnowledgeMaterialized
         │
         ▼
-Embeddings
+Search document materialization
         │
         ▼
-Entity Extraction
+SearchIndexed
         │
         ▼
-Knowledge Created
+Embedding generation
         │
         ▼
-Indexed
-        │
-        ▼
-Search Ready
-        │
-        ▼
-Available to Intelligence
+Available to Search and Intelligence
 ```
 
-Every supported connector ultimately converges into this same pipeline.
+OCR, Slack/GitHub/Gmail connectors, entity extraction, and graph construction
+are **future / V2**. Every V1 source still converges on Documents → Memory →
+Search.
 
 # Pipeline Invariants
 

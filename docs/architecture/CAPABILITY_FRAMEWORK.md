@@ -232,7 +232,7 @@ The registry and metadata contracts are the foundation for plugins:
 1. A plugin package implements one or more `Capability` types
 2. The composition root loads enabled plugins and registers them
 3. Intelligence discovers plugin metadata the same way as built-in capabilities
-4. Permissions remain declarative until Automation adds approval and audit
+4. Permissions, approval, and audit stay on the Capability Execution Engine
 5. Plugins cannot bypass Memory, ownership, or knowledge pipeline boundaries
 
 Plugin loading, sandboxing, and marketplace distribution are future work. They
@@ -242,17 +242,14 @@ should extend this framework rather than invent a parallel execution stack.
 
 | Stage | Outcome |
 | --- | --- |
-| Now | Capability Framework + Filesystem + Terminal + Git + Browser + Capability Planner |
-| Next | Concrete capabilities: Clipboard, Notifications |
-| Then | Durable permission settings UI and plugin packaging |
-| Later | Richer Automation workflows (conditionals, schedules), provenance, background jobs |
-| Eventually | Plugin packaging and third-party capability distribution |
+| V1 now | Capability Framework + Filesystem + Terminal + Git + Browser + Planner + Execution Engine (approval/audit) + Workflow Engine |
+| Future / V2 | Clipboard/notifications, plugin packaging, conditionals/schedules, marketplace |
 
 # Key Decisions
 
 * Capabilities are not agents and do not plan multi-step work.
 * Registration is explicit via dependency injection; no reflection or globals.
-* Permissions are metadata first; approval UI comes later.
+* Permissions are metadata plus execution-engine approval/audit in V1; plugin packaging is future.
 * Capabilities interact with the host only through `CapabilityContext`.
 * Host actions run through Capabilities (registry, planner, execution engine, workflows), not an Intelligence tool stack.
 * Concrete product capabilities (Filesystem, Terminal) register explicitly at the composition root.

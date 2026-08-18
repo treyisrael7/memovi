@@ -10,6 +10,11 @@ Use these documents when a topic needs more detail than the top-level architectu
 
 Each document covers one architectural concern and should remain aligned with the decisions in [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
 
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md) states **current V1** vs **future / V2**.
+Deep-dives must not draw unimplemented systems (OCR workers, Redis, knowledge
+graph, Prometheus/Grafana/Loki, distributed workers, plugin loading) as if they
+run today.
+
 # Relationship to ARCHITECTURE.md
 
 [`../ARCHITECTURE.md`](../ARCHITECTURE.md) is the canonical blueprint.
@@ -39,7 +44,7 @@ document that matches the concern being changed or reviewed.
 | [`COLLECTIONS.md`](COLLECTIONS.md) | Knowledge collections: flat organization, membership, search filter |
 | [`AUTHORIZATION.md`](AUTHORIZATION.md) | Authentication, membership, capability security, and trust boundaries |
 | [`WORKSPACES.md`](WORKSPACES.md) | Workspace membership lifecycle, roles, owner enforcement, and audit |
-| [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
+| [`CAPABILITY_FRAMEWORK.md`](CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation; plugin path is future |
 | [`CAPABILITY_EXECUTION.md`](CAPABILITY_EXECUTION.md) | Execution engine lifecycle, server-owned policies, audit, Intelligence bridge |
 | [`CAPABILITY_PLANNER.md`](CAPABILITY_PLANNER.md) | Plan-then-execute composition; planner never invokes capabilities |
 | [`WORKFLOW_AUTOMATION.md`](WORKFLOW_AUTOMATION.md) | Reusable sequential workflows over planner + execution engine |

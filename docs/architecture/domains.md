@@ -155,7 +155,7 @@ Memory is the heart of Memovi.
 ### Does Not Own
 
 * File uploads
-* OCR
+* Document processing (including future OCR)
 * Embeddings
 * AI providers
 * Prompt generation

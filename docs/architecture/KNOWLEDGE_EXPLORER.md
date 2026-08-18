@@ -54,8 +54,11 @@ Global and per-document search lives on the dedicated Search page (see
 [`DESKTOP_CLIENT.md`](DESKTOP_CLIENT.md#search)), which opens results here for
 inspection. The explorer itself does not duplicate a second search UI.
 
+Explorer “concepts” and “relationships” are inspection projections over that
+model. They are **not** a knowledge graph and must not be documented as one.
+
 Semantic entity extraction, topic concepts, confidence scoring, and graph
-visualization are future pipeline stages. Until then:
+visualization are **future / V2** pipeline stages. Until then:
 
 * `confidence` is returned as `null` and shown as "—"
 * `entity_type` filters match `source_type` or `mime_type`

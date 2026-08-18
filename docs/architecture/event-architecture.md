@@ -27,13 +27,11 @@ Without events, complex workflows quickly become tightly coupled.
 ```text
 Upload Document
 ↓
-OCR
+Parse (same request path or a single orchestrator)
 ↓
 Chunk
 ↓
 Embeddings
-↓
-Summaries
 ↓
 Index
 ↓
@@ -42,21 +40,23 @@ Update Memory
 
 Every component depends directly on the next. Changing one step often requires modifying several others.
 
-Instead, Memovi publishes business events.
+Instead, Memovi publishes business events. **V1 chain:**
 
 ```text
-Document Uploaded
+DocumentCreated
 ↓
-OCR Completed
+(PostgreSQL processing job + in-process DocumentProcessingWorker)
 ↓
-Document Chunked
+ProcessingCompleted
 ↓
-Embeddings Generated
+KnowledgeMaterialized
 ↓
-Knowledge Indexed
+SearchIndexed
+↓
+EmbeddingGenerated
 ```
 
-Each worker reacts independently. No component needs to understand the entire workflow.
+OCR, summaries, and entity extraction are **future / V2** stages, not V1 events.
 
 # Event Platform
 
@@ -65,9 +65,9 @@ The Event Platform provides asynchronous communication between domains.
 The architecture intentionally does not prescribe a specific messaging technology.
 
 V1 uses an in-process event dispatcher and a PostgreSQL-backed document
-processing queue. Redis is not used in V1; distributed queues or Redis Streams
-remain future architectural options, along with other replaceable brokers
-(RabbitMQ, Kafka, or later messaging systems).
+processing queue. Redis is **not used in V1**. Distributed queues or Redis
+Streams remain **future / V2** architectural options, along with other
+replaceable brokers. Do not add Redis to satisfy this document.
 
 Messaging infrastructure is replaceable. The architectural model remains constant.
 
@@ -79,10 +79,11 @@ Events describe something that has already happened.
 
 Examples include:
 
-* `DocumentUploaded`
-* `EmbeddingsGenerated`
-* `KnowledgeIndexed`
+* `DocumentCreated`
+* `ProcessingCompleted`
 * `KnowledgeMaterialized`
+* `SearchIndexed`
+* `EmbeddingGenerated`
 
 Events should never represent commands. Past-tense naming reflects completed business actions.
 
@@ -152,11 +153,13 @@ Multiple consumers may subscribe.
 
 | Event | Publisher | Consumers |
 | --- | --- | --- |
-| `DocumentUploaded` | Documents | Processing |
-| `OCRCompleted` | Processing | Processing |
-| `EmbeddingsGenerated` | Processing | Search, Memory |
-| `MemoryUpdated` | Memory | Intelligence |
-| `KnowledgeMaterialized` | Memory | Search / explorers |
+| `DocumentCreated` | Documents | Observability / diagnostics |
+| `ProcessingCompleted` | Documents (worker) | Memory |
+| `KnowledgeMaterialized` | Memory | Search |
+| `SearchIndexed` | Search | Embedding handler |
+| `EmbeddingGenerated` | Search | Retrieval / readiness |
+
+**Future / V2** event names such as `OCRCompleted` are not published in V1.
 
 Clear ownership prevents conflicting event definitions.
 
@@ -178,10 +181,12 @@ Represent asynchronous pipeline progress.
 
 Examples:
 
-* `OCRCompleted`
-* `DocumentChunked`
-* `EmbeddingsGenerated`
-* `SummaryCreated`
+* `ProcessingCompleted`
+* `KnowledgeMaterialized`
+* `SearchIndexed`
+* `EmbeddingGenerated`
+
+**Future / V2** examples (not V1): `OCRCompleted`, `SummaryCreated`.
 
 ## Integration Events
 
@@ -212,16 +217,12 @@ Workers should remain:
 * Independent
 * Focused on one responsibility
 
-Examples include:
+**V1:** one in-process `DocumentProcessingWorker` claims PostgreSQL jobs.
+Downstream Memory and Search work runs as in-process event handlers on the API
+process — not a fleet of OCR / summary / entity-extraction worker services.
 
-```text
-OCR Worker
-Chunk Worker
-Embedding Worker
-Summary Worker
-Entity Extraction Worker
-Search Index Worker
-```
+**Future / V2** may decompose stages (OCR, summaries, graph, distributed
+workers) if operational need appears. Those are not current runtime components.
 
 Workers should perform one task well. Large workers should be decomposed rather than expanded.
 
@@ -230,40 +231,41 @@ Workers should perform one task well. Large workers should be decomposed rather 
 Long-running workflows naturally become pipelines.
 
 ```text
-DocumentUploaded
+DocumentCreated
         │
         ▼
-OCR Worker
+DocumentProcessingWorker (in-process, Postgres queue)
         │
         ▼
-OCRCompleted
+ProcessingCompleted
         │
         ▼
-Chunk Worker
+Memory materialization
         │
         ▼
-DocumentChunked
+KnowledgeMaterialized
         │
         ▼
-Embedding Worker
+Search document materialization
         │
         ▼
-EmbeddingsGenerated
+SearchIndexed
         │
         ▼
-Index Worker
+Embedding generation
         │
         ▼
-KnowledgeIndexed
+EmbeddingGenerated
 ```
 
-Each worker understands only its own responsibility. No worker orchestrates the entire pipeline.
+Each handler understands only its own responsibility. OCR is **future / V2**.
 
 # Failure Strategy
 
 Worker failures should remain isolated.
 
-A failed OCR operation should not terminate unrelated processing.
+A failed document-processing job should not terminate unrelated API work.
+OCR is not a V1 stage; when it exists it should follow the same isolation rule.
 
 Preferred strategy:
 

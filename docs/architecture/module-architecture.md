@@ -72,13 +72,14 @@ It contains no business logic.
 
 The Application Layer coordinates work across domains. It owns request validation, authorization, commands, queries, application services, transaction boundaries, DTOs, and API orchestration.
 
-It coordinates platform services rather than performing OCR, embeddings, AI provider calls, or vector queries directly.
+It coordinates platform services rather than parsing documents, generating embeddings, calling AI providers, or querying vector indexes directly.
 
 ## Knowledge Platform
 
 The Knowledge Platform Layer owns the platform's understanding of knowledge.
 
-It includes Documents, Memory, Search, Connectors, Collections, Tags, Metadata, and future Knowledge Graph capabilities.
+It includes Documents, Memory, Search, Connectors, Collections, Tags, and Metadata.
+A knowledge graph is **future / V2**.
 
 The Knowledge Platform must never depend upon the Intelligence Layer.
 
@@ -86,19 +87,25 @@ The Knowledge Platform must never depend upon the Intelligence Layer.
 
 The Intelligence Layer consumes knowledge and enriches information already stored by the Knowledge Platform.
 
-It includes chat, RAG, prompt construction, provider routing, AI summaries, planning, reasoning, and future autonomous agents. Host actions run through the Automation Capability Framework, not an Intelligence tool stack.
+It includes chat, RAG, prompt construction, provider routing, and reasoning.
+AI summaries and autonomous agents are **future / V2**. Host actions run through
+the Automation Capability Framework, not an Intelligence tool stack.
 
 ## Processing
 
 The Processing Layer performs long-running asynchronous work.
 
-Workers handle OCR, file parsing, document chunking, embedding generation, search indexing, entity extraction, and future graph construction.
+**V1:** in-process `DocumentProcessingWorker` (parse PDF/Markdown/text), then
+Memory/Search/embedding handlers on the API process.
+
+**Future / V2:** OCR, AI summarization, entity extraction, graph construction,
+distributed workers.
 
 Processing components should remain stateless whenever practical.
 
 ## Infrastructure
 
-The Infrastructure Layer provides technical capabilities such as PostgreSQL, pgvector, MinIO, object storage, logging, metrics, tracing, Docker, and configuration. Redis is not used in V1; distributed queues or Redis Streams remain future architectural options.
+The Infrastructure Layer provides technical capabilities such as PostgreSQL, pgvector, MinIO, object storage, logging, in-process metrics, OpenTelemetry API tracing, Docker Compose, and configuration. Redis is **not used in V1**; distributed queues or Redis Streams remain **future / V2** options.
 
 Infrastructure exists to support the platform. Business decisions should never originate from infrastructure components.
 

@@ -105,7 +105,7 @@ API
    ├── Memory
    ├── Search
    ├── Intelligence
-   └── Automation (future)
+   └── Automation (Capabilities / workflows)
    │
    ▼
 Storage
@@ -189,15 +189,15 @@ Responsibilities:
 Intelligence consumes Memory and Search. It never becomes the source of truth
 for knowledge.
 
-## Automation (future)
+## Automation (V1)
 
 Safe execution of user-approved work on top of knowledge and capabilities.
 
-Responsibilities (as the product evolves):
+V1 includes the Capability Framework, planner, execution engine, workflow engine
+(with approval/resume), and filesystem / terminal / git / browser capabilities.
 
-* Permissioned access to filesystem, terminal, browser, git, and related tools
-* Approval workflows and task orchestration
-* Composition of capabilities without inventing a parallel knowledge store
+Still **future / V2:** plugin SDK, marketplace packaging, autonomous agents,
+conditionals/loops/schedules in workflows.
 
 Automation builds on knowledge. It does not replace it.
 
@@ -208,8 +208,11 @@ Infrastructure that persists and serves platform data.
 Responsibilities:
 
 * PostgreSQL (and pgvector) for durable records and vectors
-* Object storage for artifacts
-* Supporting infrastructure such as Redis where needed
+* MinIO (S3-compatible) for artifacts
+
+Redis is **not used in V1**. Distributed cache or stream layers remain
+**future / V2** options if operational need appears. Do not treat Redis as
+required infrastructure.
 
 Storage is an implementation detail behind domain repositories and contracts.
 
@@ -220,18 +223,22 @@ Storage is an implementation detail behind domain repositories and contracts.
 Memovi grows from a durable knowledge platform into a full knowledge operating
 system.
 
-Future capabilities include:
+**Already in V1 (see [`ARCHITECTURE.md`](ARCHITECTURE.md)):** desktop product,
+filesystem/git/terminal/browser capabilities, workflow approval, OpenAI plus
+fake reasoning, configurable embeddings (including Ollama and Sentence
+Transformers), filesystem connector.
 
-* Multiple AI providers behind one gateway
-* Local models on the desktop and self-hosted runtimes
-* Filesystem access
-* Git integration
-* Terminal access
-* Email and calendar as knowledge sources and surfaces
-* Browser capabilities
-* Safe automation with approval
-* Summaries and long-term memory
-* Knowledge evolution: graphs, reasoning caches, and inference-efficient retrieval
+**Still future / V2** (aspirational, not current runtime):
+
+* Additional reasoning adapters (for example Anthropic, Gemini) and local desktop models
+* Email, calendar, GitHub, Slack, and other connectors
+* OCR and richer document formats
+* AI summaries and long-term memory layers
+* Knowledge graph (explorer concepts/relationships today are not a graph)
+* Plugin SDK / capability marketplace
+* Distributed workers, Redis or other brokers (not used in V1)
+* Hosted/cloud Memovi as a service
+* Model proxying as a product feature
 
 The intended evolution remains:
 

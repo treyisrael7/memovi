@@ -30,6 +30,95 @@ This document is intended for:
 
 Whenever implementation and architecture diverge, update one or both so the system and its documentation remain aligned.
 
+**How to read this document:** sections describe **current V1** unless they are
+explicitly labeled **future / V2**. Long-term goals (OCR, knowledge graph,
+additional connectors, plugins, distributed workers, hosted deployments) remain
+valid vision. They are not running infrastructure.
+
+---
+
+# V1 Runtime (current)
+
+What actually runs when you launch Memovi locally:
+
+```text
+Desktop Tauri + React
+        │
+        ▼
+FastAPI composition root
+        │
+        ├── Auth / Workspace
+        ├── Documents
+        │       │
+        │       ▼
+        │   PostgreSQL processing queue
+        │       │
+        │       ▼
+        │   in-process DocumentProcessingWorker
+        │       │
+        │       ▼
+        │   ProcessingCompleted
+        ├── Memory  (materialize knowledge + chunks)
+        │       │
+        │       ▼
+        │   Search / retrieval
+        │       │
+        │       ▼
+        │   embedding generation
+        ├── Conversations / RAG
+        └── Capabilities
+                ├── Planner
+                ├── Execution Engine
+                ├── Workflow Engine
+                └── Connectors (filesystem; manual sync)
+```
+
+```mermaid
+flowchart TD
+    Desktop[Desktop Tauri + React]
+    Web[Optional web shell]
+    Desktop --> API
+    Web --> API
+    API[FastAPI composition root]
+    API --> Auth[Auth / Workspace]
+    API --> Documents
+    API --> Memory
+    API --> Search[Search / retrieval]
+    API --> Intelligence[Conversations / RAG]
+    API --> Automation[Capabilities]
+    API --> Connectors
+    Documents --> Queue[PostgreSQL processing queue]
+    Queue --> Worker[In-process document worker]
+    Worker --> Memory
+    Memory --> Search
+    Search --> Embed[Embeddings]
+    Intelligence --> Search
+    Automation --> Planner
+    Automation --> Engine[Execution Engine]
+    Automation --> Workflows[Workflow Engine]
+    Connectors --> Documents
+    Auth --> PG[(PostgreSQL / pgvector)]
+    Documents --> PG
+    Memory --> PG
+    Search --> PG
+    Intelligence --> PG
+    Documents --> MinIO[(MinIO)]
+```
+
+**V1 infrastructure:** PostgreSQL with pgvector, MinIO, the FastAPI process
+(including the in-process worker and in-process event handlers), and the Tauri
+desktop client. Compose is `compose.yml` at the repository root.
+
+**Not used in V1:** Redis, Redis Streams, distributed worker processes, OCR
+workers, knowledge-graph construction, entity-extraction workers, AI summary
+workers, Prometheus/Grafana/Loki as a deployed stack, production Docker images
+under `docker/`, Kubernetes, a connector cron/watch loop, or Intelligence
+`ToolRegistry` / `ToolExecutor` (removed). Host execution is Capabilities →
+Planner → Execution Engine → Workflow Engine.
+
+Knowledge is the product. Memory is the architecture. AI is a consumer of
+knowledge — not its owner.
+
 ---
 
 # Architectural Goals
@@ -146,7 +235,10 @@ See [`architecture/event-architecture.md`](architecture/event-architecture.md).
 
 Expensive operations should not block the user experience.
 
-Tasks such as OCR, document parsing, chunk generation, embedding creation, AI summarization, and search indexing execute through background processing.
+In V1, document parsing, chunk generation, embedding creation, and search
+indexing continue after upload via a PostgreSQL-backed job queue and an
+in-process worker, then in-process event handlers. OCR, AI summarization, and
+entity extraction are **future / V2** processing stages, not live workers.
 
 See [`architecture/request-lifecycle.md`](architecture/request-lifecycle.md) and [`architecture/knowledge-processing-pipeline.md`](architecture/knowledge-processing-pipeline.md).
 
@@ -187,58 +279,9 @@ Information enters the platform through connectors, is processed into structured
 
 This separation allows knowledge to remain independent from the technologies used to analyze or consume it. As artificial intelligence evolves, the platform should adopt new models, reasoning systems, and retrieval techniques without changing how knowledge is stored or managed.
 
----
-
-# Canonical Mermaid Diagram
-
-```mermaid
-flowchart TD
-    Desktop[Desktop App<br/>primary client]
-    Web[Optional Web Client]
-    Other[Future clients<br/>mobile / CLI / extension]
-
-    Desktop --> API
-    Web --> API
-    Other --> API
-
-    API[FastAPI API<br/>platform boundary]
-
-    API --> Documents
-    API --> Memory
-    API --> Search
-    API --> Intelligence
-    API --> Auth
-    API --> Connectors
-
-    Documents --> Events
-    Connectors --> Events
-    Memory --> Events
-
-    Events --> Workers
-
-    Workers --> OCR
-    Workers --> Chunking
-    Workers --> Embeddings
-    Workers --> Summaries
-    Workers --> EntityExtraction
-
-    OCR --> Storage
-    Chunking --> Storage
-    Embeddings --> Storage
-    Summaries --> Storage
-    EntityExtraction --> Storage
-
-    Search --> Storage
-    Memory --> Storage
-    Intelligence --> Storage
-
-    Storage[(PostgreSQL / pgvector<br/>MinIO)]
-```
-
-Additional clients attach at the API without changing Documents, Memory, Search,
-or Intelligence. This diagram emphasizes responsibility boundaries over
-implementation details. Lower-level interactions are described in the deep-dive
-documents.
+The V1 runtime diagram is in [V1 Runtime (current)](#v1-runtime-current).
+Optional web and future clients attach at the same API without changing
+Documents, Memory, Search, or Intelligence.
 
 ---
 
@@ -268,9 +311,8 @@ Infrastructure
 The Presentation Layer contains every interface through which users interact with Memovi.
 
 The primary product surface is the desktop application under `apps/desktop`
-(Tauri shell foundation). An optional web client, future mobile clients, browser
-extensions, CLI tools, and public APIs are additional presentation surfaces over
-the same backend. See [`architecture/DESKTOP_CLIENT.md`](architecture/DESKTOP_CLIENT.md).
+(Tauri + React). An optional web client shell, and future mobile, CLI, or
+extension clients, are additional presentation surfaces over the same backend. See [`architecture/DESKTOP_CLIENT.md`](architecture/DESKTOP_CLIENT.md).
 Desktop build, smoke, and packaging CI are documented in
 [`testing/DESKTOP_TESTING.md`](testing/DESKTOP_TESTING.md).
 
@@ -293,13 +335,16 @@ The Application Layer coordinates work across domains.
 
 Responsibilities include request validation, authorization, commands, queries, application services, transaction boundaries, DTOs, and API orchestration.
 
-The Application Layer does not perform OCR, generate embeddings, communicate with AI providers, or query vector indexes directly. It coordinates the appropriate platform services.
+The Application Layer coordinates platform services. It does not parse documents,
+generate embeddings, call AI providers, or query vector indexes directly.
 
 ## Knowledge Platform Layer
 
 The Knowledge Platform Layer is the heart of Memovi.
 
-Primary concerns include Documents, Memory, Search, Connectors, Collections, Tags, Metadata, and the future Knowledge Graph.
+Primary concerns include Documents, Memory, Search, Connectors, Collections,
+Tags, and Metadata. A knowledge graph is **future / V2**; explorer
+concepts/relationships today are provenance projections, not graph infrastructure.
 
 This layer organizes knowledge, stores metadata, manages relationships, retrieves information, and maintains consistency. It must remain valuable even when no AI services are available.
 
@@ -307,7 +352,10 @@ This layer organizes knowledge, stores metadata, manages relationships, retrieve
 
 The Intelligence Layer consumes knowledge. It never owns it.
 
-Responsibilities include chat, retrieval-augmented generation, prompt construction, provider routing, AI summaries, planning, reasoning, and future autonomous agents. Host actions are not executed inside Intelligence; they run through the Automation Capability Framework.
+V1 responsibilities include chat, retrieval-augmented generation, prompt
+construction, provider routing, and reasoning. AI summaries and autonomous
+agents are **future / V2**. Host actions are not executed inside Intelligence;
+they run through the Automation Capability Framework.
 
 The `packages/intelligence` package currently defines the reasoning domain foundation (`ReasoningRequest`, `ReasoningContext`, `ReasoningResult` with citations, provider metadata, a read-only `execution_trace`, and unused `tool_calls` / `tool_results` fields retained as type plumbing rather than an execution framework), conversation memory (`Conversation`, `ConversationTurn`, `ConversationHistory`, `ConversationService`), immutable execution tracing value objects (`ExecutionTrace`, `ExecutionStage`, `StageTiming`, `ExecutionMetrics`), `ContextAssembler` for deterministic context assembly with optional conversation history, provider-agnostic `PromptBuilder` / `Prompt` construction, `ModelGateway` as the single prompt-execution entry point (provider selection + execution metadata + optional streaming), application ports (`KnowledgeRetriever`, `ReasoningProvider`, `ConversationRepository`), the `Reason` command for retrieve → assemble → prompt → gateway orchestration with per-stage timing, the `SendConversationMessage` use case that persists conversation turns around Reason (sync and SSE stream), a Conversation REST API (`/conversations` list/create/rename/delete, `/conversations/{id}/messages`, `/conversations/{id}/messages/stream`, `/conversations/models`), and provider adapters including `FakeReasoningProvider` and `OpenAIReasoningProvider`. The composition root wires Search-backed retrieval through `SearchKnowledgeRetriever` and durable conversations through `SqlAlchemyConversationRepository` without importing Search into Intelligence. LLM tool calling, WebSockets, and agents are not implemented.
 
@@ -317,17 +365,29 @@ Provider-specific logic remains isolated so replacing one AI provider with anoth
 
 ## Processing Layer
 
-The Processing Layer performs long-running asynchronous work.
+The Processing Layer performs long-running asynchronous work without blocking
+the upload request.
 
-Examples include OCR, file parsing, document chunking, embedding generation, search indexing, entity extraction, and future graph construction.
+**V1:** PDF, Markdown, and plain-text parsing in `DocumentProcessingWorker`
+(in-process, PostgreSQL job queue), then Memory materialization, Search
+document materialization, and embedding generation via in-process event
+handlers. See [`architecture/DOCUMENT_PIPELINE.md`](architecture/DOCUMENT_PIPELINE.md).
 
-Processing components should remain stateless whenever practical. Each worker performs a single responsibility and publishes additional events when its work completes.
+**Future / V2:** OCR, AI summarization, entity extraction, graph construction,
+and out-of-process / distributed workers.
+
+Processing components should remain focused. V1 uses one document worker plus
+event handlers rather than a fleet of specialized worker processes.
 
 ## Infrastructure Layer
 
 The Infrastructure Layer provides technical capabilities required by the rest of the platform.
 
-Examples include PostgreSQL, pgvector, MinIO, object storage, logging, metrics, tracing, Docker, and configuration. Redis is not used in V1; distributed queues or Redis Streams remain future architectural options.
+V1 examples include PostgreSQL, pgvector, MinIO, structured logging, in-process
+metrics, OpenTelemetry API spans, Docker Compose for local Postgres/MinIO, and
+typed configuration. Redis is **not used in V1**. Distributed queues or Redis
+Streams remain **future / V2** options — do not add Redis to recreate this
+document.
 
 Infrastructure exists to support the platform. Business decisions should never originate from infrastructure components.
 
@@ -395,7 +455,8 @@ memovi/
 │   ├── adr/
 │   ├── architecture/     # deep-dives
 │   └── development/
-├── docker/
+├── compose.yml           # local PostgreSQL + MinIO
+├── docker/               # reserved; empty in V1
 ├── scripts/
 ├── .github/
 ├── .cursor/
@@ -414,7 +475,8 @@ Top-level responsibilities:
 | `apps/` | Deployable applications |
 | `packages/` | Reusable platform libraries |
 | `docs/` | Engineering documentation |
-| `docker/` | Containerization and infrastructure assets |
+| `docker/` | Reserved for future container assets (empty in V1) |
+| `compose.yml` | Local PostgreSQL and MinIO |
 | `scripts/` | Automation |
 | `.github/` | Repository automation |
 | `.cursor/` | AI development guidance |
@@ -481,7 +543,10 @@ Intelligence
 User
 ```
 
-GitHub repositories, PDFs, emails, Slack conversations, local files, and future integrations all become normalized documents before entering the platform. From that point onward, downstream systems should not need to know where the information originally came from.
+**V1 sources:** desktop upload (PDF, Markdown, plain text) and the filesystem
+connector (manual folder sync). **Future / V2 sources** may include GitHub,
+email, Slack, and other connectors. Once normalized, downstream systems should
+not need to know where the information originally came from.
 
 See [`architecture/knowledge-processing-pipeline.md`](architecture/knowledge-processing-pipeline.md).
 
@@ -489,46 +554,53 @@ See [`architecture/knowledge-processing-pipeline.md`](architecture/knowledge-pro
 
 # Technology Overview
 
-The architecture uses technologies already identified by the project.
+## Clients (V1)
 
-## Clients
-
-* Desktop application (`apps/desktop` Tauri + React shell foundation; primary product surface)
-* Optional web client (`apps/web` shell today; Next.js / React / TypeScript)
+* Desktop application (`apps/desktop` Tauri + React; primary product surface)
+* Optional web client (`apps/web` shell; Next.js / React / TypeScript)
 * Future mobile, CLI, and extension clients as needed
 
 Clients call the platform API. They do not own knowledge, retrieval, or reasoning.
 
-## Backend
+## Backend (V1)
 
 * FastAPI
 * SQLAlchemy
 * Pydantic
 * Alembic
 
-## Infrastructure
+## Infrastructure (V1)
 
 * PostgreSQL
 * pgvector
 * MinIO
-* Docker
+* Docker Compose (`compose.yml`) for local Postgres and MinIO
 
-Redis is not used in V1. Distributed queues or Redis Streams remain future
-architectural options.
+Redis is **not used in V1**. Distributed queues or Redis Streams remain
+**future / V2** architectural options.
 
-## AI
+The `docker/` directory is reserved; V1 does not ship production Dockerfiles or
+Kubernetes manifests there.
 
-* Ollama
-* OpenAI
-* Anthropic
-* Sentence Transformers
+## AI (V1)
 
-## Observability
+**Reasoning adapters registered today:** `fake`, `openai`.
 
-* OpenTelemetry
-* Prometheus
-* Grafana
-* Loki
+**Embedding providers configurable today:** `fake`, `openai`, `ollama`,
+`sentence_transformer`.
+
+Configuration enums may list reserved names (for example Anthropic or Gemini
+reasoning). Those are **not** live V1 reasoning adapters.
+
+## Observability (V1)
+
+* Structured application logging
+* OpenTelemetry **API** spans (no required exporter)
+* In-process `MetricsRecorder`
+* `GET /health` and `GET /ready`
+
+Prometheus, Grafana, and Loki are **future / V2** deployment options. V1 does
+not run that stack.
 
 ---
 
@@ -545,7 +617,7 @@ The high-level architecture establishes these constraints:
 * Long-running work is asynchronous whenever appropriate.
 * Components communicate through stable interfaces and domain events.
 * PostgreSQL is the authoritative source of truth.
-* pgvector and generated indexes store derived data. Redis is not used in V1.
+* pgvector and generated indexes store derived data. Redis is **not used in V1**.
 * Operational simplicity is preferred over premature distribution.
 * Architectural boundaries take precedence over implementation convenience.
 
@@ -572,7 +644,7 @@ The following documents expand this blueprint without redefining it.
 | [`architecture/intelligence-architecture.md`](architecture/intelligence-architecture.md) | AI's role, provider routing, RAG, summaries, planning, and boundaries |
 | [`architecture/CONNECTOR_FRAMEWORK.md`](architecture/CONNECTOR_FRAMEWORK.md) | Connector framework + Filesystem Connector into Documents |
 | [`architecture/AUTHORIZATION.md`](architecture/AUTHORIZATION.md) | Authentication, membership, capability security, and trust boundaries |
-| [`architecture/CAPABILITY_FRAMEWORK.md`](architecture/CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation, and plugin path |
+| [`architecture/CAPABILITY_FRAMEWORK.md`](architecture/CAPABILITY_FRAMEWORK.md) | Capability abstractions, registry, permissions, invocation; plugin path is future |
 | [`architecture/CAPABILITY_EXECUTION.md`](architecture/CAPABILITY_EXECUTION.md) | Execution engine pipeline, approval, and audit |
 | [`architecture/FILESYSTEM_CAPABILITY.md`](architecture/FILESYSTEM_CAPABILITY.md) | Filesystem capability safety model and operations |
 | [`architecture/TERMINAL_CAPABILITY.md`](architecture/TERMINAL_CAPABILITY.md) | Terminal capability execution, safety, timeout, cancel, and audit |

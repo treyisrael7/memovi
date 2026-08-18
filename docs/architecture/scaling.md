@@ -73,20 +73,12 @@ See [`repository-architecture.md`](repository-architecture.md).
 
 Workers subscribe to events and perform focused background work.
 
-Examples include:
+**V1:** a single in-process `DocumentProcessingWorker` plus in-process Memory
+and Search event handlers. There is no OCR worker process, no distributed
+worker fleet, and no Redis consumer.
 
-* OCR Worker
-* Chunk Worker
-* Embedding Worker
-* Summary Worker
-* Entity Extraction Worker
-* Search Index Worker
-
-Workers should remain stateless, independent, and focused on one responsibility.
-
-Large workers should be decomposed rather than expanded.
-
-Worker failures should remain isolated so a failed OCR operation does not terminate unrelated processing.
+**Future / V2** may add specialized or out-of-process workers (OCR, summaries,
+graph). A failed processing job should not terminate unrelated API work.
 
 See [`event-architecture.md`](event-architecture.md).
 

@@ -22,21 +22,17 @@ Cloud-native technologies are encouraged. Cloud-required architecture is avoided
 
 # Runtime Shape
 
-The high-level runtime model includes:
+**V1 local/self-hosted runtime:**
 
-* Presentation clients (desktop primary; optional web and future clients)
-* FastAPI application (platform API boundary)
-* Business domains
-* Domain events
-* Workers
+* Tauri desktop (primary) and optional web shell
+* One FastAPI process (composition root): HTTP API, in-process event dispatcher,
+  in-process `DocumentProcessingWorker`
 * PostgreSQL with pgvector
 * MinIO
-* Observability tooling
+* Structured logs, OpenTelemetry API spans, in-process metrics, `/health` `/ready`
 
-Redis is not used in V1; distributed queues or Redis Streams remain future
-architectural options.
-
-The top-level blueprint represents these responsibilities in the canonical system diagram.
+Redis is **not used in V1**. Distributed queues, Redis Streams, Kubernetes, and
+a Prometheus/Grafana/Loki stack are **future / V2** deployment options.
 
 See [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
 
@@ -60,16 +56,11 @@ Infrastructure exists to support the platform. Business decisions should never o
 
 # Containerization
 
-The `docker` directory contains containerization assets.
+**V1:** local infrastructure is `compose.yml` at the repository root (PostgreSQL
+and MinIO only). The API and desktop are not Compose services.
 
-Examples include:
-
-* Dockerfiles
-* Docker Compose
-* Development environments
-* Production images
-
-Infrastructure configuration should remain isolated from application logic.
+The `docker/` directory is reserved and empty. V1 does not ship production
+Dockerfiles, Kubernetes manifests, or a packaged observability stack.
 
 See [`repository-architecture.md`](repository-architecture.md).
 
@@ -98,14 +89,11 @@ See [`storage-architecture.md`](storage-architecture.md).
 
 # Observability Dependencies
 
-Deployment should support the observability technologies identified by the project:
+**V1:** structured logs, OpenTelemetry API spans (no required exporter),
+in-process metrics, health and readiness endpoints.
 
-* OpenTelemetry
-* Prometheus
-* Grafana
-* Loki
-
-Operational visibility is part of the architecture and should be considered when deploying requests, workers, events, search, connectors, and AI workflows.
+Prometheus, Grafana, and Loki are **future / V2** options if operators want a
+metrics/dashboard/log stack. They are not technologies Memovi currently deploys.
 
 See [`observability.md`](observability.md).
 
@@ -125,7 +113,7 @@ Additional infrastructure, including distributed services, dedicated message bro
 * Infrastructure configuration remains isolated from application logic.
 * PostgreSQL and object storage require comprehensive backup.
 * Derived data may be regenerated.
-* Observability tooling is part of the deployed platform posture.
+* V1 observability is logs, OTel API spans, in-process metrics, and health/ready — not a Prometheus/Grafana/Loki deployment.
 * Additional operational infrastructure is introduced only when justified.
 
 # Related Documents

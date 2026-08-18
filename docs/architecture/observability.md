@@ -30,14 +30,16 @@ Every major subsystem should produce meaningful telemetry that assists with debu
 
 # Observability Stack
 
-The project identifies the following observability technologies:
+**V1:**
 
-* OpenTelemetry
-* Prometheus
-* Grafana
-* Loki
+* Structured JSON application logging
+* OpenTelemetry **API** spans around requests and timed operations (no exporter required)
+* `MetricsRecorder` with an in-memory implementation
+* `GET /health` and `GET /ready`
 
-These technologies support tracing, metrics, dashboards, and logs without changing the underlying architecture.
+Prometheus, Grafana, and Loki are **future / V2** deployment options. V1 does
+not run them. Export adapters can plug into `MetricsRecorder` later without
+changing domain architecture.
 
 # Request Visibility
 
@@ -164,7 +166,7 @@ The `memovi_observability` package provides the cross-cutting runtime surface:
   * `KnowledgeMaterialized` → `MemoryCreated`
   * `SearchIndexed` → `DocumentIndexed`
   * Direct emits: `WorkspaceCreated`, `ConversationCreated`, `SearchExecuted`
-* **Metrics** — `MetricsRecorder` protocol with an in-memory implementation; timings/counters for HTTP, upload, search, embedding, conversation, memory lookup, and repository hot paths. Export adapters (Prometheus/OTel) can plug in later.
+* **Metrics** — `MetricsRecorder` protocol with an in-memory implementation; timings/counters for HTTP, upload, search, embedding, conversation, memory lookup, and repository hot paths. Prometheus/OTel **export** adapters are **future / V2**.
 * **Tracing** — OpenTelemetry API spans around HTTP requests and timed operations; no exporter required.
 * **Health** — `GET /health` liveness; `GET /ready` readiness with `database`, `vector_search`, `embedding_provider`, `migrations`, `workspace`, and `search_readiness` component checks.
 

@@ -135,9 +135,11 @@ Architecture documentation should be treated as part of the codebase rather than
 
 ## docker/
 
-The `docker` directory contains containerization assets.
+The `docker/` directory is **reserved and empty in V1**.
 
-Examples include Dockerfiles, Docker Compose, development environments, and production images.
+Local Postgres and MinIO are defined in repository-root `compose.yml`. V1 does
+not ship production Dockerfiles, Kubernetes manifests, or an observability
+Compose stack. Those remain **future / V2** if operational need appears.
 
 Infrastructure configuration should remain isolated from application logic.
 

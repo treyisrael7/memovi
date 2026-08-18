@@ -156,14 +156,11 @@ Examples include:
 
 Long-running work transitions into asynchronous processing.
 
-Examples include:
+**V1 examples:** document parsing, chunk generation, embedding creation, search
+indexing (after upload).
 
-* OCR
-* Chunk generation
-* Embedding creation
-* Large connector synchronization
-* AI summarization
-* Entity extraction
+**Future / V2 examples:** OCR, large connector watch/cron sync, AI summarization,
+entity extraction.
 
 Users should never wait for operations that can safely continue in the background.
 
@@ -190,10 +187,10 @@ Documents Domain
 Store File
     │
     ▼
-Publish DocumentUploaded Event
-    │
-    ▼
-Return Success
+Publish DocumentCreated (and enqueue a processing job)
+        │
+        ▼
+Return accepted (processing has not finished)
 ```
 
 Processing has not yet begun. The request ends after the document has been safely accepted. Subsequent work occurs asynchronously.

@@ -88,7 +88,7 @@ Connectors own:
 Connectors do not own:
 
 * Document storage or object storage
-* Processing / OCR / chunking
+* Document processing and chunking
 * Versioning
 * Knowledge extraction (Memory)
 * Search indexes or embeddings
