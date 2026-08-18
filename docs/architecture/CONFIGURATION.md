@@ -136,10 +136,12 @@ development only. There is no silent fallback. `/ready` includes an
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `INTELLIGENCE_PROVIDER` | optional | `fake` | `fake` \| `openai` \| reserved providers |
+| `INTELLIGENCE_PROVIDER` | optional | `fake` | V1: `fake` \| `openai` only. Other values fail configuration validation. |
 | `INTELLIGENCE_MODEL` | optional | provider default | |
 | `OPENAI_MODEL` | optional | `gpt-4o-mini` | Used when provider is `openai` and `INTELLIGENCE_MODEL` unset |
 | `OPENAI_API_KEY` | conditional | — | Secret; required at startup when `INTELLIGENCE_PROVIDER=openai`. Never entered in the desktop client. |
+
+V1 reasoning providers: `fake`, `openai`. Reserved/future reasoning names (`anthropic`, `ollama`, `gemini`) exist on `ReasoningProviderKind` but are not accepted as `INTELLIGENCE_PROVIDER`. Embedding providers are separate (`SEARCH_EMBEDDING_PROVIDER` may still be `ollama`).
 
 ### Capabilities
 

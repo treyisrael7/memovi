@@ -11,13 +11,28 @@ from memovi_config.secrets import SecretValue
 
 
 class ReasoningProviderKind(StrEnum):
-    """Known reasoning provider identifiers."""
+    """Known reasoning provider identifiers.
+
+    V1 configuration (`INTELLIGENCE_PROVIDER`) accepts only ``fake`` and
+    ``openai``. Other members are reserved for future adapters and are rejected
+    by ``ModelsSettings``.
+    """
 
     FAKE = "fake"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     OLLAMA = "ollama"
     GEMINI = "gemini"
+
+
+# Constructible reasoning backends in V1. Distinct from reserved enum members
+# and from ``SEARCH_EMBEDDING_PROVIDER`` (which may include ollama).
+V1_REASONING_PROVIDERS: frozenset[str] = frozenset(
+    {
+        ReasoningProviderKind.FAKE.value,
+        ReasoningProviderKind.OPENAI.value,
+    },
+)
 
 
 DEFAULT_MODELS: dict[ReasoningProviderKind, str] = {
@@ -41,6 +56,11 @@ class ModelsSettings:
         provider = self.provider.strip().lower()
         if not provider:
             raise ConfigurationError("INTELLIGENCE_PROVIDER cannot be blank.")
+        if provider not in V1_REASONING_PROVIDERS:
+            supported = ", ".join(sorted(V1_REASONING_PROVIDERS))
+            raise ConfigurationError(
+                f"Unsupported reasoning provider '{provider}'. V1 supports: {supported}.",
+            )
         object.__setattr__(self, "provider", provider)
 
         if self.model is None:

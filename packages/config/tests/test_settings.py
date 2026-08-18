@@ -77,6 +77,44 @@ def test_models_from_environ_allows_openai_without_key() -> None:
     assert models.model == "gpt-4o-mini"
 
 
+def test_fake_reasoning_provider_accepted() -> None:
+    settings = validate_configuration(_base_environ(INTELLIGENCE_PROVIDER="fake"))
+    assert settings.models.provider == "fake"
+
+
+def test_openai_reasoning_provider_accepted_with_api_key() -> None:
+    settings = validate_configuration(
+        _base_environ(INTELLIGENCE_PROVIDER="openai", OPENAI_API_KEY="sk-test"),
+    )
+    assert settings.models.provider == "openai"
+    assert settings.models.openai_api_key is not None
+
+
+@pytest.mark.parametrize(
+    "provider",
+    ("anthropic", "ollama", "gemini", "foo"),
+)
+def test_unsupported_reasoning_provider_rejected_at_configuration(provider: str) -> None:
+    with pytest.raises(
+        ConfigurationError,
+        match=f"Unsupported reasoning provider '{provider}'. V1 supports: fake, openai.",
+    ):
+        validate_configuration(_base_environ(INTELLIGENCE_PROVIDER=provider))
+
+
+def test_blank_reasoning_provider_rejected() -> None:
+    with pytest.raises(ConfigurationError, match="INTELLIGENCE_PROVIDER cannot be blank"):
+        ModelsSettings(provider="")
+
+
+def test_ollama_embedding_provider_remains_valid() -> None:
+    settings = validate_configuration(
+        _base_environ(SEARCH_EMBEDDING_PROVIDER="ollama", INTELLIGENCE_PROVIDER="fake"),
+    )
+    assert settings.embeddings.provider == "ollama"
+    assert settings.models.provider == "fake"
+
+
 def test_invalid_embedding_provider_enum() -> None:
     with pytest.raises(ConfigurationError, match="Unsupported embedding provider"):
         EmbeddingsSettings.from_environ(

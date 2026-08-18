@@ -5,6 +5,7 @@ from memovi_intelligence.application.commands import Reason
 from memovi_intelligence.application.services import ContextAssembler, PromptBuilder
 from memovi_intelligence.config import IntelligenceConfig
 from memovi_intelligence.domain.entities import ReasoningRequest, ReasoningResult
+from memovi_intelligence.domain.exceptions import InvalidIntelligenceConfigError
 from memovi_intelligence.domain.value_objects import RetrievedKnowledge
 from memovi_intelligence.infrastructure import (
     FakeReasoningProvider,
@@ -51,6 +52,15 @@ def _memovi_knowledge() -> tuple[RetrievedKnowledge, ...]:
             document_title="Principles",
         ),
     )
+
+
+def test_intelligence_config_from_env_rejects_unsupported_reasoning_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("INTELLIGENCE_PROVIDER", "anthropic")
+
+    with pytest.raises(InvalidIntelligenceConfigError, match="Unsupported reasoning provider"):
+        IntelligenceConfig.from_env()
 
 
 def test_intelligence_config_from_env_reads_provider_and_openai_model(

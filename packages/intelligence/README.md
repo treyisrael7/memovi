@@ -24,7 +24,7 @@ pipeline:
 * Conversation REST API (`POST/GET /conversations`, `GET/POST /conversations/{id}/messages`)
 * Application ports for knowledge retrieval and reasoning providers
 * Deterministic `FakeReasoningProvider` / `FakeKnowledgeRetriever` / `InMemoryConversationRepository` for tests; production `OpenAIReasoningProvider`; Search-backed retrieval and SQLAlchemy conversation persistence are wired in `apps/api`
-* Package configuration with provider selection (`provider=fake|openai`; future: anthropic, ollama, gemini)
+* Package configuration with provider selection. V1 `INTELLIGENCE_PROVIDER` values: `fake`, `openai`. Reserved/future reasoning names (`anthropic`, `ollama`, `gemini`) are rejected at configuration validation. Embedding providers (`SEARCH_EMBEDDING_PROVIDER`) are separate and may include `ollama`.
 
 It does not implement LLM tool calling, streaming/realtime channels beyond the
 conversation SSE path, or agents. Desktop (and other) clients consume the
