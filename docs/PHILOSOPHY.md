@@ -133,7 +133,9 @@ Events exist to reduce coupling—not to increase complexity.
 
 Users should never wait for expensive work.
 
-Uploading a document should not require waiting for OCR, chunking, embedding generation, summarization, or indexing.
+Uploading a document should not require waiting for parsing, chunking, embedding
+generation, or indexing. (OCR and summarization are future processing stages;
+they follow the same rule if added.)
 
 Background processing improves responsiveness while keeping the user experience predictable.
 

@@ -1,10 +1,54 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-14 (PR #14).
+system on a reusable backend platform. Last reviewed: 2026-08-17 (status
+reconciliation against shipped V1).
 
-* [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) describe where Memovi is going.
-* [`STATUS.md`](STATUS.md) describes where Memovi is today.
+* [`README.md`](../README.md) — public 0.1.0 pre-alpha / public-development entry
+* [`ARCHITECTURE.md`](ARCHITECTURE.md) — current V1 vs future / V2
+* [`ROADMAP.md`](ROADMAP.md) — remaining V1 is **release hardening**, not core build
+* [`ROADMAP_V2.md`](ROADMAP_V2.md) — deferred capabilities
+* Historical milestones below are preserved. **Current V1** is the snapshot in
+  the next section, not an early “Remaining” list inside Milestone 0–6.
+
+---
+
+# Current V1 (2026-08-17)
+
+Memovi is **0.1.0 pre-alpha / public-development**. The core product path is
+implemented. This is not a finished stable 1.0.
+
+**Implemented (do not treat as unfinished V1):** local auth and workspaces
+(including member APIs and membership audit), document upload + MinIO +
+in-process processing worker, Memory / Collections / Tags, keyword-semantic-hybrid
+search and embeddings, RAG conversations with citations, Capability Framework +
+planner + execution engine + workflows (approval/resume), filesystem connector
+(manual sync), desktop product UI, observability/logging/ready, Postgres +
+MinIO, fake + OpenAI reasoning, configurable embeddings, live desktop/API smoke.
+
+**V1 host execution model:** Capabilities → Planner → Execution Engine →
+Workflow Engine. `ToolRegistry` / `ToolExecutor` are **removed** (Milestone 49).
+`ToolCall` / `ToolResult` are unused type plumbing only. Redis is **not used
+in V1**.
+
+**Remaining V1 (release hardening, not new architecture):**
+
+* OSS process files (SECURITY, code of conduct, issue/PR templates) — separate PR
+* Contributor / operator docs polish after README + architecture truth passes
+* CI honesty: coverage `fail_under=80` is not enforced; empty pytest suite still
+  treated as success
+* Reasoning provider config enums accept names without live adapters (`anthropic`,
+  `ollama`, `gemini`) — documented; startup still only registers `fake` / `openai`
+* Linux Tauri packaging in CI; Windows/macOS packaging matrix and signing not done
+* No GitHub Release / tag automation
+* Operator UX follow-ups: capability permission settings UI, deeper model /
+  workspace / indexing-status product depth
+* Architecture boundary tests (never shipped; not a user-facing V1 blocker)
+
+**Explicitly not V1 (see ROADMAP_V2):** OCR, extra connectors (GitHub, Drive,
+Slack, Notion), knowledge graph, AI summaries as a pipeline, plugin SDK,
+distributed workers, Redis, Prometheus/Grafana/Loki stack, native Tauri E2E,
+multi-agent systems.
 
 ---
 
@@ -40,9 +84,9 @@ Engineering foundation is in place: workspaces, local infrastructure, CI, toolin
 
 # Milestone 1 — Platform
 
-**Overall Status:** Complete (typed config delivered in Milestone 36; architecture boundary tests remain)
+**Overall Status:** Complete for V1 (typed config in Milestone 36)
 
-Backend composition root is operational. Observability foundation (request context, structured logs, diagnostic bridge, metrics, readiness) is in place. Typed configuration is wired through `memovi_config`. Architecture boundary tests remain.
+Backend composition root is operational. Observability foundation (request context, structured logs, diagnostic bridge, metrics, readiness) is in place. Typed configuration is wired through `memovi_config`. Architecture boundary tests were never added; they are a V1 follow-up, not an open product milestone.
 
 **Completed**
 
@@ -55,11 +99,12 @@ Backend composition root is operational. Observability foundation (request conte
 
 **In Progress**
 
-* Domain package scaffolding for remaining packages
+* None
 
 **Remaining**
 
-* Architecture tests validating package boundaries
+* Architecture tests validating package boundaries (deferred follow-up; not a V1
+  product blocker)
 
 **Known Risks**
 
@@ -67,7 +112,7 @@ Backend composition root is operational. Observability foundation (request conte
 
 **Next Recommended Work**
 
-* Add architecture boundary tests
+* Optional: add architecture boundary tests during release hardening
 
 ---
 
@@ -96,8 +141,8 @@ APIs. Capability authorization and durable audit are covered by Milestone 28.
 
 **Remaining**
 
-* Owner / member roles with membership management (Milestone 43)
-* Membership audit events (Milestone 43)
+* None for V1 identity. Owner / member APIs and membership audit shipped in
+  Milestone 43.
 
 **Known Risks**
 
@@ -105,17 +150,18 @@ APIs. Capability authorization and durable audit are covered by Milestone 28.
 
 **Next Recommended Work**
 
-* Continue platform hardening (API stability, typed config)
+* Keep membership covered in the desktop release checklist
 
 ---
 
 # Milestone 3 — Knowledge Ingestion
 
-**Overall Status:** In progress
+**Overall Status:** Complete for V1
 
-Upload-to-processing pipeline is operational locally. OCR remains open. The
+Upload-to-processing pipeline is operational (PDF, Markdown, plain text). The
 Connector Framework (Milestone 32) plus Filesystem Connector (Milestone 44)
-import local folders through Documents.
+import local folders through Documents. OCR and additional cloud connectors are
+**V2 / future**, not remaining V1 work.
 
 **Completed**
 
@@ -131,30 +177,32 @@ import local folders through Documents.
 
 **In Progress**
 
-* Metadata extraction beyond ingest/process basics
+* None for V1
 
-**Remaining**
+**Remaining (V2 / future, not V1 blockers)**
 
 * OCR pipeline
 * Additional connector providers (GitHub, Drive, Slack, …)
+* Deeper metadata extraction beyond ingest/process basics
 
 **Known Risks**
 
-* Unsupported formats and OCR gaps limit ingestion coverage
+* Unsupported formats (no OCR) limit ingestion to extractable text types
 
 **Next Recommended Work**
 
-* Harden processing status visibility (desktop honest lifecycle in PR #8) and expand supported ingest formats as needed
-* Next provider connector on the shared framework
+* Keep processing visibility covered by desktop smoke; extra formats/connectors
+  belong on ROADMAP_V2
 
 ---
 
 # Milestone 4 — Knowledge Platform
 
-**Overall Status:** In progress
+**Overall Status:** Complete for V1
 
-Memory materialization, chunk persistence, explorer APIs, Collections, and Tags
-organization work. Deeper metadata UX and relationships remain.
+Memory materialization, explorer APIs, Collections, and Tags are shipped.
+Version history and a knowledge graph are **V2**. Explorer
+concepts/relationships are provenance projections, not graph infrastructure.
 
 **Completed**
 
@@ -166,15 +214,14 @@ organization work. Deeper metadata UX and relationships remain.
 
 **In Progress**
 
-* Memory domain ownership of knowledge items (HTTP `/memory` read surface exposed for explorer)
-* Processing status as a knowledge concern (job statuses exist in documents; no public Memory status API)
-* Knowledge independence from AI providers (memory/search do not depend on Intelligence)
+* None for V1
 
-**Remaining**
+**Remaining (V2 / follow-up)**
 
 * Version history
 * Knowledge relationships beyond provenance edges
 * Deeper metadata management UX beyond the V1 upsert API
+* Semantic entity/topic extraction (not V1)
 
 **Known Risks**
 
@@ -182,15 +229,16 @@ organization work. Deeper metadata UX and relationships remain.
 
 **Next Recommended Work**
 
-* Add semantic entity/topic extraction while keeping explorer contracts stable
+* Keep Collections and Tags complementary; do not add a graph for V1
 
 ---
 
 # Milestone 5 — Retrieval Intelligence
 
-**Overall Status:** In progress
+**Overall Status:** Complete for V1
 
-Keyword, semantic, and hybrid retrieval are operational. Query planning, caching, summaries, and deeper ranking remain.
+Keyword, semantic, and hybrid retrieval are operational. Query planning, cache /
+summary lookup, and learned rerank are **V2**.
 
 **Completed**
 
@@ -202,30 +250,31 @@ Keyword, semantic, and hybrid retrieval are operational. Query planning, caching
 
 **In Progress**
 
-* Semantic ranking (score normalization + RRF; no learned reranker)
+* None for V1
 
-**Remaining**
+**Remaining (V2)**
 
 * Query planning and context budgeting
 * Cache and summary lookup paths
+* Learned reranker (score normalization + RRF is V1)
 
 **Known Risks**
 
-* Without planning/cache/summary paths, retrieval remains search-centric rather than cost-aware
+* Retrieval is search-centric; cost-aware summary/cache paths are not V1
 
 **Next Recommended Work**
 
-* Add query planning, context budgeting, and cheaper lookup paths before deeper ranking
+* Do not block public V1 on query planning; keep hybrid search covered by tests
 
 ---
 
 # Milestone 6 — Reasoning Engine
 
-**Overall Status:** In progress
+**Overall Status:** Complete for V1
 
 Reasoning pipeline, conversation memory, Conversation REST API (including list,
-rename, delete, and SSE streaming), and Search-backed retrieval for conversations
-are operational. AI summaries remain.
+rename, delete, and SSE streaming), and Search-backed retrieval are operational.
+Desktop Chat consumes that API. AI summaries as a knowledge pipeline are **V2**.
 
 **Completed**
 
@@ -241,22 +290,22 @@ are operational. AI summaries remain.
 
 **In Progress**
 
-* Provider abstraction and routing (env-driven selection; broader providers reserved)
-* Prompt construction (`PromptBuilder`; no prompt library/versioning product)
-* Cost-aware model selection (basic provider/model config only)
+* None for V1
 
-**Remaining**
+**Remaining (V2 / follow-up)**
 
-* AI summaries
-* WebSocket/realtime channels beyond SSE (only if needed)
+* AI summaries as a product pipeline
+* Additional live reasoning adapters (config enums are not adapters)
+* Prompt library / versioning product
+* WebSocket channels beyond SSE (only if needed)
 
 **Known Risks**
 
-* None material for the shipped conversation Reason path
+* `INTELLIGENCE_PROVIDER` may name reserved providers that are not registered
 
 **Next Recommended Work**
 
-* Close Phase 1 platform gaps (ownership, observability, API stability)
+* Keep fake/OpenAI path covered; do not claim Anthropic/Ollama/Gemini reasoning
 
 ---
 
@@ -360,7 +409,10 @@ Capability Execution Engine. Intelligence never calls capabilities directly.
 
 **Remaining**
 
-* Durable audit persistence, additional concrete capabilities, settings UI for policies
+* Desktop settings UI for capability permission policies (V1 operator follow-up)
+* Additional concrete capabilities (Clipboard, Notifications) — **V2**
+* Durable execution **state** shipped in Milestone 38 (`SqlAlchemyExecutionStateStore`);
+  `SqlAlchemyExecutionAuditStore` exists — do not list audit as missing V1 architecture
 
 ---
 
@@ -395,9 +447,8 @@ remains responsible for permission modes, approval, and audit.
 
 **Remaining**
 
-* Durable audit persistence (shared with Milestone 21)
-* Desktop settings UI for capability permission policies
-* Autonomous workflows and background scheduling (explicitly out of scope)
+* Desktop settings UI for capability permission policies (V1 operator follow-up)
+* Autonomous workflows and background scheduling (explicitly out of scope / V2)
 
 ---
 
@@ -433,8 +484,7 @@ capability requests with engine-owned permission modes, approval, and audit.
 
 **Remaining**
 
-* Durable audit persistence (shared with Milestones 21–22)
-* Desktop settings UI for capability permission policies
+* Desktop settings UI for capability permission policies (V1 operator follow-up)
 * True push/SSE streaming for capability output (polling + best-effort progress today)
 
 ---
@@ -470,9 +520,8 @@ remotes without constructing shell commands. CLI details stay private to
 
 **Remaining**
 
-* Durable audit persistence (shared with Milestones 21–23)
-* Desktop settings UI for capability permission policies
-* Richer dedicated Git product page beyond Chat capability panel
+* Desktop settings UI for capability permission policies (V1 operator follow-up)
+* Richer dedicated Git product page beyond Chat capability panel (follow-up / V2)
 
 ---
 
@@ -509,9 +558,8 @@ browser-specific commands. Downloads persist under Filesystem Capability roots.
 
 **Remaining**
 
-* Durable audit persistence (shared with Milestones 21–24)
-* Desktop settings UI for capability permission policies
-* Richer dedicated Browser product surface beyond Chat capability panel
+* Desktop settings UI for capability permission policies (V1 operator follow-up)
+* Richer dedicated Browser product surface beyond Chat capability panel (follow-up / V2)
 
 ---
 
@@ -633,51 +681,49 @@ adds Workflow Automation. Milestone 28 hardens authorization and capability secu
 
 # Phase 1 — Complete V1 Platform
 
-**Overall Status:** In progress
+**Overall Status:** Complete for the V1 product path (release hardening remains)
 
 Documents, Memory, Search, and Intelligence vertical slices exist. Workspace
-ownership is enforced on those paths. Observability, production hardening, and
-API stability remain.
+ownership is enforced. Observability foundation and typed config are in place.
+Remaining work is public-release quality, not rebuilding the platform.
 
 **Completed**
 
 * Core Documents → Memory → Search → Intelligence pipeline paths
 * Conversation API with Search-backed retrieval and durable storage
 * Workspace ownership boundary with repository and search isolation
+* Observability foundation: request context, structured logs, diagnostic event
+  bridge, metrics interface, OTel-neutral spans, `/ready` checks
+* Typed configuration (Milestone 36)
 
 **In Progress**
 
-* Typed config and platform package/contract hardening
-* API stability for clients
+* Public V1 release hardening (see Current V1 snapshot)
 
-**Remaining**
+**Remaining (hardening, not core build)**
 
-* Documents / Memory / Search / Intelligence production readiness
-* Production hardening beyond capability authorization
-* API stability for clients
-
-**Completed (Phase 1 platform)**
-
-* Observability foundation: request context propagation, structured logs, diagnostic event bridge, metrics interface, OTel-neutral spans, `/ready` checks
+* Coverage gate decision, packaging matrices, OSS process files, operator UX
+  depth, optional architecture boundary tests
 
 **Known Risks**
 
-* Building the desktop client before API stability lands creates rework
+* Treating “API stability” as unfinished architecture would hide that clients
+  already run against these contracts (desktop live smoke)
 
 **Next Recommended Work**
 
-* Finish API stability and typed config before Phase 2
+* Follow [`ROADMAP.md`](ROADMAP.md) remaining V1 list; do not reopen domain design
 
 ---
 
 # Phase 2 — Desktop Client
 
-**Overall Status:** In progress
+**Overall Status:** Complete for the V1 product path
 
-The flagship Tauri desktop shell lives in `apps/desktop`. It launches, probes
-backend health/readiness, and exposes working product pages over the platform
-APIs. Milestone 31 established the official design system so new screens compose
-shared UI primitives.
+The flagship Tauri desktop client lives in `apps/desktop`. It launches, probes
+backend health/readiness, authenticates, and exposes working product pages over
+the platform APIs. Remaining items are packaging and operator-UX depth, not
+“build the first pages.”
 
 **Completed**
 
@@ -704,23 +750,23 @@ shared UI primitives.
 
 **In Progress**
 
-* Continuing to deepen page consistency on top of the design system
+* Release packaging and contributor-facing polish (not new product pages)
 
-**Remaining**
+**Remaining (V1 follow-up / packaging)**
 
 * Model management product depth beyond Settings selectors
-* Workspace management product depth beyond Settings
-* Indexing status surface
+* Workspace management product depth beyond Settings (members shipped in M43)
+* Indexing status surface beyond Documents processing lifecycle (M42)
+* Windows/macOS packaging matrix and signing
+* Native Tauri window automation (explicitly not V1)
 
 **Known Risks**
 
-* Building rich client pages before Phase 1 contracts stabilize creates rework
 * Desktop requires Rust and host linker tooling beyond Node/Python setup
 
 **Next Recommended Work**
 
-* Assemble new desktop surfaces exclusively from design-system primitives
-* Expand Documents ingestion UX and deepen semantic entity/concept extraction behind explorer labels
+* Keep live and mock smoke green; packaging matrices when cutting installers
 
 ---
 
@@ -768,7 +814,8 @@ and page consistency without changing backend behavior.
 
 Implemented the Connector Framework so external systems can import into the
 existing Documents pipeline through a shared registry and normalization
-contract. No concrete provider adapters or scheduled sync runners yet.
+contract. Filesystem Connector (Milestone 44) is the V1 production adapter.
+Scheduled sync / extra providers are **V2**.
 
 **Completed**
 
@@ -785,11 +832,10 @@ contract. No concrete provider adapters or scheduled sync runners yet.
 
 * None
 
-**Remaining**
+**Remaining (V2)**
 
-* Additional provider connectors beyond Filesystem (Milestone 44 shipped
-  filesystem; GitHub / Drive / Slack / Notion remain)
-* Scheduled synchronization runner
+* Additional provider connectors beyond Filesystem (GitHub / Drive / Slack / Notion)
+* Scheduled synchronization runner / filesystem watchers
 
 **Known Risks**
 
@@ -797,7 +843,7 @@ contract. No concrete provider adapters or scheduled sync runners yet.
 
 **Next Recommended Work**
 
-* Ship the next provider connector (e.g. GitHub) on this framework
+* Do not treat GitHub/Drive/Slack as V1; filesystem connector is the V1 adapter
 
 ---
 
@@ -1301,7 +1347,7 @@ folders import and sync through Documents — without a second ingestion pipelin
 
 **Next Recommended Work**
 
-* Implement the next provider on the same framework (e.g. GitHub)
+* Keep filesystem manual sync covered by tests; extra providers are V2
 
 ---
 
@@ -1351,8 +1397,9 @@ lightweight polymorphic resource metadata.
 **Overall Status:** Complete
 
 Subtractive cleanup before public V1. Removed unused packages and dead
-abstractions; collapsed auth session settings onto `memovi_config.AuthSettings`;
-froze unwired LLM tool-calling types without product claims.
+abstractions; collapsed auth session settings onto `memovi_config.AuthSettings`.
+Unwired LLM tool-calling types were left as type plumbing. Milestone 49 later
+**deleted** `ToolRegistry` / `ToolExecutor` (they are not frozen V1 architecture).
 
 **Completed**
 
@@ -1361,8 +1408,8 @@ froze unwired LLM tool-calling types without product claims.
   `StreamingReasoningProvider`
 * Deleted unused connector, auth, and memory event types that were never published
 * Auth session cookie name/TTL now read from typed `AuthSettings` (single source)
-* Froze `ToolRegistry` / `ToolExecutor` / Tool value objects as future LLM
-  tool-calling infrastructure (not on conversation Reason path)
+* Left `ToolCall` / `ToolResult` on `ReasoningResult` as unused plumbing (not a
+  live tool path). Registry/executor deletion is Milestone 49.
 * Documentation updated to match implementation (`STATUS`, `ROADMAP`,
   `ARCHITECTURE`, `README`, related architecture notes)
 
@@ -1542,7 +1589,10 @@ Tauri window automation was not introduced.
 
 # Phase 3 — Capability Framework
 
-**Overall Status:** In progress
+**Overall Status:** Complete for V1 (filesystem, terminal, git, browser + engine)
+
+Clipboard, notifications, and a plugin SDK are **V2**. Desktop policy settings
+UI is a V1 operator follow-up.
 
 **Completed**
 
@@ -1569,12 +1619,14 @@ Tauri window automation was not introduced.
 
 * None
 
-**Remaining**
+**Remaining (V2 unless noted)**
 
-* Concrete capabilities: Clipboard, Notifications
-* Desktop settings UI for capability permission policies
-* Plugin system / loading
-* Durable audit persistence
+* Concrete capabilities: Clipboard, Notifications (V2)
+* Plugin system / loading (V2)
+* Desktop settings UI for capability permission policies (V1 operator follow-up)
+
+Durable execution state and SQLAlchemy audit store exist; do not list “durable
+audit persistence” as missing architecture.
 
 **Known Risks**
 
@@ -1583,13 +1635,16 @@ Tauri window automation was not introduced.
 
 **Next Recommended Work**
 
-* Add the next concrete capability (Clipboard or Notifications) and durable audit storage
+* Optional: capability policy settings UI during operator-UX polish
+* Do not add Clipboard/Notifications/plugins as V1 blockers
 
 ---
 
 # Phase 4 — Automation
 
-**Overall Status:** In progress
+**Overall Status:** Complete for V1 sequential workflows (approval/resume shipped)
+
+Background schedules, conditionals/loops, and a plugin marketplace are **V2**.
 
 **Completed**
 
@@ -1604,11 +1659,11 @@ Tauri window automation was not introduced.
 
 * None
 
-**Remaining**
+**Remaining (V2 / operator follow-up)**
 
-* Durable approval/settings UX
-* Background jobs / scheduled workflows
-* Conditional/loop/parallel workflow features
+* Durable approval/settings UX depth (engine approval already ships)
+* Background jobs / scheduled workflows (V2)
+* Conditional/loop/parallel workflow features (V2)
 
 **Known Risks**
 
@@ -1622,7 +1677,7 @@ Tauri window automation was not introduced.
 
 # Phase 5 — Knowledge Evolution
 
-**Overall Status:** Not started
+**Overall Status:** Not started (**V2 / future**)
 
 **Completed**
 
@@ -1652,7 +1707,7 @@ Tauri window automation was not introduced.
 
 # Phase 6 — Ecosystem
 
-**Overall Status:** Not started
+**Overall Status:** Not started (**V2 / future**; optional web shell exists only)
 
 **Completed**
 
@@ -1688,4 +1743,5 @@ When implementation changes:
 2. Refresh Overall Status and the short summary
 3. Update Known Risks and Next Recommended Work
 4. Keep [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md) focused on direction, not progress
-5. Keep Milestones 0–6 as the platform foundation; use Phases 1–6 for forward work
+5. Keep Milestones 0–6 as historical platform foundation; the **Current V1**
+   snapshot at the top is the source of “what is unfinished for V1.”

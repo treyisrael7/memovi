@@ -1,6 +1,18 @@
 # Memovi Roadmap V2
 
-The long-term engineering vision for Memovi.
+The long-term engineering vision for Memovi. This file is **not** the V1
+to-do list.
+
+**V1 (0.1.0 pre-alpha / public-development):** core product path is implemented.
+See [`ROADMAP.md`](ROADMAP.md) for remaining **release hardening** and
+[`STATUS.md`](STATUS.md) for current engineering status.
+
+**This companion** keeps deferred capabilities: extra connectors, OCR, knowledge
+graph, episodic/procedural memory, multi-agent systems, distributed workers,
+plugin SDK, hosted/ecosystem products. Do not promote those into V1.
+
+Redis is **not used in V1**. `ToolRegistry` / `ToolExecutor` are **removed**;
+V1 host execution is Capabilities → Planner → Execution Engine → Workflow Engine.
 
 ---
 
@@ -76,9 +88,13 @@ Knowledge Operating System
 Ecosystem
 ```
 
-This is the intended product evolution: finish the reusable backend, ship the
-desktop OS, unlock environment capabilities, automate safely, deepen knowledge
-reuse, then grow optional clients and deployment models.
+This is the intended **long-term** product evolution. The reusable backend,
+desktop OS, environment capabilities, and sequential approved automation are
+**already in V1**. Remaining items on this file (OCR, extra connectors, graph,
+plugins, ecosystem hosting) stay future.
+
+The V1 remaining list is release hardening in [`ROADMAP.md`](ROADMAP.md), not
+rebuilding platform/desktop/capabilities.
 
 ---
 
@@ -356,6 +372,10 @@ Future work, ordered from platform completion to ecosystem.
 
 ## Phase 1 — Complete V1 Platform
 
+**V1 status:** product path **delivered**. Leftover bullets below that are not
+in the V1 remaining-hardening list are **V2 polish** (query planning, caches,
+summaries, extra API versioning).
+
 **Objective**
 
 Finish a production-ready V1 backend that any client can trust.
@@ -381,6 +401,9 @@ Finish a production-ready V1 backend that any client can trust.
 
 ## Phase 2 — Desktop Client
 
+**V1 status:** flagship desktop **delivered**. Remaining packaging/signing and
+operator-UX depth live on [`ROADMAP.md`](ROADMAP.md), not “build the client.”
+
 **Objective**
 
 Ship the flagship native desktop knowledge OS.
@@ -404,6 +427,9 @@ Ship the flagship native desktop knowledge OS.
 ---
 
 ## Phase 3 — Capability Framework
+
+**V1 status:** filesystem, terminal, git, browser, and execution engine
+**delivered**. Clipboard, notifications, and plugin system remain **V2**.
 
 **Objective**
 
@@ -432,6 +458,9 @@ Expose controlled desktop capabilities through a permissioned framework.
 
 ## Phase 4 — Automation
 
+**V1 status:** sequential workflows with approval/resume **delivered**.
+Background jobs, conditionals, and agents remain **V2**.
+
 **Objective**
 
 Orchestrate capabilities into approved, observable automation.
@@ -455,6 +484,9 @@ Orchestrate capabilities into approved, observable automation.
 
 ## Phase 5 — Knowledge Evolution
 
+**V2 / future** (OCR, graph, summaries, long-term/episodic/procedural memory,
+reasoning cache — not V1).
+
 **Objective**
 
 Evolve memory so the operating system becomes inference-efficient over time.
@@ -476,6 +508,9 @@ Evolve memory so the operating system becomes inference-efficient over time.
 ---
 
 ## Phase 6 — Ecosystem
+
+**V2 / future** (optional web product, mobile, cloud sync, enterprise, connector
+marketplace). The `apps/web` shell is not a V1 product.
 
 **Objective**
 

@@ -21,6 +21,25 @@ AI is an expensive computational resource. It should run only when cheaper layer
 
 ---
 
+# Current position (V1)
+
+The **core V1 product path is implemented** (0.1.0 pre-alpha / public-development).
+Milestones 0–6 and Phases 1–4 below describe **how the product was built**. They
+are not a to-do list to start the architecture over.
+
+**Completed:** platform API, desktop product UI, knowledge pipeline (upload /
+filesystem connector → process → memory → search → RAG chat), capabilities and
+sequential workflows with approval, Postgres + MinIO.
+
+**Remaining V1 is release hardening**, not core architecture construction. See
+the list after Phase 4.
+
+**V2 / future** stays in Phases 5–6 and [`ROADMAP_V2.md`](ROADMAP_V2.md): OCR,
+extra connectors, knowledge graph, plugins, distributed workers, Redis (not used
+in V1), hosted/ecosystem products.
+
+---
+
 # Guiding Principles
 
 * **Desktop-first** — the flagship product surface is a native desktop client.
@@ -127,10 +146,10 @@ Example progression:
 
 ---
 
-# Platform Foundation
+# Platform Foundation (historical — delivered)
 
-Completed and in-progress platform milestones. These are not reopened for redesign;
-remaining gaps are finished under Phase 1.
+Completed platform milestones. Do not reopen them to “build V1.” Remaining gaps
+are either V2 or listed under Remaining V1 (release hardening).
 
 ## Milestone 0 — Foundation
 
@@ -280,114 +299,77 @@ Enable controlled reasoning over retrieved knowledge.
 
 # Forward Roadmap
 
-Future work after the platform foundation. Ordered from platform completion to
-product, capabilities, automation, knowledge evolution, and ecosystem.
+Phases 1–4 delivered the V1 product path. Remaining V1 work is **release
+hardening**. Phases 5–6 are **V2 / future**.
 
 ---
 
-## Phase 1 — Complete V1 Platform
+## Remaining V1 — Release hardening
 
-**Objective**
+Not a new architecture. Verify against [`STATUS.md`](STATUS.md) Current V1.
 
-Finish a production-ready, client-agnostic V1 backend platform.
+* OSS process files (SECURITY, code of conduct, GitHub templates) — not started
+* Contributor/operator experience after README and architecture truth passes
+* CI honesty: coverage `fail_under=80` unused; pytest empty-suite still success
+* Reasoning provider enum vs registered adapters (`fake` / `openai` only)
+* Linux packaging exists in CI; Windows/macOS matrices and signing do not
+* GitHub Release / tag automation does not exist
+* Operator UX: capability permission settings UI; deeper model / workspace /
+  indexing-status product surfaces
+* Architecture boundary tests (optional follow-up)
 
-**Primary Deliverables**
-
-* Documents — complete ingestion reliability and operator visibility
-* Memory — durable knowledge organization foundations
-* Search — stable retrieval contracts and quality hardening
-* Intelligence — production-ready conversation and reasoning APIs
-* Ownership — workspace isolation delivered; auth membership and audit remain
-* Observability — logging, metrics, and traces that explain cost and failure
-* Production hardening — resilience, backups, worker maturity
-* API stability — versioned, documented contracts for clients
-
-**Success Criteria**
-
-* Desktop and other clients can build against a stable API.
-* Knowledge pipeline is operable without UI-specific assumptions.
-* Operators can explain failures and latency from telemetry.
+Do **not** treat as remaining V1: OCR, GitHub/Gmail/Drive/Slack/Notion connectors,
+knowledge graph, plugin SDK, Redis, distributed workers, multi-agent systems,
+desktop/chat/capabilities “not built.”
 
 ---
 
-## Phase 2 — Desktop Client
+## Phase 1 — Complete V1 Platform — **Completed**
 
-**Objective**
+**Objective (historical):** a client-agnostic V1 backend.
 
-Ship the flagship desktop knowledge OS on the V1 platform API.
+**Delivered:** Documents, Memory, Search, Intelligence, workspace ownership,
+observability foundation, typed config, durable processing queue.
 
-**Primary Deliverables**
-
-* Native desktop application (`apps/desktop` Tauri shell foundation shipped)
-* Design system / UX foundation (tokens, shared components, interaction standards)
-* Conversation UI
-* Knowledge Explorer (read-only inspection of memory)
-* Collections (delivered; see Milestone 33)
-* Settings
-* Model management
-* Workspace management
-* Indexing status
-
-**Success Criteria**
-
-* Desktop is clearly the primary product surface.
-* UX consumes platform APIs; business logic stays in backend domains.
-* Screens share one visual language and reusable UI primitives.
-* Local-model and filesystem-oriented UX is possible without backend redesign.
+**Not remaining V1:** extra retrieval intelligence (query planning, caches,
+summaries) — **V2**.
 
 ---
 
-## Phase 3 — Capability Framework
+## Phase 2 — Desktop Client — **Completed**
 
-**Objective**
+**Objective (historical):** ship the flagship desktop knowledge OS.
 
-Give the desktop OS safe, permissioned access to the user’s environment.
+**Delivered:** Tauri + React product UI (home, chat, knowledge, collections,
+documents, search, connectors, workflows, tags, activity, settings), design
+system, session auth, processing-status UX, mock + live API smoke.
 
-**Primary Deliverables**
-
-* Capability Framework foundation (`packages/automation`)
-* Filesystem (read + write capability shipped)
-* Terminal (capability shipped through Execution Engine)
-* Git (structured capability shipped through Execution Engine)
-* Browser (structured capability shipped through Execution Engine)
-* Clipboard
-* Notifications
-* Plugin system
-* Permission model (engine enforcement + approval UX shipped; durable settings UI next)
-
-**Success Criteria**
-
-* Capabilities are explicit, auditable, and permissioned.
-* Plugins cannot bypass knowledge or ownership boundaries.
-* The backend remains the source of durable knowledge truth.
-* Intelligence discovers capabilities through the registry; capabilities remain provider-agnostic.
+**Remaining V1:** packaging matrices / signing, operator UX depth — not “build
+chat/documents/settings.”
 
 ---
 
-## Phase 4 — Automation
+## Phase 3 — Capability Framework — **Completed for V1**
 
-**Objective**
+**Delivered:** Capability Framework, filesystem, terminal, git, browser,
+execution engine, approval, durable execution state.
 
-Compose capabilities into safe, user-approved automation on top of knowledge.
+**V2:** Clipboard, Notifications, plugin system.
 
-**Primary Deliverables**
-
-* Safe execution (Capability Execution Engine shipped)
-* Approval workflow (engine Ask Every Time shipped; durable settings UI next)
-* Capability Planner (deterministic plan/validate shipped; execute via engine)
-* Task orchestration (Workflow Automation Framework shipped — sequential reusable workflows)
-* Background jobs
-* Capability composition (planner + engine + workflow path shipped; conditionals/loops next)
-
-**Success Criteria**
-
-* Automation runs only with clear approval and provenance.
-* Tasks compose capabilities without inventing parallel knowledge stores.
-* Background work is observable and interruptible.
+**V1 follow-up:** desktop policy settings UI.
 
 ---
 
-## Phase 5 — Knowledge Evolution
+## Phase 4 — Automation — **Completed for V1 sequential workflows**
+
+**Delivered:** planner, execution engine, workflow engine, desktop workflows,
+approval/resume, durable library/history.
+
+**V2:** background/scheduled runners, conditionals/loops/parallelism, agents.
+
+---
+
+## Phase 5 — Knowledge Evolution — **V2 / future**
 
 **Objective**
 

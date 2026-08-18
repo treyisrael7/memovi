@@ -1,8 +1,17 @@
 # Memovi Engineering Snapshot
 
-Handoff document for a principal engineer or AI assistant.
-Generated from repository inspection. No speculative claims.
-If something is not present in the repository, it is stated as absent.
+Handoff document originally generated from repository inspection.
+
+**Current status (2026-08-17):** this file is a **historical engineering
+notebook**, not the live “what is unfinished for V1” tracker. Use
+[`STATUS.md`](STATUS.md) (Current V1 snapshot) and [`ROADMAP.md`](ROADMAP.md)
+(release hardening). [`ARCHITECTURE.md`](ARCHITECTURE.md) is the V1 vs V2
+blueprint.
+
+Do not treat sections 13–16 below as current if they conflict with STATUS.
+Qualitative current picture: the Tauri desktop client contains the primary
+product UI; the FastAPI monolith runs the knowledge pipeline, RAG chat,
+capabilities, and workflows against PostgreSQL and MinIO.
 
 Companion documents:
 
@@ -580,11 +589,14 @@ Registered in `apps/api/src/api/routers.py`: auth, documents, conversations (int
 | GET | `/health` | none | `{"status":"healthy"}` | liveness |
 | GET | `/ready` | none | component readiness aggregate | database, vector_search, embedding_provider, migrations, workspace, search_readiness |
 
-## Not exposed
+## HTTP surface (qualitative)
 
-* Memory `/memory` router — no endpoints; not registered
-* Documents get/list queries — exist as application queries, no routes
-* Streaming and WebSocket endpoints — do not exist
+The API registers auth, documents (including get/list), memory explorer reads,
+search, conversations (including SSE), capabilities, workflows, connectors,
+workspaces, collections, tags, health, and ready. Treat this snapshot’s older
+route inventories as historical unless they match `apps/api` today.
+
+Conversation SSE exists. WebSockets are not a V1 product path.
 
 ---
 
@@ -984,7 +996,7 @@ Scaffold packages have no meaningful test suites beyond empty/test placeholders 
 * Documents: ingest, processors, process command, background worker
 * Memory: chunking, materializer, repositories, queries, DTOs
 * Search: retrieval engine, keyword/semantic, RRF, APIs, materialize, embeddings, handlers
-* Intelligence: domain VOs/entities, Reason, context/prompt, gateway, providers, conversation memory, Conversation API/acceptance, tools, execution traces
+* Intelligence: domain VOs/entities, Reason, context/prompt, gateway, providers, conversation memory, Conversation API/acceptance, execution traces
 * API integration: knowledge materialization → search indexing → embeddings; search filter/FTS/semantic/hybrid paths
 
 ## Testing philosophy (observed)
@@ -995,15 +1007,16 @@ Scaffold packages have no meaningful test suites beyond empty/test placeholders 
 * FastAPI `TestClient` for HTTP contract tests
 * Architecture tests for package boundaries: **do not exist**
 
-## Missing coverage (factual gaps)
+## Missing coverage (do not use as current feature list)
 
-* Ownership enforcement on knowledge APIs (feature absent)
-* Tool framework integration into Reason path (feature absent)
-* Real embedding providers wired through configuration (`openai`, `ollama`, `sentence_transformer`)
-* Memory HTTP API (no routes)
-* Desktop client / optional web product UI (web shell only today)
-* Architecture boundary tests
-* Observability/metrics tests (package empty)
+These bullets mixed **absent tests** with **absent features**. As of 2026-08-17:
+
+* Ownership, Memory HTTP, embedding providers, desktop product UI, and
+  observability tests **exist**. Do not claim they are missing.
+* Architecture boundary tests still **do not exist** (optional V1 follow-up).
+* Intelligence `ToolRegistry` / `ToolExecutor` were **removed**; unused
+  `tool_calls` / `tool_results` on `ReasoningResult` are type plumbing only.
+* OCR, knowledge graph, and extra connectors remain **V2**, not missing V1 tests.
 
 ---
 
@@ -1025,31 +1038,32 @@ Outstanding work is tracked narratively in [`STATUS.md`](STATUS.md), not via in-
 
 # 13 Roadmap Progress
 
-Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), using repository facts and [`STATUS.md`](STATUS.md).
+**Superseded by [`STATUS.md`](STATUS.md) Current V1 and [`ROADMAP.md`](ROADMAP.md).**
+The table below is kept only as a record of an earlier inspection.
 
 ## Platform foundation (Milestones 0–6)
 
-| Milestone | Status | Evidence |
+| Milestone | Current reading | Notes |
 |-----------|--------|----------|
-| 0 Foundation | **Complete** | Workspaces, Compose, CI, tooling, docs present |
-| 1 Platform | **In Progress** | Composition root/routers/observability/typed config done; architecture tests incomplete |
-| 2 Identity & Ownership | **In Progress** | Auth complete; ownership on knowledge APIs and audit logging absent |
-| 3 Knowledge Ingestion | **In Progress** | Upload, MinIO, worker, processing, chunk handoff done; OCR and connector intake absent |
-| 4 Knowledge Platform | **In Progress** | Memory materialization exists; collections/tags/relationships/public Memory API absent |
-| 5 Retrieval Intelligence | **In Progress** | Keyword/semantic/hybrid/filters/APIs done; query planning, cache/summary lookup, learned rerank absent |
-| 6 Reasoning Engine | **In Progress** | Reason pipeline, Conversation API, Search wiring, durable chats done; desktop UX deferred to Phase 2 |
+| 0 Foundation | Complete | |
+| 1 Platform | Complete for V1 | Architecture tests still absent (follow-up) |
+| 2 Identity & Ownership | Complete | Member APIs + membership audit in M43 |
+| 3 Knowledge Ingestion | Complete for V1 | OCR / extra connectors = V2 |
+| 4 Knowledge Platform | Complete for V1 | Graph / version history = V2 |
+| 5 Retrieval Intelligence | Complete for V1 | Query planning / caches = V2 |
+| 6 Reasoning Engine | Complete for V1 | Desktop Chat ships; summaries = V2 |
 
 ## Forward roadmap (Phases 1–6)
 
-| Phase | Status | Evidence |
+| Phase | Current reading | Notes |
 |-------|--------|----------|
-| 1 Complete V1 Platform | **In Progress** | Core pipeline + ownership + observability foundation exist; hardening and API stability remain |
-| 2 Desktop Client | **In Progress** | Tauri shell foundation in `apps/desktop`; product pages not built yet |
-| 3 Capability Framework | **In Progress** | Framework + read-only FilesystemCapability; terminal/git/plugins/approval UX remain |
-| Model Provider Framework (M17) | **Removed (M46)** | Unused `packages/models` deleted; live path is Intelligence `ModelGateway` |
-| 4 Automation | **Not Started** | No approval workflow or capability orchestration product path |
-| 5 Knowledge Evolution | **Not Started** | Summaries, long-term memory, graph, reasoning cache absent |
-| 6 Ecosystem | **Not Started** | Optional web/mobile, cloud sync, enterprise, connector marketplace absent |
+| 1 Complete V1 Platform | Complete (path) | Remaining = release hardening |
+| 2 Desktop Client | Complete (product UI) | Packaging / operator UX remain |
+| 3 Capability Framework | Complete for V1 | Plugins/clipboard = V2 |
+| Model Provider Framework (M17) | Removed (M46) | Live path is Intelligence `ModelGateway` |
+| 4 Automation | Complete for V1 sequential workflows | Schedules/conditionals = V2 |
+| 5 Knowledge Evolution | Not started | V2 |
+| 6 Ecosystem | Not started | Optional web shell only; V2 |
 
 ---
 
@@ -1057,7 +1071,7 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 
 ## Known compromises
 
-* Embedding dimension hard-coded to **4** for fake/local vector path
+* pgvector column size is fixed (`vector(384)`); fake embeddings match that size
 * Production embedding providers are config-selected at the API composition root
 * Document processing queue is durable in Postgres (`SqlAlchemyProcessingJobQueue`)
 * Event bus is in-process only
@@ -1070,22 +1084,20 @@ Compared against [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP_V2.md`](ROADMAP_V2.md), 
 * `FakeKnowledgeRetriever` / `FakeReasoningProvider` for isolated intelligence tests
 * `NoOpEventPublisher` / collecting publishers in documents package tests
 
-## Planned / implied refactors (from docs/status, not unfinished code branches)
+## Planned / implied refactors
 
-* Ownership context on knowledge APIs
-* Architecture boundary tests
-* Live smoke coverage against hosted OpenAI / Ollama outside default CI
+* Architecture boundary tests (optional)
+* Optional live smoke against hosted OpenAI / Ollama outside default CI
 * Optional removal of unused `ReasoningResult.tool_calls` / `tool_results` type plumbing
+* Reject unregistered `INTELLIGENCE_PROVIDER` names at startup (runtime follow-up)
 
-## Missing production features
+## Not V1 (do not list as missing V1 product)
 
 * OCR
 * Additional connector providers beyond filesystem
-* Desktop realtime channels / streaming polish
-* AI summaries
+* AI summaries as a pipeline
 * Knowledge graph
-* Architecture tests
-* Redis-backed queues (Redis is not used in V1; distributed queues remain a future option)
+* Redis-backed queues (Redis is **not used in V1**)
 
 ---
 
@@ -1112,26 +1124,25 @@ Enforced by package layout, ports, and composition practices:
 
 ## Current State of Memovi
 
-Memovi is a desktop-first knowledge operating system built as a modular-monolith
-Python/FastAPI backend platform. An optional web client shell exists; the
-flagship desktop shell exists in `apps/desktop`; product pages are not built yet.
+Memovi is a desktop-first knowledge operating system on a FastAPI modular
+monolith. The flagship Tauri desktop client contains the primary product UI.
+An optional web client **shell** exists; it is not the product.
 
 Implemented vertical slices:
 
-1. **Local auth** — register/login/logout/me with SQLAlchemy sessions and Argon2id.
-2. **Document ingestion** — multipart upload to MinIO, durable processing queue, background worker, PDF/Markdown/text processing, normalized content.
-3. **Memory materialization** — on `ProcessingCompleted`, create knowledge items and chunks.
-4. **Search indexing and retrieval** — search documents, PostgreSQL FTS, pgvector embeddings (dim 4 + fake provider in composition), hybrid RRF retrieval API.
-5. **Intelligence foundation** — Reason pipeline, conversation memory, Conversation REST API, execution traces, fake/OpenAI providers. Host actions use Capabilities, not an Intelligence tool stack.
+1. **Local auth and workspaces** — sessions, membership APIs, membership audit.
+2. **Document ingestion** — MinIO, durable Postgres job queue, in-process worker,
+   PDF/Markdown/text.
+3. **Memory** — materialization, collections, tags, explorer read APIs.
+4. **Search** — keyword / semantic / hybrid, pgvector embeddings (schema 384).
+5. **Intelligence** — Reason pipeline, durable conversations, citations, fake and
+   OpenAI reasoning. Host actions use Capabilities (planner, execution engine,
+   workflows) — not `ToolRegistry` / `ToolExecutor` (removed).
+6. **Connectors** — filesystem folder import with manual sync.
 
-Composition root (`apps/api`) owns cross-domain event wiring and adapters. Domain packages do not import each other. Clients attach at the API boundary.
+**Not V1:** OCR, extra cloud connectors, knowledge graph, plugin SDK, Redis,
+distributed workers.
 
-Not implemented:
-
-* OCR
-* Additional connector providers beyond filesystem
-* Knowledge graph
-* Optional live embedding provider smoke jobs
-* Architecture boundary tests
-
-The knowledge pipeline from upload through hybrid search is operational for local development. Conversation reasoning is closed-loop with Search-backed retrieval and durable SQLAlchemy conversation persistence at the composition root. The flagship desktop shell in `apps/desktop` consumes that API.
+The knowledge pipeline from upload through hybrid search and cited chat is
+operational locally. Live desktop smoke covers that path against real FastAPI,
+Postgres, and MinIO.
