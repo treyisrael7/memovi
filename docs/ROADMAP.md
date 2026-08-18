@@ -310,8 +310,7 @@ Not a new architecture. Verify against [`STATUS.md`](STATUS.md) Current V1.
 
 * OSS process files (SECURITY, code of conduct, GitHub templates) — not started
 * Contributor/operator experience after README and architecture truth passes
-* CI honesty: coverage `fail_under=80` unused; pytest empty-suite still success
-* Reasoning provider enum vs registered adapters (`fake` / `openai` only)
+* Coverage floor is enforced at 80%; application coverage last measured at 78%
 * Linux packaging exists in CI; Windows/macOS matrices and signing do not
 * GitHub Release / tag automation does not exist
 * Operator UX: capability permission settings UI; deeper model / workspace /

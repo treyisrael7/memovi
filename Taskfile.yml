@@ -190,13 +190,9 @@ tasks:
       - uv run python scripts/ci_mypy.py
 
   backend:test:
-    desc: Run Pytest when tests exist.
+    desc: Run Pytest (fails if no tests are collected).
     cmds:
-      - >-
-        python -c "import subprocess, sys;
-        status = subprocess.call(['uv', 'run', 'pytest']);
-        print('No tests collected; treating empty test suite as valid for the initial workspace.') if status == 5 else None;
-        sys.exit(0 if status == 5 else status)"
+      - uv run pytest
 
   frontend:lint:
     desc: Run ESLint for the web app.
@@ -226,7 +222,7 @@ tasks:
   # ---------------------------------------------------------------------------
   # CI parity — run before considering a milestone finished.
   # Mirrors .github/workflows/{backend,desktop,frontend}.yml (excluding the
-  # Linux-only Tauri packaging job).
+  # Linux-only Tauri packaging job). Backend includes the coverage floor.
   # ---------------------------------------------------------------------------
   ci:
     desc: Run the full local CI suite (backend + desktop + frontend).
@@ -236,7 +232,7 @@ tasks:
       - task: ci:frontend
 
   ci:backend:
-    desc: Backend CI parity (Ruff, Black, MyPy, Pytest).
+    desc: Backend CI parity (Ruff, Black, MyPy, Pytest, coverage floor).
     deps:
       - docker-up
     env:
@@ -252,11 +248,8 @@ tasks:
       - uv run ruff check .
       - uv run black --check .
       - uv run python scripts/ci_mypy.py
-      - >-
-        python -c "import subprocess, sys;
-        status = subprocess.call(['uv', 'run', 'pytest']);
-        print('No tests collected; treating empty test suite as valid.') if status == 5 else None;
-        sys.exit(0 if status == 5 else status)"
+      - uv run coverage run -m pytest
+      - uv run coverage report
 
   ci:desktop:
     desc: Desktop CI parity (typecheck, unit, smoke, Vite build).

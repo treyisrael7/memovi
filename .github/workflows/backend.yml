@@ -72,15 +72,7 @@ jobs:
           POSTGRES_DB: memovi
           POSTGRES_USER: memovi_app
           POSTGRES_PASSWORD: memovi_local_pg_9f4c8e2d7a6b41c3
-        run: |
-          set +e
-          uv run pytest
-          status=$?
-          set -e
+        run: uv run coverage run -m pytest
 
-          if [ "$status" -eq 5 ]; then
-            echo "No tests collected; treating empty test suite as valid for the initial workspace."
-            exit 0
-          fi
-
-          exit "$status"
+      - name: Coverage
+        run: uv run coverage report

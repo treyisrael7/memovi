@@ -194,19 +194,24 @@ filterwarnings = [
 [tool.coverage.run]
 branch = true
 source = [
-    ".",
+    "apps/api/src",
+    "packages",
 ]
 omit = [
-    ".venv/*",
-    "build/*",
-    "dist/*",
-    "docs/*",
+    "*/tests/*",
+    "*/scripts/*",
+    "database/*",
 ]
 
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
 fail_under = 80
+omit = [
+    "*/tests/*",
+    "*/scripts/*",
+    "database/*",
+]
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",

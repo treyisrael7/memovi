@@ -35,10 +35,8 @@ in V1**.
 
 * OSS process files (SECURITY, code of conduct, issue/PR templates) — separate PR
 * Contributor / operator docs polish after README + architecture truth passes
-* CI honesty: coverage `fail_under=80` is not enforced; empty pytest suite still
-  treated as success
-* Reasoning provider config enums accept names without live adapters (`anthropic`,
-  `ollama`, `gemini`) — documented; startup still only registers `fake` / `openai`
+* Coverage floor is enforced at 80% on application sources; last measured total
+  is **78%** (raise with real tests, do not lower the number)
 * Linux Tauri packaging in CI; Windows/macOS packaging matrix and signing not done
 * No GitHub Release / tag automation
 * Operator UX follow-ups: capability permission settings UI, deeper model /
@@ -301,7 +299,9 @@ Desktop Chat consumes that API. AI summaries as a knowledge pipeline are **V2**.
 
 **Known Risks**
 
-* `INTELLIGENCE_PROVIDER` may name reserved providers that are not registered
+* Reserved `ReasoningProviderKind` names (`anthropic`, `ollama`, `gemini`) are
+  not live adapters. V1 `INTELLIGENCE_PROVIDER` accepts only `fake` and `openai`;
+  other values fail configuration validation at startup.
 
 **Next Recommended Work**
 
@@ -984,6 +984,9 @@ startup fail-fast checks live there. Domain `from_env()` helpers delegate to
   readiness environment reads onto `memovi_config`
 * Configuration validation tests (valid, missing required, invalid enums/URLs/numbers)
 * `docs/architecture/CONFIGURATION.md` and `.env.example` updates
+* V1 reasoning allow-list: `INTELLIGENCE_PROVIDER` accepts only `fake` and
+  `openai`; reserved/future names and arbitrary strings fail `ConfigurationError`
+  at startup. Embedding providers (`SEARCH_EMBEDDING_PROVIDER`) are unchanged.
 
 **In Progress**
 

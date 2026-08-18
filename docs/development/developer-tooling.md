@@ -32,6 +32,10 @@ task dev
 
 The top-level tasks compose smaller backend and optional web-workspace tasks instead of duplicating command logic. For example, `task lint` runs `task backend:lint` and `task frontend:lint`.
 
+`task test` runs pytest only. `task ci:backend` also runs `coverage report`, which
+reads `fail_under = 80` from `pyproject.toml`. An empty pytest collection is a
+failure (pytest exit code 5).
+
 ## Installation Details
 
 `task setup` installs Python dependencies, optional web-workspace dependencies, and Git hooks.

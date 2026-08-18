@@ -29,7 +29,9 @@ Environment variables: [`architecture/CONFIGURATION.md`](architecture/CONFIGURAT
 
 ## Tests
 
-* Backend unit/integration: `task test` (or `task ci:backend`).
+* Backend unit/integration: `task test`. Empty collection fails (pytest exit code 5).
+* Backend CI parity: `task ci:backend` — Ruff, Black, MyPy, pytest under
+  `coverage`, then `coverage report` using `fail_under = 80` in `pyproject.toml`.
 * Desktop unit + mock smoke: `task desktop:test`.
 * Mock desktop smoke only: `task desktop:smoke` (in-memory API stub; no FastAPI).
 * Live desktop/API smoke: `task desktop:smoke:live` — real FastAPI, Postgres, and

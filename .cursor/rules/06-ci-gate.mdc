@@ -11,7 +11,7 @@ Do not declare a milestone, feature, or substantial change finished until the fu
 
 Run `task ci` before considering milestone work done. This mirrors GitHub Actions:
 
-- Backend: Ruff, Black, MyPy, Pytest (`ci:backend`)
+- Backend: Ruff, Black, MyPy, Pytest, coverage floor (`ci:backend`)
 - Desktop: typecheck, unit, smoke, Vite build (`ci:desktop`)
 - Frontend: lint, typecheck, build (`ci:frontend`)
 

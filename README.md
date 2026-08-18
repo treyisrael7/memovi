@@ -214,11 +214,12 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
 
 | Check | Command | What it proves |
 | --- | --- | --- |
-| Backend unit/integration | `task test` or `task ci:backend` | Python tests (needs Postgres for suites that use it) |
+| Backend unit/integration | `task test` | Pytest (fails if no tests are collected; needs Postgres for suites that use it) |
+| Backend CI parity | `task ci:backend` | Ruff, Black, MyPy, pytest, and the 80% coverage floor |
 | Desktop unit + mock smoke | `task desktop:test` | Desktop unit tests and mock-backend critical path |
 | Mock desktop smoke only | `task desktop:smoke` | Critical UI path against an in-memory API stub |
 | Live desktop/API smoke | `task desktop:smoke:live` | Same React shell against real FastAPI + Postgres + MinIO |
-| Local CI parity | `task ci` | Backend lint/types/tests + desktop typecheck/unit/mock smoke/Vite build + optional web lint/types/build |
+| Local CI parity | `task ci` | Backend lint/types/tests/coverage + desktop typecheck/unit/mock smoke/Vite build + optional web lint/types/build |
 
 `task ci` does **not** run live smoke, does **not** launch a native Tauri
 window, and does **not** run Tauri packaging. Linux Tauri packaging runs in
@@ -256,7 +257,7 @@ Desktop testing details: [`docs/testing/DESKTOP_TESTING.md`](docs/testing/DESKTO
 - `task db:migrate` — start PostgreSQL if needed and apply Alembic migrations
 - `task desktop` — start the Tauri desktop client
 - `task docker-up` / `task docker-down` — start/stop Postgres and MinIO
-- `task test` — backend pytest
+- `task test` — backend pytest (no coverage floor; fails if no tests are collected)
 - `task desktop:test` / `task desktop:smoke` / `task desktop:smoke:live`
 - `task desktop:check` — desktop typecheck, tests (unit + mock smoke), Vite build
 - `task ci` / `task ci:backend` / `task ci:desktop` / `task ci:frontend`
