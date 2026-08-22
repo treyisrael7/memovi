@@ -17,6 +17,8 @@ This README is the developer entry point.
 
 * License: [`LICENSE`](LICENSE) (MIT)
 * Contributing: [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)
+* Security: [`SECURITY.md`](SECURITY.md)
+* Code of conduct: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
 * Product direction: [`docs/PRODUCT_VISION.md`](docs/PRODUCT_VISION.md)
 * Documentation hub: [`docs/README.md`](docs/README.md)
 * Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)

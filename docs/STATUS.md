@@ -1,8 +1,8 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-17 (status
-reconciliation against shipped V1).
+system on a reusable backend platform. Last reviewed: 2026-08-22 (OSS process
+files marked delivered; they landed in-tree after the 2026-08-17 snapshot).
 
 * [`README.md`](../README.md) — public 0.1.0 pre-alpha / public-development entry
 * [`ARCHITECTURE.md`](ARCHITECTURE.md) — current V1 vs future / V2
@@ -24,7 +24,8 @@ in-process processing worker, Memory / Collections / Tags, keyword-semantic-hybr
 search and embeddings, RAG conversations with citations, Capability Framework +
 planner + execution engine + workflows (approval/resume), filesystem connector
 (manual sync), desktop product UI, observability/logging/ready, Postgres +
-MinIO, fake + OpenAI reasoning, configurable embeddings, live desktop/API smoke.
+MinIO, fake + OpenAI reasoning, configurable embeddings, live desktop/API smoke,
+OSS process files (`SECURITY.md`, `CODE_OF_CONDUCT.md`, GitHub issue/PR templates).
 
 **V1 host execution model:** Capabilities → Planner → Execution Engine →
 Workflow Engine. `ToolRegistry` / `ToolExecutor` are **removed** (Milestone 49).
@@ -33,7 +34,6 @@ in V1**.
 
 **Remaining V1 (release hardening, not new architecture):**
 
-* OSS process files (SECURITY, code of conduct, issue/PR templates) — separate PR
 * Contributor / operator docs polish after README + architecture truth passes
 * Coverage floor is enforced at 80% on application sources; last measured total
   is **78%** (raise with real tests, do not lower the number)
@@ -702,8 +702,8 @@ Remaining work is public-release quality, not rebuilding the platform.
 
 **Remaining (hardening, not core build)**
 
-* Coverage gate decision, packaging matrices, OSS process files, operator UX
-  depth, optional architecture boundary tests
+* Coverage gate decision, packaging matrices, operator UX depth, optional
+  architecture boundary tests
 
 **Known Risks**
 
