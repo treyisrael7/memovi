@@ -71,7 +71,7 @@ _DEFAULT_DENIED_ARGUMENT_PATTERNS: tuple[str, ...] = (
     r"(?i)\bapi[_-]?key=",
 )
 
-_SHELL_METACHAR_RE = re.compile(r"[|&;<>`$(){}\n]|\s&&\s|\s\|\|\s")
+_SHELL_METACHAR_RE = re.compile(r"[%|&;<>`$(){}\n]|\s&&\s|\s\|\|\s")
 
 
 class CommandPolicyEffect(StrEnum):

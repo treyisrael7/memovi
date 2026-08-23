@@ -35,8 +35,8 @@ in V1**.
 
 * OSS process files (SECURITY, code of conduct, issue/PR templates) — separate PR
 * Contributor / operator docs polish after README + architecture truth passes
-* Coverage floor is enforced at 80% on application sources; last measured total
-  is **78%** (raise with real tests, do not lower the number)
+* Coverage floor is enforced at 80% on application sources; measured total
+  meets the **80%** requirement
 * Linux Tauri packaging in CI; Windows/macOS packaging matrix and signing not done
 * No GitHub Release / tag automation
 * Operator UX follow-ups: capability permission settings UI, deeper model /

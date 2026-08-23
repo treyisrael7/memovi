@@ -157,6 +157,63 @@ def test_sentence_transformer_embedding_provider_uses_encoder() -> None:
         dimensions=EMBEDDING_VECTOR_DIMENSIONS,
         encoder=_FakeSentenceEncoder(values),
     )
+    assert provider.provider == "sentence_transformer"
+    assert provider.model == "all-MiniLM-L6-v2"
+    assert provider.embed_many([]) == []
+    vector = provider.embed("single text")
+    assert vector.dimensions == EMBEDDING_VECTOR_DIMENSIONS
     vectors = provider.embed_many(["a", "b"])
     assert len(vectors) == 2
     assert vectors[0].dimensions == EMBEDDING_VECTOR_DIMENSIONS
+
+
+def test_sentence_transformer_embedding_provider_translates_errors() -> None:
+    class _FailingEncoder:
+        def encode(self, texts: list[str], normalize_embeddings: bool = True) -> list[list[float]]:
+            raise RuntimeError("GPU OOM")
+
+    provider = SentenceTransformerEmbeddingProvider(
+        encoder=_FailingEncoder(),
+    )
+    with pytest.raises(EmbeddingProviderError, match="GPU OOM"):
+        provider.embed("fail")
+
+    class _NonNumericEncoder:
+        def encode(self, texts: list[str], normalize_embeddings: bool = True) -> list[object]:
+            return ["not-a-number"]  # type: ignore[list-item]
+
+    bad_provider = SentenceTransformerEmbeddingProvider(
+        encoder=_NonNumericEncoder(),
+    )
+    with pytest.raises(EmbeddingProviderError, match="non-numeric"):
+        bad_provider.embed("bad")
+
+
+def test_openai_embedding_provider_metadata_and_batching() -> None:
+    values = [0.1] * EMBEDDING_VECTOR_DIMENSIONS
+    provider = OpenAIEmbeddingProvider(
+        api_key="test-key",
+        model="text-embedding-3-small",
+        dimensions=EMBEDDING_VECTOR_DIMENSIONS,
+        client=_FakeOpenAIClient([values, values]),
+    )
+    assert provider.provider == "openai"
+    assert provider.model == "text-embedding-3-small"
+    assert provider.embed_many([]) == []
+    batch = provider.embed_many(["first", "second"])
+    assert len(batch) == 2
+
+
+def test_ollama_embedding_provider_metadata_and_empty() -> None:
+    values = [0.25] * EMBEDDING_VECTOR_DIMENSIONS
+    client = _FakeHttpxClient({"embedding": values})
+    provider = OllamaEmbeddingProvider(
+        model="all-minilm",
+        endpoint="http://ollama.test",
+        dimensions=EMBEDDING_VECTOR_DIMENSIONS,
+        http_client=client,
+    )
+    assert provider.provider == "ollama"
+    assert provider.model == "all-minilm"
+    assert provider.embed_many([]) == []
+    assert len(provider.embed_many(["a", "b"])) == 2

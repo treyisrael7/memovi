@@ -72,6 +72,27 @@ def _wait_for_job_status(
     )
 
 
+def _wait_for_knowledge(
+    engine: Engine,
+    *,
+    minimum_count: int = 1,
+    timeout_seconds: float = 5.0,
+) -> list[KnowledgeItemRecord]:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        with Session(engine) as session:
+            items = list(session.scalars(select(KnowledgeItemRecord)).all())
+            if len(items) >= minimum_count:
+                return items
+        time.sleep(0.05)
+    with Session(engine) as session:
+        count = len(list(session.scalars(select(KnowledgeItemRecord)).all()))
+    pytest.fail(
+        f"Expected at least {minimum_count} knowledge items within "
+        f"{timeout_seconds}s (found {count})."
+    )
+
+
 @pytest.fixture
 def memory_integration_client() -> Iterator[tuple[TestClient, Engine, InProcessEventDispatcher]]:
     object_storage = InMemoryObjectStorage()
@@ -161,6 +182,7 @@ def test_processing_completed_materializes_knowledge_and_publishes_event(
         payload["processing_job_id"],
         ProcessingStatus.COMPLETED,
     )
+    _wait_for_knowledge(engine, minimum_count=1)
 
     with Session(engine) as session:
         knowledge_items = session.scalars(select(KnowledgeItemRecord)).all()

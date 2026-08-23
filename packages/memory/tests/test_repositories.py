@@ -243,3 +243,78 @@ def test_chunk_repository_round_trips_save_many_list_and_delete() -> None:
             == []
         )
     engine.dispose()
+
+
+def test_resource_metadata_repository_round_trips_upsert_and_get() -> None:
+    from memovi_memory.domain.entities import ResourceMetadata
+    from memovi_memory.domain.value_objects import CollectionMemberKind
+    from memovi_memory.infrastructure.repositories import (
+        SqlAlchemyResourceMetadataRepository,
+    )
+
+    session_factory, engine = _build_session_factory()
+    now = datetime(2026, 8, 8, 12, 0, tzinfo=UTC)
+    meta = ResourceMetadata(
+        workspace_id=WorkspaceId.default(),
+        member_kind=CollectionMemberKind.DOCUMENT,
+        member_id=DOCUMENT_ID,
+        title="Sample Document",
+        description="A test document description",
+        notes="Important notes",
+        updated_at=now,
+    )
+
+    with session_factory() as session:
+        repo = SqlAlchemyResourceMetadataRepository(session)
+        assert (
+            repo.get(
+                workspace_id=WorkspaceId.default(),
+                member_kind=CollectionMemberKind.DOCUMENT,
+                member_id=DOCUMENT_ID,
+            )
+            is None
+        )
+        repo.upsert(meta)
+        session.commit()
+
+    with session_factory() as session:
+        repo = SqlAlchemyResourceMetadataRepository(session)
+        loaded = repo.get(
+            workspace_id=WorkspaceId.default(),
+            member_kind=CollectionMemberKind.DOCUMENT,
+            member_id=DOCUMENT_ID,
+        )
+        assert loaded is not None
+        assert loaded.title == "Sample Document"
+        assert loaded.description == "A test document description"
+        assert loaded.notes == "Important notes"
+        assert loaded.updated_at == now
+
+        # Test update via upsert
+        updated_now = datetime(2026, 8, 8, 13, 0, tzinfo=UTC)
+        updated_meta = ResourceMetadata(
+            workspace_id=WorkspaceId.default(),
+            member_kind=CollectionMemberKind.DOCUMENT,
+            member_id=DOCUMENT_ID,
+            title="Updated Title",
+            description="Updated Description",
+            notes=None,
+            updated_at=updated_now,
+        )
+        repo.upsert(updated_meta)
+        session.commit()
+
+    with session_factory() as session:
+        repo = SqlAlchemyResourceMetadataRepository(session)
+        loaded = repo.get(
+            workspace_id=WorkspaceId.default(),
+            member_kind=CollectionMemberKind.DOCUMENT,
+            member_id=DOCUMENT_ID,
+        )
+        assert loaded is not None
+        assert loaded.title == "Updated Title"
+        assert loaded.description == "Updated Description"
+        assert loaded.notes is None
+        assert loaded.updated_at == updated_now
+
+    engine.dispose()

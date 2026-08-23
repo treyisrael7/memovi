@@ -38,7 +38,7 @@ def build_filesystem_folder_service(
     ingest = IngestConnectorDocument(
         documents=SqlAlchemyDocumentRepository(session),
         processing_jobs=SqlAlchemyProcessingJobRepository(session),
-        object_storage=get_object_storage(),
+        object_storage=get_object_storage(request),
     )
     document_import = DocumentsDocumentImportPort(
         ingest=ingest,

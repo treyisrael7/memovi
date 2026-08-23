@@ -353,7 +353,8 @@ describe.skipIf(!LIVE_ENABLED)("desktop live critical path", () => {
             const assistants = [
               ...document.querySelectorAll('[data-role="assistant"]'),
             ];
-            const latest = assistants.at(-1);
+            const latest =
+              assistants.length > 0 ? assistants[assistants.length - 1] : undefined;
             expect(latest).toBeTruthy();
             const found = within(latest as HTMLElement).getAllByRole(
               "button",
@@ -363,9 +364,10 @@ describe.skipIf(!LIVE_ENABLED)("desktop live critical path", () => {
           },
           { timeout: STEP_TIMEOUT_MS },
         );
-        const latest = [
+        const assistants = [
           ...document.querySelectorAll('[data-role="assistant"]'),
-        ].at(-1) as HTMLElement;
+        ];
+        const latest = (assistants.length > 0 ? assistants[assistants.length - 1] : undefined) as HTMLElement;
         chips = within(latest).getAllByRole("button", {
           name: /Open source:/i,
         });

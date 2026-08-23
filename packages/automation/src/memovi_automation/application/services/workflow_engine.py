@@ -368,7 +368,7 @@ class WorkflowEngine:
                 auth_context=auth_context,
                 instance_id=instance.instance_id,
                 conversation_id=conversation_id,
-                correlation_id=instance.correlation_id,
+                correlation_id=instance.correlation_id or instance.instance_id,
                 request_id=request_id or auth_context.request_id,
                 run_metadata=run_metadata,
                 context=context,
@@ -954,10 +954,10 @@ def _with_resume_context(
 def _context_from_result(result: WorkflowExecutionResult) -> WorkflowContext:
     stored = result.metadata.get("resume_context")
     if isinstance(stored, Mapping):
-        variables = stored.get("variables")
+        stored_vars = stored.get("variables")
         outputs = stored.get("step_outputs")
         return WorkflowContext(
-            variables=dict(variables) if isinstance(variables, Mapping) else {},
+            variables=dict(stored_vars) if isinstance(stored_vars, Mapping) else {},
             step_outputs=dict(outputs) if isinstance(outputs, Mapping) else {},
         )
     variables: dict[str, object] = {}

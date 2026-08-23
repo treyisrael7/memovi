@@ -63,3 +63,141 @@ def test_embedding_mapping_round_trips_between_domain_and_record() -> None:
     assert record.model == "text-embedding-3-small"
     assert record.vector == [0.1, 0.2, 0.3, 0.4]
     assert restored == embedding
+
+
+def test_search_and_embedding_repositories_sqlite_crud() -> None:
+    from memovi_search.domain.value_objects import EmbeddingVector
+    from memovi_search.infrastructure.persistence.models import Base
+    from memovi_search.infrastructure.persistence.vector import EMBEDDING_VECTOR_DIMENSIONS
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+
+    doc_id = SearchDocumentId.new()
+    timestamp = datetime(2026, 7, 10, 12, 0, tzinfo=UTC)
+    search_document = SearchDocument(
+        id=doc_id,
+        knowledge_item_id=KNOWLEDGE_ITEM_ID,
+        document_id=DOCUMENT_ID,
+        document_version_id=DOCUMENT_VERSION_ID,
+        source_type=SOURCE_TYPE,
+        mime_type=MIME_TYPE,
+        searchable_text="Retrievable passage in SQLite.",
+        created_at=timestamp,
+        updated_at=timestamp,
+        workspace_id=WorkspaceId.default(),
+    )
+
+    with session_factory() as session:
+        search_repo = SqlAlchemySearchRepository(session)
+        search_repo.save_document(search_document)
+        session.commit()
+
+    with session_factory() as session:
+        search_repo = SqlAlchemySearchRepository(session)
+        loaded = search_repo.get_document(doc_id, workspace_id=WorkspaceId.default())
+        assert loaded is not None
+        assert loaded.searchable_text == "Retrievable passage in SQLite."
+
+        listed = search_repo.list_documents(workspace_id=WorkspaceId.default())
+        assert len(listed) == 1
+        assert listed[0].id == doc_id
+
+        # Update existing
+        updated_doc = SearchDocument(
+            id=doc_id,
+            knowledge_item_id=KNOWLEDGE_ITEM_ID,
+            document_id=DOCUMENT_ID,
+            document_version_id=DOCUMENT_VERSION_ID,
+            source_type=SOURCE_TYPE,
+            mime_type=MIME_TYPE,
+            searchable_text="Updated passage.",
+            created_at=timestamp,
+            updated_at=datetime(2026, 7, 10, 13, 0, tzinfo=UTC),
+            workspace_id=WorkspaceId.default(),
+        )
+        search_repo.save_document(updated_doc)
+        session.commit()
+
+    with session_factory() as session:
+        search_repo = SqlAlchemySearchRepository(session)
+        loaded = search_repo.get_document(doc_id)
+        assert loaded is not None
+        assert loaded.searchable_text == "Updated passage."
+
+        # Search returns empty without error on SQLite fallback
+        assert (
+            search_repo.search("test", limit=10, offset=0, workspace_id=WorkspaceId.default()) == []
+        )
+
+    # Embedding repository tests
+    emb_id = EmbeddingId.new()
+    vector_values = [0.1] * EMBEDDING_VECTOR_DIMENSIONS
+    embedding = Embedding(
+        id=emb_id,
+        search_document_id=doc_id,
+        provider="fake",
+        model="fake-embedding-v1",
+        dimensions=EMBEDDING_VECTOR_DIMENSIONS,
+        vector=tuple(vector_values),
+    )
+
+    with session_factory() as session:
+        emb_repo = SqlAlchemyEmbeddingRepository(session)
+        emb_repo.save(embedding)
+        session.commit()
+
+    with session_factory() as session:
+        emb_repo = SqlAlchemyEmbeddingRepository(session)
+        loaded_emb = emb_repo.get_by_search_document(doc_id)
+        assert loaded_emb is not None
+        assert loaded_emb.id == emb_id
+        assert loaded_emb.dimensions == EMBEDDING_VECTOR_DIMENSIONS
+
+        # Update existing embedding via save
+        updated_emb = Embedding(
+            id=emb_id,
+            search_document_id=doc_id,
+            provider="fake",
+            model="fake-embedding-v1",
+            dimensions=EMBEDDING_VECTOR_DIMENSIONS,
+            vector=tuple([0.2] * EMBEDDING_VECTOR_DIMENSIONS),
+        )
+        emb_repo.save(updated_emb)
+        session.commit()
+
+    with session_factory() as session:
+        emb_repo = SqlAlchemyEmbeddingRepository(session)
+        loaded_emb = emb_repo.get_by_search_document(doc_id)
+        assert loaded_emb is not None
+        assert loaded_emb.vector[0] == 0.2
+
+        # Similarity search on SQLite returns empty list
+        q_vec = EmbeddingVector(values=vector_values, dimensions=EMBEDDING_VECTOR_DIMENSIONS)
+        assert emb_repo.similarity_search(q_vec, limit=5, workspace_id=WorkspaceId.default()) == []
+        assert emb_repo.similarity_search(q_vec, limit=0, workspace_id=WorkspaceId.default()) == []
+
+        emb_repo.delete(emb_id)
+        session.commit()
+
+    with session_factory() as session:
+        emb_repo = SqlAlchemyEmbeddingRepository(session)
+        assert emb_repo.get_by_search_document(doc_id) is None
+
+        search_repo = SqlAlchemySearchRepository(session)
+        search_repo.delete_document(doc_id, workspace_id=WorkspaceId.default())
+        session.commit()
+
+    with session_factory() as session:
+        search_repo = SqlAlchemySearchRepository(session)
+        assert search_repo.get_document(doc_id) is None
+
+    engine.dispose()

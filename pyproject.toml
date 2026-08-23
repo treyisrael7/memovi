@@ -149,7 +149,6 @@ module = [
     "botocore.*",
     "openai",
     "openai.*",
-    "pgvector",
     "pgvector.*",
     "pypdf",
     "pypdf.*",
