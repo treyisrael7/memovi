@@ -36,7 +36,9 @@ citations, and desktop source navigation. It still runs in **jsdom** via Vitest
 the UI.
 
 **Manual native-app verification** remains required for OS window launch, native
-folder dialogs, and host-specific packaging.
+folder dialogs, host-specific packaging, and **packaged WebView session
+cookies** (register/login against `task backend`). API tests cover CORS and
+`Set-Cookie` flags for packaged Origins; they cannot drive WebKitGTK.
 
 ---
 
@@ -226,8 +228,8 @@ native window and host packaging sanity.
 
 ### Manual / host validation
 
-* [ ] Desktop launches (`task desktop` or installed package)
-* [ ] Authentication works (register / sign in / session restore)
+* [ ] Desktop launches (`task desktop` or installed package) with `task backend` already running
+* [ ] Authentication works (register / sign in / session restore) — including a **packaged** build, not only `tauri dev`
 * [ ] Workspace loads (Default Workspace visible; navigation works)
 * [ ] Document upload works; processing status progresses
 * [ ] Search returns results for known content

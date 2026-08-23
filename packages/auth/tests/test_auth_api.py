@@ -4,11 +4,13 @@ from datetime import UTC, datetime
 from api.app import create_app
 from api.document_processing import configure_document_processing
 from auth.api.dependencies import get_database_session
+from auth.api.session_cookies import PACKAGED_TAURI_ORIGINS
 from auth.infrastructure.persistence import Base as AuthBase
 from documents.application.workers import DocumentProcessingWorkerConfig
 from documents.infrastructure.queue import InMemoryProcessingJobQueue
 from documents.infrastructure.storage import InMemoryObjectStorage
 from fastapi.testclient import TestClient
+from httpx import Response
 from memovi_shared import DEFAULT_WORKSPACE_ID
 from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
 from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
@@ -17,7 +19,17 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 
-def build_test_client() -> tuple[TestClient, Engine]:
+def _cookie_header(response: Response) -> str:
+    headers = response.headers
+    return headers.get("set-cookie") or ""
+
+
+def _cookie_request_header(set_cookie: str) -> str:
+    """First name=value pair. TestClient will not store Secure cookies on http://."""
+    return set_cookie.split(";", 1)[0].strip()
+
+
+def build_test_client(*, base_url: str = "https://testserver") -> tuple[TestClient, Engine]:
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -61,7 +73,7 @@ def build_test_client() -> tuple[TestClient, Engine]:
         object_storage=InMemoryObjectStorage(),
     )
     app.dependency_overrides[get_database_session] = database_session
-    return TestClient(app, base_url="https://testserver"), engine
+    return TestClient(app, base_url=base_url), engine
 
 
 def test_complete_auth_flow() -> None:
@@ -142,5 +154,118 @@ def test_protected_endpoint_requires_authentication() -> None:
         with client:
             response = client.get("/workspaces")
             assert response.status_code == 401
+    finally:
+        engine.dispose()
+
+
+def test_dev_desktop_origin_sets_lax_http_cookie() -> None:
+    client, engine = build_test_client(base_url="http://testserver")
+    origin = "http://127.0.0.1:1420"
+    try:
+        with client:
+            register_response = client.post(
+                "/auth/register",
+                json={"email": "dev@example.com", "password": "password123"},
+                headers={"Origin": origin},
+            )
+            assert register_response.status_code == 201
+            cookie = _cookie_header(register_response)
+            assert "memovi_session=" in cookie
+            assert "HttpOnly" in cookie
+            assert "Secure" not in cookie
+            assert "SameSite=lax" in cookie.lower() or "samesite=lax" in cookie.lower()
+
+            me_response = client.get("/auth/me", headers={"Origin": origin})
+            assert me_response.status_code == 200
+            assert me_response.json()["email"] == "dev@example.com"
+
+            logout_response = client.post("/auth/logout", headers={"Origin": origin})
+            assert logout_response.status_code == 204
+            logout_cookie = _cookie_header(logout_response).lower()
+            assert "memovi_session=" in logout_cookie
+            assert "samesite=lax" in logout_cookie
+    finally:
+        engine.dispose()
+
+
+def test_packaged_tauri_origin_sets_none_secure_cookie_and_session_works() -> None:
+    client, engine = build_test_client(base_url="http://testserver")
+    origin = PACKAGED_TAURI_ORIGINS[1]  # https://tauri.localhost
+    try:
+        with client:
+            register_response = client.post(
+                "/auth/register",
+                json={"email": "tauri@example.com", "password": "password123"},
+                headers={"Origin": origin},
+            )
+            assert register_response.status_code == 201
+            cookie = _cookie_header(register_response)
+            assert "memovi_session=" in cookie
+            assert "HttpOnly" in cookie
+            assert "Secure" in cookie
+            assert "samesite=none" in cookie.lower()
+            assert register_response.headers.get("access-control-allow-origin") == origin
+            assert register_response.headers.get("access-control-allow-credentials") == "true"
+
+            # httpx/TestClient will not persist Secure cookies on http://; send the
+            # token explicitly the way a WebView Cookie header would.
+            cookie_header = _cookie_request_header(cookie)
+            me_response = client.get(
+                "/auth/me",
+                headers={"Origin": origin, "Cookie": cookie_header},
+            )
+            assert me_response.status_code == 200
+            assert me_response.json()["email"] == "tauri@example.com"
+            assert me_response.headers.get("access-control-allow-origin") == origin
+            assert me_response.headers.get("access-control-allow-credentials") == "true"
+
+            logout_response = client.post(
+                "/auth/logout",
+                headers={"Origin": origin, "Cookie": cookie_header},
+            )
+            assert logout_response.status_code == 204
+            assert "samesite=none" in _cookie_header(logout_response).lower()
+            assert "Secure" in _cookie_header(logout_response)
+
+            logged_out = client.get(
+                "/auth/me",
+                headers={"Origin": origin, "Cookie": cookie_header},
+            )
+            assert logged_out.status_code == 401
+
+            login_response = client.post(
+                "/auth/login",
+                json={"email": "tauri@example.com", "password": "password123"},
+                headers={"Origin": origin},
+            )
+            assert login_response.status_code == 200
+            assert "samesite=none" in _cookie_header(login_response).lower()
+
+            restored = client.get(
+                "/auth/me",
+                headers={
+                    "Origin": origin,
+                    "Cookie": _cookie_request_header(_cookie_header(login_response)),
+                },
+            )
+            assert restored.status_code == 200
+    finally:
+        engine.dispose()
+
+
+def test_packaged_tauri_custom_scheme_origin_sets_none_secure_cookie() -> None:
+    client, engine = build_test_client(base_url="http://testserver")
+    try:
+        with client:
+            response = client.post(
+                "/auth/register",
+                json={"email": "scheme@example.com", "password": "password123"},
+                headers={"Origin": "tauri://localhost"},
+            )
+            assert response.status_code == 201
+            cookie = _cookie_header(response).lower()
+            assert "samesite=none" in cookie
+            assert "secure" in cookie
+            assert "httponly" in cookie
     finally:
         engine.dispose()

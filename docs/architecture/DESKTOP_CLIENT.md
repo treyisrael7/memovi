@@ -75,12 +75,33 @@ frontend. Backend domains stay in Python packages.
 
 # Backend Communication
 
-Local development defaults to `http://127.0.0.1:8000`.
+Local development and packaged desktop both call `http://127.0.0.1:8000` by
+default. Override with `VITE_MEMOVI_API_BASE` when needed (compile-time Vite
+env). Do not mix `localhost` and `127.0.0.1` across the webview and API base
+URL.
 
-Override with `VITE_MEMOVI_API_BASE` when needed. The Vite/Tauri origin defaults
-to `http://127.0.0.1:1420` so it stays same-site with the API and can send the
-`memovi_session` cookie under `SameSite=Lax`. Do not mix `localhost` and
-`127.0.0.1` across the webview and API base URL.
+**The packaged desktop app does not embed FastAPI, Python, PostgreSQL, or
+MinIO.** A built installer or `tauri build` binary still requires the separately
+started local stack:
+
+1. `task docker-up` (Postgres + MinIO)
+2. `task db:migrate`
+3. `task backend` (`127.0.0.1:8000`)
+4. Launch Memovi Desktop (`task desktop` in development, or the packaged app)
+
+| Client | Webview Origin | Session cookie |
+| --- | --- | --- |
+| `task desktop` / `tauri dev` | `http://127.0.0.1:1420` | `HttpOnly; SameSite=Lax` (same-site with the API) |
+| Packaged `tauri build` | `tauri://localhost` or `http(s)://tauri.localhost` | `HttpOnly; SameSite=None; Secure` (custom protocol is cross-site to `127.0.0.1`) |
+| Optional web (`:3000`) | `http://127.0.0.1:3000` | `HttpOnly; SameSite=Lax` |
+
+CORS allowlists those Origins with credentials. `SameSite=None` is **not** the
+default; it applies only when the request `Origin` is a packaged Tauri origin.
+
+API tests assert `Set-Cookie` attributes and a credentialed register → `/auth/me`
+→ logout → login flow for those Origins. They do **not** exercise a real
+WebKit/WebView2 cookie jar. Native packaged auth remains a manual check (launch
+the built app against `task backend`).
 
 All authenticated API calls use `credentials: "include"` (including SSE streams
 and document uploads) so the HttpOnly session cookie is attached. Desktop never
@@ -138,7 +159,8 @@ App start
 Login / Register
   │
   ├─ POST /auth/login or /auth/register  { email, password }
-  ├─ Set-Cookie: memovi_session (HttpOnly; Secure on HTTPS)
+  ├─ Set-Cookie: memovi_session (HttpOnly; Lax for same-site dev/web;
+  │  None+Secure when Origin is packaged Tauri)
   └─ authenticated → Shell (workspaces + models load)
 
 Logout (Settings → Account)

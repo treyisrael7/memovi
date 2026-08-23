@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 import uuid
 
+from auth.api.session_cookies import LOCAL_CLIENT_ORIGINS
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from memovi_observability import (
@@ -21,17 +22,6 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 REQUEST_ID_HEADER = "X-Request-Id"
 CORRELATION_ID_HEADER = "X-Correlation-Id"
 LOGGER = get_logger("memovi.api.access")
-
-# Local presentation clients (Tauri desktop shell + optional Next.js web).
-LOCAL_CLIENT_ORIGINS = (
-    "http://localhost:1420",
-    "http://127.0.0.1:1420",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "tauri://localhost",
-    "https://tauri.localhost",
-    "http://tauri.localhost",
-)
 
 
 class RequestContextMiddleware:

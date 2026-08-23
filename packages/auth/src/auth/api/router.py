@@ -11,6 +11,7 @@ from auth.api.dependencies import (
     get_register_user,
 )
 from auth.api.schemas import AuthCredentialsRequest, UserResponse
+from auth.api.session_cookies import SameSiteValue, session_cookie_flags
 from auth.application.commands import (
     LoginUser,
     LoginUserCommand,
@@ -51,11 +52,7 @@ def register(
             detail=str(exc),
         ) from exc
 
-    set_session_cookie(
-        response,
-        result.session_token,
-        secure=_cookie_secure(http_request),
-    )
+    set_session_cookie(response, result.session_token, request=http_request)
     return UserResponse.model_validate(result.user)
 
 
@@ -79,11 +76,7 @@ def login(
             detail=str(exc),
         ) from exc
 
-    set_session_cookie(
-        response,
-        result.session_token,
-        secure=_cookie_secure(http_request),
-    )
+    set_session_cookie(response, result.session_token, request=http_request)
     return UserResponse.model_validate(result.user)
 
 
@@ -95,7 +88,7 @@ def logout(
     session_token: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
 ) -> None:
     use_case.execute(session_token)
-    clear_session_cookie(response, secure=_cookie_secure(http_request))
+    clear_session_cookie(response, request=http_request)
 
 
 @router.get("/me", response_model=UserResponse)
@@ -114,26 +107,30 @@ def me(
     return UserResponse.model_validate(user)
 
 
-def _cookie_secure(request: Request) -> bool:
-    """Use Secure cookies on HTTPS; allow local HTTP desktop sessions."""
-    return request.url.scheme == "https"
+def _cookie_flags(request: Request) -> tuple[SameSiteValue, bool]:
+    return session_cookie_flags(
+        origin=request.headers.get("origin"),
+        request_is_https=request.url.scheme == "https",
+    )
 
 
-def set_session_cookie(response: Response, session_token: str, *, secure: bool) -> None:
+def set_session_cookie(response: Response, session_token: str, *, request: Request) -> None:
+    samesite, secure = _cookie_flags(request)
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=session_token,
         max_age=int(SESSION_TTL.total_seconds()),
         httponly=True,
         secure=secure,
-        samesite="lax",
+        samesite=samesite,
     )
 
 
-def clear_session_cookie(response: Response, *, secure: bool) -> None:
+def clear_session_cookie(response: Response, *, request: Request) -> None:
+    samesite, secure = _cookie_flags(request)
     response.delete_cookie(
         key=SESSION_COOKIE_NAME,
         httponly=True,
         secure=secure,
-        samesite="lax",
+        samesite=samesite,
     )

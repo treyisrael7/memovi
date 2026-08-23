@@ -42,9 +42,14 @@ Every non-public HTTP endpoint executes inside an authenticated user context.
 `AuthenticatedPrincipal` (`user_id`, `session_id`, `email`) and bind
 `RequestContext.principal` for observability.
 
-Session cookies are HttpOnly and SameSite=Lax. The `Secure` attribute is set
-for HTTPS requests and omitted for local HTTP so the desktop client can persist
-sessions against `http://localhost:8000`.
+Session cookies are HttpOnly. SameSite is **Lax** for same-site local clients
+(Tauri dev on `:1420`, optional web on `:3000`, and requests with no packaged
+Tauri `Origin`). Packaged Tauri uses a custom-protocol Origin that is cross-site
+to `http://127.0.0.1:8000`, so those Origins receive **SameSite=None; Secure**
+so credentialed `fetch` can store and send the cookie. That flag is not applied
+globally. The `Secure` attribute is also set for any HTTPS API request. Local
+dev HTTP without a packaged Origin omits `Secure` so `task desktop` can persist
+sessions against `http://127.0.0.1:8000`.
 
 # Workspace Membership
 

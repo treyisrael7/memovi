@@ -15,19 +15,19 @@ in the FastAPI platform.
 
 ## Develop
 
-Start the backend in one terminal:
+The desktop UI always talks to a **separately started** API. Start
+infrastructure, migrate, then the backend, then the shell:
 
 ```bash
-task backend
+task docker-up
+task db:migrate
+task backend     # terminal 1 — FastAPI on 127.0.0.1:8000
+task desktop     # terminal 2 — Tauri dev webview on 127.0.0.1:1420
 ```
 
-Start the desktop shell:
+`task backend` starts Compose services if needed but does **not** migrate.
 
-```bash
-task desktop
-```
-
-Or from this package:
+From this package:
 
 ```bash
 pnpm install
@@ -48,6 +48,21 @@ directory, point Cargo at a local path:
 $env:CARGO_TARGET_DIR = "$env:LOCALAPPDATA\memovi-desktop-target"
 pnpm tauri:dev
 ```
+
+## Packaged / `tauri build`
+
+A packaged app embeds the Vite frontend only. It does **not** bundle or start
+FastAPI, Python, Postgres, or MinIO. Run the same backend steps as Develop,
+then launch the installed/built Memovi binary. It still calls
+`http://127.0.0.1:8000`.
+
+Packaged webview Origins (`tauri://localhost`, `http://tauri.localhost`,
+`https://tauri.localhost`) are cross-site to that API. The API sets
+`SameSite=None; Secure` on the session cookie for those Origins so the WebView
+can keep the HttpOnly session. Dev (`tauri dev`) stays `SameSite=Lax`.
+
+Native WebView cookie behavior is not covered by CI; after packaging, sign in
+once against a running local API to confirm the session sticks.
 
 ## Architecture
 
