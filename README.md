@@ -219,11 +219,14 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
 | Desktop unit + mock smoke | `task desktop:test` | Desktop unit tests and mock-backend critical path |
 | Mock desktop smoke only | `task desktop:smoke` | Critical UI path against an in-memory API stub |
 | Live desktop/API smoke | `task desktop:smoke:live` | Same React shell against real FastAPI + Postgres + MinIO |
+| Native packaged auth smoke | `task desktop:smoke:native` | Real WebView cookie jar (local packaged binary; not CI) |
 | Local CI parity | `task ci` | Backend lint/types/tests/coverage + desktop typecheck/unit/mock smoke/Vite build + optional web lint/types/build |
 
 `task ci` does **not** run live smoke, does **not** launch a native Tauri
 window, and does **not** run Tauri packaging. Linux Tauri packaging runs in
-GitHub Actions (`.github/workflows/desktop.yml`).
+GitHub Actions (`.github/workflows/desktop.yml`). Packaged WebView session
+cookies are a local check (`task desktop:smoke:native`); see
+[`docs/testing/NATIVE_DESKTOP_SMOKE.md`](docs/testing/NATIVE_DESKTOP_SMOKE.md).
 
 Live smoke (`task desktop:smoke:live`) requires Postgres, MinIO, migrated
 schema, and a running API. It sets `MEMOVI_LIVE_API=1`. It uses **fake**
@@ -258,7 +261,7 @@ Desktop testing details: [`docs/testing/DESKTOP_TESTING.md`](docs/testing/DESKTO
 - `task desktop` — start the Tauri desktop client
 - `task docker-up` / `task docker-down` — start/stop Postgres and MinIO
 - `task test` — backend pytest (no coverage floor; fails if no tests are collected)
-- `task desktop:test` / `task desktop:smoke` / `task desktop:smoke:live`
+- `task desktop:test` / `task desktop:smoke` / `task desktop:smoke:live` / `task desktop:smoke:native`
 - `task desktop:check` — desktop typecheck, tests (unit + mock smoke), Vite build
 - `task ci` / `task ci:backend` / `task ci:desktop` / `task ci:frontend`
 - `task dev` — Docker infrastructure and the optional web-workspace dev server

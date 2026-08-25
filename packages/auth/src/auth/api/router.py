@@ -11,7 +11,11 @@ from auth.api.dependencies import (
     get_register_user,
 )
 from auth.api.schemas import AuthCredentialsRequest, UserResponse
-from auth.api.session_cookies import SameSiteValue, session_cookie_flags
+from auth.api.session_cookies import (
+    SessionCookieFlags,
+    cookie_header_value,
+    session_cookie_flags,
+)
 from auth.application.commands import (
     LoginUser,
     LoginUserCommand,
@@ -87,7 +91,11 @@ def logout(
     use_case: Annotated[LogoutUser, Depends(get_logout_user)],
     session_token: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
 ) -> None:
-    use_case.execute(session_token)
+    token = session_token or cookie_header_value(
+        http_request.headers.get("cookie"),
+        SESSION_COOKIE_NAME,
+    )
+    use_case.execute(token)
     clear_session_cookie(response, request=http_request)
 
 
@@ -107,7 +115,7 @@ def me(
     return UserResponse.model_validate(user)
 
 
-def _cookie_flags(request: Request) -> tuple[SameSiteValue, bool]:
+def _cookie_flags(request: Request) -> SessionCookieFlags:
     return session_cookie_flags(
         origin=request.headers.get("origin"),
         request_is_https=request.url.scheme == "https",
@@ -115,22 +123,28 @@ def _cookie_flags(request: Request) -> tuple[SameSiteValue, bool]:
 
 
 def set_session_cookie(response: Response, session_token: str, *, request: Request) -> None:
-    samesite, secure = _cookie_flags(request)
+    flags = _cookie_flags(request)
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=session_token,
         max_age=int(SESSION_TTL.total_seconds()),
         httponly=True,
-        secure=secure,
-        samesite=samesite,
+        secure=flags.secure,
+        samesite=flags.samesite,
+        partitioned=flags.partitioned,
     )
 
 
 def clear_session_cookie(response: Response, *, request: Request) -> None:
-    samesite, secure = _cookie_flags(request)
-    response.delete_cookie(
+    flags = _cookie_flags(request)
+    # Starlette delete_cookie does not accept partitioned; expire with the same flags.
+    response.set_cookie(
         key=SESSION_COOKIE_NAME,
+        value="",
+        max_age=0,
+        expires=0,
         httponly=True,
-        secure=secure,
-        samesite=samesite,
+        secure=flags.secure,
+        samesite=flags.samesite,
+        partitioned=flags.partitioned,
     )

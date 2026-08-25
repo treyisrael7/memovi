@@ -38,6 +38,8 @@ in V1**.
 * Coverage floor is enforced at 80% on application sources; measured total
   meets the **80%** requirement
 * Linux Tauri packaging in CI; Windows/macOS packaging matrix and signing not done
+* Packaged WebView session cookies: API flags proven; native jar is local
+  (`task desktop:smoke:native` / [`testing/NATIVE_DESKTOP_SMOKE.md`](testing/NATIVE_DESKTOP_SMOKE.md)), not CI
 * No GitHub Release / tag automation
 * Operator UX follow-ups: capability permission settings UI, deeper model /
   workspace / indexing-status product depth
@@ -1200,8 +1202,9 @@ without product redesign or new desktop features.
 * GitHub Actions workflow `.github/workflows/desktop.yml` (typecheck,
   unit, mock smoke, Vite build artifact, live API smoke, Tauri packaging artifact)
 * Task commands: `desktop:test`, `desktop:smoke`, `desktop:smoke:live`,
-  `desktop:build`, `desktop:check`
+  `desktop:smoke:native`, `desktop:build`, `desktop:check`
 * `docs/testing/DESKTOP_TESTING.md` (CI, layers, local run, release checklist)
+* `docs/testing/NATIVE_DESKTOP_SMOKE.md` (packaged WebView cookie jar; not CI)
 
 **In Progress**
 
@@ -1209,7 +1212,8 @@ without product redesign or new desktop features.
 
 **Remaining**
 
-* Optional OS-native window launch automation beyond jsdom smoke (future)
+* Optional OS-native window launch automation beyond the packaged auth probe
+  (`task desktop:smoke:native` is local/display-only; not Linux CI)
 * Multi-platform packaging matrix (macOS / Windows) in CI when release hosts
   are available
 
@@ -1573,7 +1577,8 @@ Tauri window automation was not introduced.
 
 **Remaining**
 
-* Optional OS-native window launch automation beyond jsdom (future)
+* Optional OS-native window launch automation beyond the packaged auth probe
+  (`task desktop:smoke:native` is local/display-only; not Linux CI)
 * Multi-platform packaging matrix (macOS / Windows) in CI when release hosts
   are available
 

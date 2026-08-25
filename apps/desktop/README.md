@@ -56,13 +56,14 @@ FastAPI, Python, Postgres, or MinIO. Run the same backend steps as Develop,
 then launch the installed/built Memovi binary. It still calls
 `http://127.0.0.1:8000`.
 
-Packaged webview Origins (`tauri://localhost`, `http://tauri.localhost`,
-`https://tauri.localhost`) are cross-site to that API. The API sets
-`SameSite=None; Secure` on the session cookie for those Origins so the WebView
-can keep the HttpOnly session. Dev (`tauri dev`) stays `SameSite=Lax`.
+Packaged origins therefore receive SameSite=None; Secure; Partitioned. Dev
+(`tauri dev`) stays `SameSite=Lax`.
 
-Native WebView cookie behavior is not covered by CI; after packaging, sign in
-once against a running local API to confirm the session sticks.
+Native WebView cookie behavior is not covered by GitHub Actions. After
+packaging, use [`docs/testing/NATIVE_DESKTOP_SMOKE.md`](../../docs/testing/NATIVE_DESKTOP_SMOKE.md)
+(`task desktop:smoke:native` or the manual checklist) against a running local
+API. Settings → Diagnostics shows **Client origin** so you can confirm the
+packaged protocol rather than `tauri dev`.
 
 ## Architecture
 
@@ -81,5 +82,6 @@ release checklist are documented in
 task desktop:test         # unit + mock smoke
 task desktop:smoke        # mock critical path only
 task desktop:smoke:live   # real FastAPI (see DESKTOP_TESTING.md)
+task desktop:smoke:native # packaged WebView auth (see NATIVE_DESKTOP_SMOKE.md)
 task desktop:check        # types, tests, Vite build
 ```

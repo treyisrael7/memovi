@@ -108,6 +108,11 @@ tasks:
     cmds:
       - pnpm --filter {{.DESKTOP_PACKAGE}} test:smoke:live
 
+  desktop:smoke:native:
+    desc: Packaged WebView auth smoke (built binary + running API; not CI).
+    cmds:
+      - uv run python scripts/native_desktop_auth_smoke.py {{.CLI_ARGS | default ""}}
+
   desktop:build:
     desc: Build the desktop Vite shell (TypeScript + Vite).
     cmds:

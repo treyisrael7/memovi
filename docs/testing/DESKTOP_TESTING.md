@@ -19,6 +19,7 @@ release validation. It does not change product behavior.
 | Mock critical-path smoke | `apps/desktop/src/smoke/criticalPath.smoke.test.tsx` | Critical UI journey against an in-memory API stub | ~5–15 s |
 | Live API smoke | `apps/desktop/src/smoke/liveCriticalPath.smoke.test.tsx` | Same React shell against a real FastAPI process (Postgres + MinIO + worker + search + fake providers) | ~30–90 s after infra is up |
 | Packaging | Tauri `tauri build` in CI | Native bundle still produces installable artifacts | ~10–30 min (cold cache) |
+| Native packaged auth smoke | `task desktop:smoke:native` or manual checklist | Real WebView cookie jar (register → `/auth/me` → logout). Local display required; **not CI** | operator / host |
 | Manual native-app release verification | Release host | Launch the real Tauri window, native dialogs, workflows | operator-driven |
 
 Backend and optional web tests stay in their own workflows.
@@ -36,9 +37,11 @@ citations, and desktop source navigation. It still runs in **jsdom** via Vitest
 the UI.
 
 **Manual native-app verification** remains required for OS window launch, native
-folder dialogs, host-specific packaging, and **packaged WebView session
-cookies** (register/login against `task backend`). API tests cover CORS and
-`Set-Cookie` flags for packaged Origins; they cannot drive WebKitGTK.
+folder dialogs, and host-specific packaging. Packaged WebView session cookies
+have a dedicated checklist and an optional local probe in
+[`NATIVE_DESKTOP_SMOKE.md`](NATIVE_DESKTOP_SMOKE.md). API tests cover CORS and
+`Set-Cookie` flags; jsdom live smoke uses a test cookie bridge. Neither is a
+native jar.
 
 ---
 
@@ -127,7 +130,8 @@ Runs on every push / PR, in parallel with the mock smoke job. Sets
 9. Stop the API process and `docker compose down`
 
 This job does **not** install WebKit, xvfb, Redis, or a browser framework, and
-it does **not** launch Tauri.
+it does **not** launch Tauri. Native packaged-origin cookies are documented in
+[`NATIVE_DESKTOP_SMOKE.md`](NATIVE_DESKTOP_SMOKE.md), not this job.
 
 ### Job: `desktop-package` (packaging)
 
@@ -164,6 +168,10 @@ task desktop:smoke
 
 # Live API smoke (requires Postgres, MinIO, migrated DB, and `task backend`)
 task desktop:smoke:live
+
+# Packaged WebView auth smoke (built binary + running API; not in CI)
+task desktop:smoke:native
+task desktop:smoke:native -- --manual
 
 # Vite shell build
 task desktop:build
@@ -202,14 +210,15 @@ Native packaging (requires Rust + host Tauri prerequisites):
 pnpm --filter @memovi/desktop tauri:build
 ```
 
-Manual native-window smoke against a live backend:
+`task desktop` (`tauri dev`) is **not** packaged-origin proof. For the WebView
+cookie jar see [`NATIVE_DESKTOP_SMOKE.md`](NATIVE_DESKTOP_SMOKE.md):
 
 ```bash
-task backend   # terminal 1
-task desktop   # terminal 2
+task backend                 # terminal 1
+task desktop:smoke:native    # packaged binary + WebView probe
+# or
+task desktop:smoke:native -- --manual
 ```
-
-Then walk the [release checklist](#release-checklist) below.
 
 ---
 
@@ -229,7 +238,7 @@ native window and host packaging sanity.
 ### Manual / host validation
 
 * [ ] Desktop launches (`task desktop` or installed package) with `task backend` already running
-* [ ] Authentication works (register / sign in / session restore) — including a **packaged** build, not only `tauri dev`
+* [ ] Authentication works (register / sign in / session restore) — including a **packaged** build, not only `tauri dev`. Follow [`NATIVE_DESKTOP_SMOKE.md`](NATIVE_DESKTOP_SMOKE.md); record Client origin from Diagnostics
 * [ ] Workspace loads (Default Workspace visible; navigation works)
 * [ ] Document upload works; processing status progresses
 * [ ] Search returns results for known content
@@ -255,6 +264,8 @@ apps/desktop/
     test/setup.ts                      # Vitest/jsdom setup
 .github/workflows/desktop.yml
 docs/testing/DESKTOP_TESTING.md
+docs/testing/NATIVE_DESKTOP_SMOKE.md
+scripts/native_desktop_auth_smoke.py
 ```
 
 Backend unit/integration tests remain under `packages/*/tests` and Backend CI.

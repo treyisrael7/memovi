@@ -5,15 +5,18 @@ Development Tauri (`http://127.0.0.1:1420`) is same-site with the local API
 uses a custom-protocol origin (`tauri://localhost` or `http(s)://tauri.localhost`)
 that is cross-site to the API. Lax cookies are not sent on credentialed `fetch`.
 
-Packaged origins therefore receive SameSite=None; Secure. That is scoped to
-those Origins only — browser/dev clients keep Lax. SameSite=None requires
-Secure; `http://127.0.0.1` is a potentially trustworthy origin in Chromium.
-WebKit/Tauri still has to honor that cookie; API tests cannot prove the native
-jar.
+Packaged origins therefore receive SameSite=None; Secure; Partitioned. That is
+scoped to those Origins only — browser/dev clients keep Lax. SameSite=None
+requires Secure. Chromium WebView2 treats the API cookie as third-party from
+`http://tauri.localhost`; unpartitioned third-party cookies are not stored.
+`Partitioned` (CHIPS) is the opt-in so the jar is keyed by the Tauri top-level
+site. `http://127.0.0.1` is a potentially trustworthy origin in Chromium for
+the Secure flag. WebKitGTK/WKWebView still have to be proven natively.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Literal
 
 DEV_DESKTOP_ORIGINS = (
@@ -36,12 +39,33 @@ PACKAGED_TAURI_ORIGIN_SET = frozenset(PACKAGED_TAURI_ORIGINS)
 SameSiteValue = Literal["lax", "none"]
 
 
+@dataclass(frozen=True, slots=True)
+class SessionCookieFlags:
+    samesite: SameSiteValue
+    secure: bool
+    partitioned: bool
+
+
 def session_cookie_flags(
     *,
     origin: str | None,
     request_is_https: bool,
-) -> tuple[SameSiteValue, bool]:
-    """Return ``(samesite, secure)`` for ``Set-Cookie`` / ``delete_cookie``."""
+) -> SessionCookieFlags:
+    """Return cookie flags for ``Set-Cookie`` / session clear."""
     if origin in PACKAGED_TAURI_ORIGIN_SET:
-        return "none", True
-    return "lax", request_is_https
+        return SessionCookieFlags(samesite="none", secure=True, partitioned=True)
+    return SessionCookieFlags(samesite="lax", secure=request_is_https, partitioned=False)
+
+
+def cookie_header_value(cookie_header: str | None, name: str) -> str | None:
+    """Parse a Cookie header without Starlette's SimpleCookie parser."""
+    if not cookie_header:
+        return None
+    for part in cookie_header.split(";"):
+        piece = part.strip()
+        if not piece or "=" not in piece:
+            continue
+        key, value = piece.split("=", 1)
+        if key.strip() == name:
+            return value.strip().strip('"')
+    return None

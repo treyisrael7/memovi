@@ -668,6 +668,10 @@ function DiagnosticsSection() {
           <dd>{connection.environment ?? "—"}</dd>
         </div>
         <div className="meta-card">
+          <dt>Client origin</dt>
+          <dd>{window.location.origin}</dd>
+        </div>
+        <div className="meta-card">
           <dt>Last checked</dt>
           <dd>
             {connection.lastCheckedAt === new Date(0).toISOString()

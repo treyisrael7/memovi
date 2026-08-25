@@ -174,6 +174,7 @@ def test_dev_desktop_origin_sets_lax_http_cookie() -> None:
             assert "HttpOnly" in cookie
             assert "Secure" not in cookie
             assert "SameSite=lax" in cookie.lower() or "samesite=lax" in cookie.lower()
+            assert "partitioned" not in cookie.lower()
 
             me_response = client.get("/auth/me", headers={"Origin": origin})
             assert me_response.status_code == 200
@@ -204,6 +205,7 @@ def test_packaged_tauri_origin_sets_none_secure_cookie_and_session_works() -> No
             assert "HttpOnly" in cookie
             assert "Secure" in cookie
             assert "samesite=none" in cookie.lower()
+            assert "partitioned" in cookie.lower()
             assert register_response.headers.get("access-control-allow-origin") == origin
             assert register_response.headers.get("access-control-allow-credentials") == "true"
 
@@ -226,6 +228,7 @@ def test_packaged_tauri_origin_sets_none_secure_cookie_and_session_works() -> No
             assert logout_response.status_code == 204
             assert "samesite=none" in _cookie_header(logout_response).lower()
             assert "Secure" in _cookie_header(logout_response)
+            assert "partitioned" in _cookie_header(logout_response).lower()
 
             logged_out = client.get(
                 "/auth/me",
@@ -240,6 +243,7 @@ def test_packaged_tauri_origin_sets_none_secure_cookie_and_session_works() -> No
             )
             assert login_response.status_code == 200
             assert "samesite=none" in _cookie_header(login_response).lower()
+            assert "partitioned" in _cookie_header(login_response).lower()
 
             restored = client.get(
                 "/auth/me",
@@ -267,5 +271,6 @@ def test_packaged_tauri_custom_scheme_origin_sets_none_secure_cookie() -> None:
             assert "samesite=none" in cookie
             assert "secure" in cookie
             assert "httponly" in cookie
+            assert "partitioned" in cookie
     finally:
         engine.dispose()

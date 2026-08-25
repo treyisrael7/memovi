@@ -91,6 +91,8 @@ describe("SettingsPage provider setup", () => {
     appState.settingsSection = "diagnostics";
     render(<SettingsPage />);
 
+    expect(screen.getByText("Client origin")).toBeInTheDocument();
+    expect(screen.getByText("http://127.0.0.1:1420")).toBeInTheDocument();
     expect(
       screen.getByText(/Required backend configuration/i),
     ).toBeInTheDocument();

@@ -38,6 +38,8 @@ Environment variables: [`architecture/CONFIGURATION.md`](architecture/CONFIGURAT
   MinIO; fake providers; jsdom. It does not launch a native Tauri window.
   Requires a migrated database and a running API (`task backend` in another
   terminal). See [`testing/DESKTOP_TESTING.md`](testing/DESKTOP_TESTING.md).
+* Native packaged WebView auth: `task desktop:smoke:native` — local only; not CI.
+  See [`testing/NATIVE_DESKTOP_SMOKE.md`](testing/NATIVE_DESKTOP_SMOKE.md).
 * Local CI parity: `task ci`. This does **not** run live smoke or Tauri packaging.
 
 Run the checks that match what you changed. Do not skip tests that cover the

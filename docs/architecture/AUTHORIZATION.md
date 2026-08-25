@@ -45,11 +45,15 @@ Every non-public HTTP endpoint executes inside an authenticated user context.
 Session cookies are HttpOnly. SameSite is **Lax** for same-site local clients
 (Tauri dev on `:1420`, optional web on `:3000`, and requests with no packaged
 Tauri `Origin`). Packaged Tauri uses a custom-protocol Origin that is cross-site
-to `http://127.0.0.1:8000`, so those Origins receive **SameSite=None; Secure**
-so credentialed `fetch` can store and send the cookie. That flag is not applied
-globally. The `Secure` attribute is also set for any HTTPS API request. Local
+to `http://127.0.0.1:8000`, so those Origins receive **SameSite=None; Secure;
+Partitioned** so credentialed `fetch` can store the cookie in a CHIPS jar keyed
+by the packaged top-level site. Unpartitioned `SameSite=None` is not enough for
+WebView2: the API cookie is third-party from `http://tauri.localhost`. That flag
+is not applied globally. The `Secure` attribute is also set for any HTTPS API request. Local
 dev HTTP without a packaged Origin omits `Secure` so `task desktop` can persist
-sessions against `http://127.0.0.1:8000`.
+sessions against `http://127.0.0.1:8000`. Native WebView acceptance of
+`SameSite=None; Secure` from loopback HTTP is **not** proven by API tests; see
+[`../testing/NATIVE_DESKTOP_SMOKE.md`](../testing/NATIVE_DESKTOP_SMOKE.md).
 
 # Workspace Membership
 

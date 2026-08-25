@@ -655,6 +655,7 @@ The following documents expand this blueprint without redefining it.
 | [`architecture/WORKSPACES.md`](architecture/WORKSPACES.md) | Workspace membership lifecycle, roles, owner enforcement, and audit |
 | [`architecture/DESKTOP_CLIENT.md`](architecture/DESKTOP_CLIENT.md) | Flagship Tauri desktop shell, client boundaries, and API communication |
 | [`testing/DESKTOP_TESTING.md`](testing/DESKTOP_TESTING.md) | Desktop CI, mock and live smoke tests, packaging, and release validation |
+| [`testing/NATIVE_DESKTOP_SMOKE.md`](testing/NATIVE_DESKTOP_SMOKE.md) | Packaged WebView session-cookie verification (local, not CI) |
 | [`architecture/observability.md`](architecture/observability.md) | Request, worker, event, AI, connector, search, error, and performance telemetry |
 | [`architecture/deployment.md`](architecture/deployment.md) | Self-hostable deployment posture, infrastructure isolation, and runtime concerns |
 | [`architecture/scaling.md`](architecture/scaling.md) | Evolution strategy, future extraction, storage scaling, workers, and operational thresholds |

@@ -92,16 +92,21 @@ started local stack:
 | Client | Webview Origin | Session cookie |
 | --- | --- | --- |
 | `task desktop` / `tauri dev` | `http://127.0.0.1:1420` | `HttpOnly; SameSite=Lax` (same-site with the API) |
-| Packaged `tauri build` | `tauri://localhost` or `http(s)://tauri.localhost` | `HttpOnly; SameSite=None; Secure` (custom protocol is cross-site to `127.0.0.1`) |
+| Packaged `tauri build` (Windows / Android) | `http://tauri.localhost` (Tauri 2.11 default; `useHttpsScheme` unset) | `HttpOnly; SameSite=None; Secure; Partitioned` |
+| Packaged `tauri build` (Linux / macOS) | `tauri://localhost` | `HttpOnly; SameSite=None; Secure; Partitioned` |
+| Packaged custom HTTPS scheme | `https://tauri.localhost` if enabled | `HttpOnly; SameSite=None; Secure; Partitioned` |
 | Optional web (`:3000`) | `http://127.0.0.1:3000` | `HttpOnly; SameSite=Lax` |
 
 CORS allowlists those Origins with credentials. `SameSite=None` is **not** the
 default; it applies only when the request `Origin` is a packaged Tauri origin.
+Those Origins also get `Partitioned` so Chromium/WebView2 can store the cookie
+as a third-party CHIPS cookie.
 
 API tests assert `Set-Cookie` attributes and a credentialed register → `/auth/me`
 → logout → login flow for those Origins. They do **not** exercise a real
-WebKit/WebView2 cookie jar. Native packaged auth remains a manual check (launch
-the built app against `task backend`).
+WebKit/WebView2 cookie jar. Native packaged auth is verified with the checklist
+or local probe in [`../testing/NATIVE_DESKTOP_SMOKE.md`](../testing/NATIVE_DESKTOP_SMOKE.md)
+(`task desktop:smoke:native`). That is not CI coverage.
 
 All authenticated API calls use `credentials: "include"` (including SSE streams
 and document uploads) so the HttpOnly session cookie is attached. Desktop never
