@@ -9,8 +9,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -196,10 +198,20 @@ def evaluate_report(payload: dict[str, Any]) -> int:
     steps = {str(item.get("name")): item for item in raw_steps if isinstance(item, dict)}
     me_authed = steps.get("me_after_register", {}).get("status")
     me_anon = steps.get("me_after_logout", {}).get("status")
+    me_repeat = steps.get("me_after_logout_repeat", {}).get("status")
+    register_email = steps.get("register", {}).get("email")
+    me_email = steps.get("me_after_register", {}).get("email")
     if me_authed != 200:
         print(
             "FAIL: packaged WebView did not authenticate GET /auth/me after register "
             "(cookie jar did not send the session).",
+            file=sys.stderr,
+        )
+        return 1
+    if register_email and me_email and register_email != me_email:
+        print(
+            "FAIL: GET /auth/me email did not match the user registered in this run. "
+            "A previous WebView profile session may have been used.",
             file=sys.stderr,
         )
         return 1
@@ -208,6 +220,12 @@ def evaluate_report(payload: dict[str, Any]) -> int:
         print(
             "LOGOUT UNPROVEN: GET /auth/me was not 401 after POST /auth/logout "
             f"(got {me_anon!r}). Do not claim session clear from this run.",
+            file=sys.stderr,
+        )
+        return 1
+    if me_repeat not in (None, 401):
+        print(
+            f"LOGOUT UNPROVEN: repeat GET /auth/me was {me_repeat!r}, not 401.",
             file=sys.stderr,
         )
         return 1
@@ -278,15 +296,19 @@ def main(argv: list[str] | None = None) -> int:
     env["MEMOVI_NATIVE_AUTH_SMOKE"] = "1"
     env["MEMOVI_NATIVE_AUTH_SMOKE_API"] = args.api_base.rstrip("/")
     env["MEMOVI_NATIVE_AUTH_SMOKE_REPORT"] = report_url
+    profile_dir = tempfile.mkdtemp(prefix="memovi-webview-smoke-")
+    env["MEMOVI_NATIVE_AUTH_SMOKE_PROFILE"] = profile_dir
 
     print(f"API ready. Launching packaged binary:\n  {binary}")
     print(f"Report listener: {report_url}")
+    print(f"Temporary WebView profile: {profile_dir}")
 
     try:
         proc = subprocess.Popen([str(binary)], env=env)
     except OSError as exc:
         print(f"Failed to launch {binary}: {exc}", file=sys.stderr)
         server.shutdown()
+        shutil.rmtree(profile_dir, ignore_errors=True)
         return 2
 
     finished = state.event.wait(timeout=args.timeout)
@@ -296,6 +318,7 @@ def main(argv: list[str] | None = None) -> int:
     except subprocess.TimeoutExpired:
         proc.kill()
     server.shutdown()
+    shutil.rmtree(profile_dir, ignore_errors=True)
 
     if not finished or state.payload is None:
         print(

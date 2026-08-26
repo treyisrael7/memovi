@@ -165,13 +165,14 @@ Login / Register
   │
   ├─ POST /auth/login or /auth/register  { email, password }
   ├─ Set-Cookie: memovi_session (HttpOnly; Lax for same-site dev/web;
-  │  None+Secure when Origin is packaged Tauri)
+  │  None+Secure+Partitioned when Origin is packaged Tauri)
   └─ authenticated → Shell (workspaces + models load)
 
 Logout (Settings → Account)
   │
   ├─ confirmation dialog
-  ├─ POST /auth/logout
+  ├─ POST /auth/logout (revokes the session; Set-Cookie deletion matches
+  │  creation flags, including Partitioned for packaged Origins)
   ├─ clear local shell state (workspace, models, seeds)
   └─ anonymous → AuthGate
 

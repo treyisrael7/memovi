@@ -1,6 +1,7 @@
 from auth.api.session_cookies import (
     PACKAGED_TAURI_ORIGINS,
     cookie_header_value,
+    cookie_header_values,
     session_cookie_flags,
 )
 
@@ -33,6 +34,14 @@ def test_packaged_tauri_origins_use_none_secure_partitioned() -> None:
 def test_cookie_header_value_reads_session_name() -> None:
     assert cookie_header_value("memovi_session=abc; other=x", "memovi_session") == "abc"
     assert cookie_header_value(None, "memovi_session") is None
+    assert cookie_header_value('memovi_session=""; memovi_session=keep', "memovi_session") == "keep"
+
+
+def test_cookie_header_values_returns_all_non_empty() -> None:
+    assert cookie_header_values(
+        "memovi_session=one; memovi_session=two; other=x",
+        "memovi_session",
+    ) == ("one", "two")
 
 
 def test_unknown_origin_does_not_get_none() -> None:

@@ -27,6 +27,7 @@ describe("apiFetch", () => {
       `${API_BASE_URL}/health`,
       expect.objectContaining({
         credentials: "include",
+        cache: "no-store",
       }),
     );
   });

@@ -60,6 +60,7 @@ export async function apiFetch<T>(
   try {
     response = await fetch(url, {
       credentials: "include",
+      cache: "no-store",
       ...requestInit,
       headers: buildHeaders(init, { Accept: "application/json" }),
     });

@@ -29,6 +29,36 @@ def _cookie_request_header(set_cookie: str) -> str:
     return set_cookie.split(";", 1)[0].strip()
 
 
+def _assert_packaged_creation_cookie(cookie: str) -> None:
+    lower = cookie.lower()
+    assert "memovi_session=" in cookie
+    assert "HttpOnly" in cookie
+    assert "Secure" in cookie
+    assert "samesite=none" in lower
+    assert "partitioned" in lower
+    assert "path=/" in lower
+    assert "max-age=0" not in lower
+    assert "01 jan 1970" not in lower
+
+
+def _assert_deletion_cookie(cookie: str, *, partitioned: bool, secure: bool) -> None:
+    lower = cookie.lower()
+    assert "memovi_session=" in cookie
+    assert "HttpOnly" in cookie
+    assert "path=/" in lower
+    assert "max-age=0" in lower
+    assert "01 jan 1970" in lower
+    if secure:
+        assert "Secure" in cookie
+    else:
+        assert "Secure" not in cookie
+    if partitioned:
+        assert "samesite=none" in lower
+        assert "partitioned" in lower
+    else:
+        assert "partitioned" not in lower
+
+
 def build_test_client(*, base_url: str = "https://testserver") -> tuple[TestClient, Engine]:
     engine = create_engine(
         "sqlite://",
@@ -182,9 +212,9 @@ def test_dev_desktop_origin_sets_lax_http_cookie() -> None:
 
             logout_response = client.post("/auth/logout", headers={"Origin": origin})
             assert logout_response.status_code == 204
-            logout_cookie = _cookie_header(logout_response).lower()
-            assert "memovi_session=" in logout_cookie
-            assert "samesite=lax" in logout_cookie
+            logout_cookie = _cookie_header(logout_response)
+            _assert_deletion_cookie(logout_cookie, partitioned=False, secure=False)
+            assert "samesite=lax" in logout_cookie.lower()
     finally:
         engine.dispose()
 
@@ -201,11 +231,7 @@ def test_packaged_tauri_origin_sets_none_secure_cookie_and_session_works() -> No
             )
             assert register_response.status_code == 201
             cookie = _cookie_header(register_response)
-            assert "memovi_session=" in cookie
-            assert "HttpOnly" in cookie
-            assert "Secure" in cookie
-            assert "samesite=none" in cookie.lower()
-            assert "partitioned" in cookie.lower()
+            _assert_packaged_creation_cookie(cookie)
             assert register_response.headers.get("access-control-allow-origin") == origin
             assert register_response.headers.get("access-control-allow-credentials") == "true"
 
@@ -226,9 +252,8 @@ def test_packaged_tauri_origin_sets_none_secure_cookie_and_session_works() -> No
                 headers={"Origin": origin, "Cookie": cookie_header},
             )
             assert logout_response.status_code == 204
-            assert "samesite=none" in _cookie_header(logout_response).lower()
-            assert "Secure" in _cookie_header(logout_response)
-            assert "partitioned" in _cookie_header(logout_response).lower()
+            logout_cookie = _cookie_header(logout_response)
+            _assert_deletion_cookie(logout_cookie, partitioned=True, secure=True)
 
             logged_out = client.get(
                 "/auth/me",
@@ -272,5 +297,95 @@ def test_packaged_tauri_custom_scheme_origin_sets_none_secure_cookie() -> None:
             assert "secure" in cookie
             assert "httponly" in cookie
             assert "partitioned" in cookie
+    finally:
+        engine.dispose()
+
+
+def test_windows_packaged_origin_logout_deletes_chips_cookie() -> None:
+    client, engine = build_test_client(base_url="http://testserver")
+    origin = "http://tauri.localhost"
+    try:
+        with client:
+            register_response = client.post(
+                "/auth/register",
+                json={"email": "webview@example.com", "password": "password123"},
+                headers={"Origin": origin},
+            )
+            assert register_response.status_code == 201
+            created = _cookie_header(register_response)
+            _assert_packaged_creation_cookie(created)
+
+            logout_response = client.post(
+                "/auth/logout",
+                headers={
+                    "Origin": origin,
+                    "Cookie": _cookie_request_header(created),
+                    "X-Memovi-Native-Smoke": "1",
+                },
+            )
+            assert logout_response.status_code == 204
+            deleted = _cookie_header(logout_response)
+            _assert_deletion_cookie(deleted, partitioned=True, secure=True)
+            contract = logout_response.headers.get("X-Memovi-Session-Cookie") or ""
+            assert "Partitioned" in contract
+            assert "Max-Age=0" in contract
+            assert "1970" in contract
+            received = logout_response.headers.get("X-Memovi-Session-Received") or ""
+            assert received.startswith("n=1;fp=")
+            token = _cookie_request_header(created).split("=", 1)[1]
+            assert token not in received
+            assert token not in contract
+    finally:
+        engine.dispose()
+
+
+def test_logout_revokes_every_duplicate_session_cookie() -> None:
+    client, engine = build_test_client(base_url="http://testserver")
+    origin = "http://tauri.localhost"
+    try:
+        with client:
+            register_response = client.post(
+                "/auth/register",
+                json={"email": "dup@example.com", "password": "password123"},
+                headers={"Origin": origin},
+            )
+            first = _cookie_request_header(_cookie_header(register_response))
+            login_response = client.post(
+                "/auth/login",
+                json={"email": "dup@example.com", "password": "password123"},
+                headers={"Origin": origin},
+            )
+            second = _cookie_request_header(_cookie_header(login_response))
+            assert first != second
+
+            logout_response = client.post(
+                "/auth/logout",
+                headers={"Origin": origin, "Cookie": f"{first}; {second}"},
+            )
+            assert logout_response.status_code == 204
+
+            assert (
+                client.get("/auth/me", headers={"Origin": origin, "Cookie": first}).status_code
+                == 401
+            )
+            assert (
+                client.get("/auth/me", headers={"Origin": origin, "Cookie": second}).status_code
+                == 401
+            )
+    finally:
+        engine.dispose()
+
+
+def test_auth_me_is_not_cacheable() -> None:
+    client, engine = build_test_client()
+    try:
+        with client:
+            client.post(
+                "/auth/register",
+                json={"email": "cache@example.com", "password": "password123"},
+            )
+            me_response = client.get("/auth/me")
+            assert me_response.status_code == 200
+            assert me_response.headers.get("cache-control") == "no-store"
     finally:
         engine.dispose()

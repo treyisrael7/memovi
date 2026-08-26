@@ -124,4 +124,8 @@ def register_middleware(app: FastAPI) -> None:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=[
+            "X-Memovi-Session-Cookie",
+            "X-Memovi-Session-Received",
+        ],
     )

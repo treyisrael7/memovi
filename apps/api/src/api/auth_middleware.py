@@ -8,6 +8,12 @@ from datetime import UTC, datetime
 from typing import cast
 
 from auth.api.dependencies import SESSION_COOKIE_NAME
+from auth.api.session_cookies import (
+    NATIVE_SMOKE_REQUEST_HEADER,
+    SESSION_RECEIVED_HEADER,
+    cookie_header_value,
+    describe_received_session_cookies,
+)
 from auth.application.dto import AuthenticatedPrincipal
 from auth.infrastructure.repositories import (
     SqlAlchemySessionRepository,
@@ -62,13 +68,20 @@ class AuthenticationMiddleware:
             for key, value in scope.get("headers", [])
         }
         cookie_header = headers.get("cookie", "")
-        session_token = _cookie_value(cookie_header, SESSION_COOKIE_NAME)
+        session_token = cookie_header_value(cookie_header, SESSION_COOKIE_NAME)
         principal = self._resolve_principal(scope, session_token)
         if principal is None:
+            extra_headers: list[tuple[bytes, bytes]] = [(b"cache-control", b"no-store")]
+            if headers.get(NATIVE_SMOKE_REQUEST_HEADER) == "1":
+                received = describe_received_session_cookies(cookie_header, SESSION_COOKIE_NAME)
+                extra_headers.append(
+                    (SESSION_RECEIVED_HEADER.lower().encode("ascii"), received.encode("ascii"))
+                )
             await _send_json(
                 send,
                 status=401,
                 body={"detail": "Authentication is required."},
+                extra_headers=extra_headers,
             )
             return
 
@@ -132,29 +145,25 @@ class AuthenticationMiddleware:
             session.close()
 
 
-def _cookie_value(cookie_header: str, name: str) -> str | None:
-    if not cookie_header:
-        return None
-    for part in cookie_header.split(";"):
-        piece = part.strip()
-        if not piece or "=" not in piece:
-            continue
-        key, value = piece.split("=", 1)
-        if key.strip() == name:
-            return value.strip()
-    return None
-
-
-async def _send_json(send: Send, *, status: int, body: dict[str, object]) -> None:
+async def _send_json(
+    send: Send,
+    *,
+    status: int,
+    body: dict[str, object],
+    extra_headers: list[tuple[bytes, bytes]] | None = None,
+) -> None:
     payload = json.dumps(body).encode("utf-8")
+    headers = [
+        (b"content-type", b"application/json"),
+        (b"content-length", str(len(payload)).encode("ascii")),
+    ]
+    if extra_headers:
+        headers.extend(extra_headers)
     await send(
         {
             "type": "http.response.start",
             "status": status,
-            "headers": [
-                (b"content-type", b"application/json"),
-                (b"content-length", str(len(payload)).encode("ascii")),
-            ],
+            "headers": headers,
         }
     )
     await send({"type": "http.response.body", "body": payload})

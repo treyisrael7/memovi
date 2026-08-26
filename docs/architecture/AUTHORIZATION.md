@@ -49,7 +49,13 @@ to `http://127.0.0.1:8000`, so those Origins receive **SameSite=None; Secure;
 Partitioned** so credentialed `fetch` can store the cookie in a CHIPS jar keyed
 by the packaged top-level site. Unpartitioned `SameSite=None` is not enough for
 WebView2: the API cookie is third-party from `http://tauri.localhost`. That flag
-is not applied globally. The `Secure` attribute is also set for any HTTPS API request. Local
+is not applied globally. Logout repeats the same attributes with **Max-Age=0**
+and **Expires=Thu, 01 Jan 1970 00:00:00 GMT** so the partitioned cookie can be
+replaced. Python 3.14 must not use integer `expires=0` (that serializes as
+“now”, not the Unix epoch). `GET /auth/me` and auth middleware 401s send
+`Cache-Control: no-store` so a WebView HTTP cache cannot keep an authenticated
+body after logout. Logout revokes every non-empty `memovi_session` value on the
+request, not only the first parser hit. The `Secure` attribute is also set for any HTTPS API request. Local
 dev HTTP without a packaged Origin omits `Secure` so `task desktop` can persist
 sessions against `http://127.0.0.1:8000`. Native WebView acceptance of
 `SameSite=None; Secure` from loopback HTTP is **not** proven by API tests; see

@@ -38,7 +38,8 @@ in V1**.
 * Coverage floor is enforced at 80% on application sources; measured total
   meets the **80%** requirement
 * Linux Tauri packaging in CI; Windows/macOS packaging matrix and signing not done
-* Packaged WebView session cookies: API flags proven; native jar is local
+* Packaged WebView session cookies: Windows WebView2 CHIPS store/send and
+  logout clearing proven locally
   (`task desktop:smoke:native` / [`testing/NATIVE_DESKTOP_SMOKE.md`](testing/NATIVE_DESKTOP_SMOKE.md)), not CI
 * No GitHub Release / tag automation
 * Operator UX follow-ups: capability permission settings UI, deeper model /

@@ -171,3 +171,32 @@ def test_logout_revokes_existing_session() -> None:
     revoked = sessions.get_by_token_hash(tokens.token_hash("token"))
     assert revoked is not None
     assert revoked.revoked_at is not None
+
+
+def test_logout_revokes_every_session_in_the_cookie_header() -> None:
+    sessions = InMemorySessionRepository()
+    tokens = FakeSessionTokenService()
+    now = datetime.now(UTC)
+    first = Session(
+        id="session-a",
+        user_id=UserId.new(),
+        token_hash=tokens.token_hash("token-a"),
+        created_at=now,
+        expires_at=now + timedelta(days=1),
+    )
+    second = Session(
+        id="session-b",
+        user_id=UserId.new(),
+        token_hash=tokens.token_hash("token-b"),
+        created_at=now,
+        expires_at=now + timedelta(days=1),
+    )
+    sessions.add(first)
+    sessions.add(second)
+
+    LogoutUser(sessions=sessions, session_tokens=tokens).execute_many(("token-a", "token-b"))
+
+    revoked_a = sessions.get_by_token_hash(tokens.token_hash("token-a"))
+    revoked_b = sessions.get_by_token_hash(tokens.token_hash("token-b"))
+    assert revoked_a is not None and revoked_a.revoked_at is not None
+    assert revoked_b is not None and revoked_b.revoked_at is not None

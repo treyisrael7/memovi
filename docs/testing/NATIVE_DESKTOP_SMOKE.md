@@ -90,16 +90,22 @@ Smallest automation that still uses the **real WebView cookie jar**:
    * `MEMOVI_NATIVE_AUTH_SMOKE=1`
    * `MEMOVI_NATIVE_AUTH_SMOKE_API`
    * `MEMOVI_NATIVE_AUTH_SMOKE_REPORT`
-4. The Rust host, **only when that env is set**, `eval`s a one-shot script after
-   the app URL finishes loading.
+   * `MEMOVI_NATIVE_AUTH_SMOKE_PROFILE` (unique temporary WebView data directory)
+4. The Rust host, **only when that env is set**, applies the temporary profile
+   as the WebView data directory and `eval`s a one-shot script after the app URL
+   finishes loading. Production launches never set these variables.
 5. That script `fetch`es `/auth/register` → `/auth/me` → `/auth/logout` →
-   `/auth/me` with `credentials: "include"` from `location.origin`.
-6. It POSTs a JSON report (origin, step statuses). It does **not** echo the
-   session token.
+   `/auth/me` (and a repeat `/auth/me`) with `credentials: "include"` and
+   `cache: "no-store"` from `location.origin`. Requests include
+   `X-Memovi-Native-Smoke: 1` so the API may echo Set-Cookie **attributes** and
+   hashed Cookie fingerprints (not raw session IDs).
+6. It POSTs a JSON report (origin, step statuses, emails, cookie attribute
+   summaries). It does **not** echo the session token. `document.cookie` is
+   recorded only to confirm HttpOnly (it should be empty).
 7. The helper kills the app and asserts:
    * origin is a packaged Tauri Origin (dev origin is an explicit fail)
-   * `/auth/me` was 200 after register (jar sent the cookie)
-   * `/auth/me` was 401 after logout
+   * `/auth/me` was 200 after register for the email created in this run
+   * `/auth/me` was 401 after logout (and on the repeat GET)
 
 This is **not** Selenium/WebDriver/Playwright. It does **not** run in CI (no
 guaranteed display; Linux would need xvfb, which this project refuses to add
@@ -158,8 +164,19 @@ Keep CI as-is. Do not add WebDriver or xvfb to claim native coverage.
 potentially trustworthy origin. **Observed on Windows WebView2 (this repo,
 2026-08-23):** `SameSite=None; Secure` without `Partitioned` was **not** stored
 (register 201, then `GET /auth/me` 401). With `Partitioned` (CHIPS),
-`GET /auth/me` returned 200 from the real jar. WebKitGTK / WKWebView remain
+`GET /auth/me` returned 200 from the real jar. **Observed 2026-08-25:** after
+matching CHIPS deletion attributes (`Max-Age=0` and `Expires=Thu, 01 Jan 1970`)
+and a fresh WebView profile, `POST /auth/logout` returned 204 and
+`GET /auth/me` returned 401 (cookie count `n=0`). WebKitGTK / WKWebView remain
 unproven here.
+
+| Platform/runtime | Cookie store/send | Logout clearing |
+| --- | --- | --- |
+| Windows WebView2 | Proven (CHIPS `Partitioned`) | Proven (`logout` 204 → `/auth/me` 401) |
+| Linux WebKitGTK | unverified unless actually run | unverified unless actually run |
+| macOS WKWebView | unverified unless actually run | unverified unless actually run |
+
+
 
 **Third-party cookies.** Packaged `http://tauri.localhost` → `127.0.0.1:8000` is
 cross-site. Unpartitioned `SameSite=None` is a third-party cookie; WebView2 did

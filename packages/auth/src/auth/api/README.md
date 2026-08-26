@@ -7,8 +7,9 @@ to HTTP responses.
 Contents:
 
 - `router.py` — `/auth` routes for register, login, logout, and current user.
-- `session_cookies.py` — local client Origins and SameSite/Secure/Partitioned flags
-  (Lax for same-site dev/web; None+Secure+Partitioned for packaged Tauri Origins).
+- `session_cookies.py` — local client Origins, SameSite/Secure/Partitioned flags,
+  Cookie-header parsing, and the CHIPS deletion contract (Max-Age=0 plus
+  Expires=1970-01-01, matching creation attributes).
 - `schemas.py` — request and response schemas.
 - `dependencies.py` — FastAPI dependency wiring (repositories, session cookie/TTL
   from `memovi_config.AuthSettings`).
