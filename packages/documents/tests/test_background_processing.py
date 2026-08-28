@@ -7,6 +7,7 @@ from api.app import create_app
 from api.database import database_session as api_database_session
 from api.document_processing import configure_document_processing
 from api.documents_session import build_documents_database_session
+from api.events import InProcessEventDispatcher, TransactionScopedEventPublisher
 from auth.api.dependencies import get_database_session as get_auth_database_session
 from auth.infrastructure.persistence import Base as AuthBase
 from documents.api.dependencies import (
@@ -387,3 +388,135 @@ def test_upload_is_processed_with_durable_queue() -> None:
         assert job.completed_at is not None
 
     engine.dispose()
+
+
+def test_processing_completed_is_dispatched_after_worker_session_release() -> None:
+    """Downstream handlers must not nest sessions on the worker connection.
+
+    Flushing ProcessingCompleted while the worker session is still checked out
+    nests transactions on SQLite StaticPool and can discard handler writes.
+    """
+    object_storage = InMemoryObjectStorage()
+    dispatcher = InProcessEventDispatcher()
+    open_sessions = {"count": 0}
+    event_publisher = TransactionScopedEventPublisher(dispatcher)
+    original_flush = event_publisher.flush
+    sessions_open_at_flush: list[int] = []
+
+    def flush_and_record() -> None:
+        sessions_open_at_flush.append(open_sessions["count"])
+        original_flush()
+
+    event_publisher.flush = flush_and_record  # type: ignore[method-assign]
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    AuthBase.metadata.create_all(engine)
+    DocumentsBase.metadata.create_all(engine)
+    WorkspaceBase.metadata.create_all(engine)
+    test_session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+
+    with Session(engine) as seed_session:
+        seed_session.add(
+            WorkspaceRecord(
+                id=DEFAULT_WORKSPACE_ID.value,
+                name="Default",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            )
+        )
+        seed_session.commit()
+
+    def database_session() -> Iterator[Session]:
+        session = test_session_factory()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def worker_session_factory() -> Session:
+        open_sessions["count"] += 1
+        session = test_session_factory()
+        original_close = session.close
+
+        def close() -> None:
+            if not getattr(session, "_memovi_counted_close", False):
+                session._memovi_counted_close = True  # type: ignore[attr-defined]
+                open_sessions["count"] -= 1
+            original_close()
+
+        session.close = close  # type: ignore[method-assign]
+        return session
+
+    visible_normalized: list[str | None] = []
+
+    def on_processing_completed(event: object) -> None:
+        if not isinstance(event, ProcessingCompleted):
+            return
+        with Session(engine) as session:
+            version = session.scalar(
+                select(DocumentVersionRecord).where(
+                    DocumentVersionRecord.document_id == event.document_id.value
+                )
+            )
+            visible_normalized.append(None if version is None else version.normalized_content)
+
+    dispatcher.subscribe(ProcessingCompleted, on_processing_completed)
+
+    app = create_app()
+    app.state.auth_session_factory = test_session_factory
+    queue = InMemoryProcessingJobQueue()
+    configure_document_processing(
+        app,
+        session_factory=worker_session_factory,
+        queue=queue,
+        worker_config=DocumentProcessingWorkerConfig(
+            max_retries=3,
+            poll_interval_seconds=0.05,
+        ),
+        object_storage=object_storage,
+        event_publisher=event_publisher,
+        event_dispatcher=dispatcher,
+    )
+    app.dependency_overrides[api_database_session] = database_session
+    app.dependency_overrides[get_auth_database_session] = database_session
+    app.dependency_overrides[get_documents_database_session] = build_documents_database_session(
+        database_session
+    )
+    app.dependency_overrides[get_object_storage] = lambda: object_storage
+
+    with TestClient(app, base_url="https://testserver") as client:
+        register_response = client.post(
+            "/auth/register",
+            json={"email": "flush-after-close@example.com", "password": "password123"},
+        )
+        assert register_response.status_code == 201
+        response = client.post(
+            "/documents",
+            files={"file": ("notes.md", b"# Title\r\n\nBody", "text/markdown")},
+        )
+        assert response.status_code == 202
+        payload = response.json()
+        _wait_for_job_status(
+            engine,
+            payload["processing_job_id"],
+            ProcessingStatus.COMPLETED,
+        )
+        deadline = time.monotonic() + 5.0
+        while time.monotonic() < deadline:
+            if any(isinstance(event, ProcessingCompleted) for event in dispatcher.published_events):
+                break
+            time.sleep(0.05)
+        else:
+            pytest.fail("ProcessingCompleted was not dispatched after the job completed.")
+
+    engine.dispose()
+
+    assert sessions_open_at_flush == [0]
+    assert visible_normalized == ["# Title\n\nBody"]

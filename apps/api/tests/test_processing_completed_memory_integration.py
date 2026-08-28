@@ -1,3 +1,5 @@
+import os
+import tempfile
 import time
 from collections.abc import Iterator
 from datetime import UTC, datetime
@@ -33,7 +35,7 @@ from memovi_workspace.infrastructure.persistence import Base as WorkspaceBase
 from memovi_workspace.infrastructure.persistence.models import WorkspaceRecord
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool
 
 
 class InMemoryObjectStorage:
@@ -72,24 +74,21 @@ def _wait_for_job_status(
     )
 
 
-def _wait_for_knowledge(
-    engine: Engine,
+def _wait_for_published_event(
+    dispatcher: InProcessEventDispatcher,
+    event_type: type[object],
     *,
-    minimum_count: int = 1,
     timeout_seconds: float = 5.0,
-) -> list[KnowledgeItemRecord]:
+) -> object:
     deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
-        with Session(engine) as session:
-            items = list(session.scalars(select(KnowledgeItemRecord)).all())
-            if len(items) >= minimum_count:
-                return items
+        for event in dispatcher.published_events:
+            if isinstance(event, event_type):
+                return event
         time.sleep(0.05)
-    with Session(engine) as session:
-        count = len(list(session.scalars(select(KnowledgeItemRecord)).all()))
     pytest.fail(
-        f"Expected at least {minimum_count} knowledge items within "
-        f"{timeout_seconds}s (found {count})."
+        f"{event_type.__name__} was not published within {timeout_seconds}s "
+        f"({len(dispatcher.published_events)} events captured)."
     )
 
 
@@ -97,10 +96,16 @@ def _wait_for_knowledge(
 def memory_integration_client() -> Iterator[tuple[TestClient, Engine, InProcessEventDispatcher]]:
     object_storage = InMemoryObjectStorage()
 
+    # Separate connections to one SQLite file match production session isolation.
+    # StaticPool shares one connection across the worker and test threads and can
+    # roll back materialized knowledge.
+    fd, db_path_str = tempfile.mkstemp(suffix=".sqlite")
+    os.close(fd)
+    db_path = Path(db_path_str)
     engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
+        f"sqlite:///{db_path.as_posix()}",
+        connect_args={"check_same_thread": False, "timeout": 30},
+        poolclass=NullPool,
     )
     AuthBase.metadata.create_all(engine)
     WorkspaceBase.metadata.create_all(engine)
@@ -163,6 +168,7 @@ def memory_integration_client() -> Iterator[tuple[TestClient, Engine, InProcessE
         yield client, engine, dispatcher
 
     engine.dispose()
+    db_path.unlink(missing_ok=True)
 
 
 def test_processing_completed_materializes_knowledge_and_publishes_event(
@@ -177,12 +183,13 @@ def test_processing_completed_materializes_knowledge_and_publishes_event(
     assert response.status_code == 202
     payload = response.json()
 
-    _wait_for_job_status(
+    materialized = _wait_for_published_event(dispatcher, KnowledgeMaterialized)
+    job = _wait_for_job_status(
         engine,
         payload["processing_job_id"],
         ProcessingStatus.COMPLETED,
     )
-    _wait_for_knowledge(engine, minimum_count=1)
+    assert job.failure_reason is None
 
     with Session(engine) as session:
         knowledge_items = session.scalars(select(KnowledgeItemRecord)).all()
@@ -201,7 +208,7 @@ def test_processing_completed_materializes_knowledge_and_publishes_event(
 
     assert len(completed_events) == 1
     assert len(materialized_events) == 1
-    materialized = materialized_events[0]
+    assert materialized_events[0] is materialized
     assert materialized.document_id == payload["document_id"]
     assert materialized.chunk_count == len(chunks)
     assert materialized.knowledge_item_id == knowledge_items[0].id
@@ -228,6 +235,7 @@ def test_processing_completed_with_empty_normalized_content_skips_memory(
     assert response.status_code == 202
     payload = response.json()
 
+    _wait_for_published_event(dispatcher, ProcessingCompleted)
     _wait_for_job_status(
         engine,
         payload["processing_job_id"],

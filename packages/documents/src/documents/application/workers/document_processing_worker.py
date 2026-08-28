@@ -114,6 +114,8 @@ class DocumentProcessingWorker:
         metrics = get_metrics_recorder()
         started = time.perf_counter()
         session = self._session_factory()
+        should_flush = False
+        transient_error: TransientDocumentProcessingError | None = None
         try:
             process_document = ProcessDocument(
                 documents=SqlAlchemyDocumentRepository(session),
@@ -128,30 +130,27 @@ class DocumentProcessingWorker:
                     ProcessDocumentCommand(processing_job_id=queued.processing_job_id),
                 )
                 session.commit()
-                flush = getattr(self._event_publisher, "flush", None)
-                if flush is not None:
-                    flush()
+                should_flush = True
             except TransientDocumentProcessingError as exc:
                 session.rollback()
-                self._handle_transient_failure(queued, reason=str(exc))
-                return
-
-            duration_ms = (time.perf_counter() - started) * 1000.0
-            metrics.timing(
-                "memovi.documents.processing.duration_ms",
-                duration_ms,
-                tags={"status": result.processing_status.value},
-            )
-            if result.processing_status is ProcessingStatus.FAILED:
-                metrics.increment("memovi.documents.processing.failed")
-                LOGGER.warning(
-                    "Processing job %s failed permanently: %s",
-                    queued.processing_job_id,
-                    result.events[-1],
+                transient_error = exc
+            else:
+                duration_ms = (time.perf_counter() - started) * 1000.0
+                metrics.timing(
+                    "memovi.documents.processing.duration_ms",
+                    duration_ms,
+                    tags={"status": result.processing_status.value},
                 )
-            elif result.processing_status is ProcessingStatus.COMPLETED:
-                metrics.increment("memovi.documents.processing.completed")
-                metrics.increment("memovi.documents.processing.throughput")
+                if result.processing_status is ProcessingStatus.FAILED:
+                    metrics.increment("memovi.documents.processing.failed")
+                    LOGGER.warning(
+                        "Processing job %s failed permanently: %s",
+                        queued.processing_job_id,
+                        result.events[-1],
+                    )
+                elif result.processing_status is ProcessingStatus.COMPLETED:
+                    metrics.increment("memovi.documents.processing.completed")
+                    metrics.increment("memovi.documents.processing.throughput")
         except Exception:
             session.rollback()
             metrics.increment("memovi.documents.processing.failed")
@@ -161,8 +160,18 @@ class DocumentProcessingWorker:
             )
             raise
         finally:
+            # Release the worker connection before dispatching. Downstream
+            # handlers open their own sessions; flushing while this session is
+            # still checked out nests transactions on shared SQLite pools and
+            # can roll back materialized knowledge after it was "committed".
             session.close()
-            _clear_queued_request_context(context_token)
+            try:
+                if transient_error is not None:
+                    self._handle_transient_failure(queued, reason=str(transient_error))
+                elif should_flush:
+                    self._flush_pending_events()
+            finally:
+                _clear_queued_request_context(context_token)
 
     def _handle_transient_failure(self, queued: QueuedProcessingJob, *, reason: str) -> None:
         metrics = get_metrics_recorder()
@@ -225,6 +234,7 @@ class DocumentProcessingWorker:
 
     def _fail_exhausted_job(self, processing_job_id: str, *, reason: str) -> None:
         session = self._session_factory()
+        should_flush = False
         try:
             fail_processing = FailProcessing(
                 processing_jobs=SqlAlchemyProcessingJobRepository(session),
@@ -237,6 +247,7 @@ class DocumentProcessingWorker:
             )
             self._event_publisher.publish(result.event)
             session.commit()
+            should_flush = True
             LOGGER.error(
                 "Processing job %s failed after %s attempts: %s",
                 processing_job_id,
@@ -252,3 +263,10 @@ class DocumentProcessingWorker:
             raise
         finally:
             session.close()
+        if should_flush:
+            self._flush_pending_events()
+
+    def _flush_pending_events(self) -> None:
+        flush = getattr(self._event_publisher, "flush", None)
+        if flush is not None:
+            flush()

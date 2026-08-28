@@ -18,9 +18,12 @@ class InProcessEventDispatcher:
         self._subscribers[event_type].append(handler)
 
     def publish(self, event: object) -> None:
-        self.published_events.append(event)
+        # Dispatch first so published_events means "handlers have completed".
+        # Recording before subscribers made completion look observable while
+        # nested session work was still in flight.
         for handler in self._subscribers.get(type(event), []):
             handler(event)
+        self.published_events.append(event)
 
 
 class TransactionScopedEventPublisher:
