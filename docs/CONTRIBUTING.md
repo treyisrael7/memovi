@@ -82,3 +82,10 @@ task, or live smoke). If something cannot be verified locally, say so.
 There is no documented review SLA, chat community, or required approver list in
 this repository. Follow the README and the architecture docs for technical
 direction.
+
+## Community files
+
+* Security reporting: [`../SECURITY.md`](../SECURITY.md)
+* Code of conduct: [`../CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md)
+* Issue templates: [`.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLATE/)
+* Pull request template: [`.github/PULL_REQUEST_TEMPLATE.md`](../.github/PULL_REQUEST_TEMPLATE.md)

@@ -29,7 +29,8 @@ are not a to-do list to start the architecture over.
 
 **Completed:** platform API, desktop product UI, knowledge pipeline (upload /
 filesystem connector → process → memory → search → RAG chat), capabilities and
-sequential workflows with approval, Postgres + MinIO.
+sequential workflows with approval, Postgres + MinIO, OSS process files
+(`SECURITY.md`, `CODE_OF_CONDUCT.md`, GitHub issue/PR templates).
 
 **Remaining V1 is release hardening**, not core architecture construction. See
 the list after Phase 4.
@@ -308,7 +309,6 @@ hardening**. Phases 5–6 are **V2 / future**.
 
 Not a new architecture. Verify against [`STATUS.md`](STATUS.md) Current V1.
 
-* OSS process files (SECURITY, code of conduct, GitHub templates) — not started
 * Contributor/operator experience after README and architecture truth passes
 * Coverage floor is enforced at 80%; application coverage last measured at 78%
 * Linux packaging exists in CI; Windows/macOS matrices and signing do not
