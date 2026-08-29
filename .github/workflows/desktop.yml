@@ -248,5 +248,5 @@ jobs:
           path: |
             apps/desktop/src-tauri/target/release/bundle
             apps/desktop/src-tauri/target/release/memovi-desktop
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14

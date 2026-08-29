@@ -140,9 +140,12 @@ Runs after `desktop` succeeds:
 1. Install Linux WebKit / GTK dependencies
 2. Install Rust stable + Cargo cache
 3. `pnpm tauri build` from `apps/desktop`
-4. Upload Linux bundle artifacts (`memovi-desktop-linux-bundle`)
+4. Upload Linux bundle artifacts (`memovi-desktop-linux-bundle`). Missing
+   bundle or binary files fail this job (`if-no-files-found: error`).
 
-Packaging failures fail CI. Packaging does not run the live smoke.
+This job is **Linux-only**. It does not produce Windows NSIS/MSI or macOS
+DMG/app bundles, and it does not sign anything. Packaging compile failures and
+empty artifact uploads fail CI. Packaging does not run the live smoke.
 
 Expected CI runtime:
 
