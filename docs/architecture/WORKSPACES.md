@@ -27,7 +27,9 @@ Roles are stored on membership and validated by
 | `member` | Access workspace resources; cannot manage members or owner settings |
 
 Creating a workspace enrolls the creator as `owner`. Registering a user enrolls
-them as `member` of the seeded Default Workspace.
+them in the seeded Default Workspace: the first user becomes `owner` so
+owner-only settings can be configured on the V1 fallback workspace; later
+users are enrolled as `member`.
 
 # Membership lifecycle
 

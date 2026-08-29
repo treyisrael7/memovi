@@ -17,7 +17,10 @@ from documents.infrastructure.queue import NoOpProcessingJobQueue
 from documents.infrastructure.storage import InMemoryObjectStorage
 from fastapi.testclient import TestClient
 from memovi_automation.infrastructure.persistence import Base as AutomationBase
-from memovi_automation.infrastructure.persistence.models import CapabilityExecutionRecord
+from memovi_automation.infrastructure.persistence.models import (
+    CapabilityExecutionRecord,
+    CapabilityPermissionPolicyRecord,
+)
 from memovi_intelligence.api.dependencies import (
     get_database_session as get_intelligence_database_session,
 )
@@ -319,3 +322,197 @@ def test_capability_executions_are_isolated_by_workspace(
     )
     listed_a_ids = {item["execution_id"] for item in listed_a.json()["items"]}
     assert execution_id in listed_a_ids
+
+
+def _filesystem_mode(client: TestClient, *, workspace_id: str) -> str:
+    listed = client.get("/capabilities", headers=_headers(workspace_id))
+    assert listed.status_code == 200
+    filesystem = next(item for item in listed.json()["items"] if item["id"] == "filesystem")
+    return str(filesystem["permission_mode"])
+
+
+def test_permission_mode_http_persists_and_changes_execution_policy(
+    capability_workflow_client: tuple[TestClient, Engine, Path],
+) -> None:
+    client, engine, root = capability_workflow_client
+    workspace_id = DEFAULT_WORKSPACE_ID.value
+    headers = _headers(workspace_id)
+
+    anonymous = TestClient(client.app, base_url="https://testserver")
+    unauthenticated = anonymous.put(
+        "/capabilities/filesystem/permission-mode",
+        headers=headers,
+        json={"permission_mode": "always_allow"},
+    )
+    assert unauthenticated.status_code == 401
+
+    unknown = client.put(
+        "/capabilities/not-a-capability/permission-mode",
+        headers=headers,
+        json={"permission_mode": "always_allow"},
+    )
+    assert unknown.status_code == 404
+
+    invalid = client.put(
+        "/capabilities/filesystem/permission-mode",
+        headers=headers,
+        json={"permission_mode": "sometimes"},
+    )
+    assert invalid.status_code == 422
+
+    allowed = client.put(
+        "/capabilities/filesystem/permission-mode",
+        headers=headers,
+        json={"permission_mode": "always_allow"},
+    )
+    assert allowed.status_code == 200
+    assert allowed.json() == {
+        "capability_id": "filesystem",
+        "permission_mode": "always_allow",
+    }
+    assert _filesystem_mode(client, workspace_id=workspace_id) == "always_allow"
+
+    later = TestClient(client.app, base_url="https://testserver")
+    later_register = later.post(
+        "/auth/register",
+        json={"email": "capability-later@example.com", "password": "password123"},
+    )
+    assert later_register.status_code == 201
+    member_denied = later.put(
+        "/capabilities/filesystem/permission-mode",
+        headers=headers,
+        json={"permission_mode": "deny"},
+    )
+    assert member_denied.status_code == 403
+    assert _filesystem_mode(client, workspace_id=workspace_id) == "always_allow"
+
+    with Session(engine) as session:
+        record = session.get(
+            CapabilityPermissionPolicyRecord,
+            {"workspace_id": workspace_id, "capability_id": "filesystem"},
+        )
+        assert record is not None
+        assert record.permission_mode == "always_allow"
+
+    completed = _submit_list_directory(client, root)
+    assert completed["status"] == "completed"
+    assert completed["permission_mode"] == "always_allow"
+    assert KNOWN_ENTRY in completed["output"]["entries"]
+
+    denied = client.put(
+        "/capabilities/filesystem/permission-mode",
+        headers=headers,
+        json={"permission_mode": "deny"},
+    )
+    assert denied.status_code == 200
+    assert _filesystem_mode(client, workspace_id=workspace_id) == "deny"
+
+    with Session(engine) as session:
+        record = session.get(
+            CapabilityPermissionPolicyRecord,
+            {"workspace_id": workspace_id, "capability_id": "filesystem"},
+        )
+        assert record is not None
+        assert record.permission_mode == "deny"
+
+    blocked = _submit_list_directory(client, root)
+    assert blocked["status"] == "failed"
+    assert blocked["permission_mode"] == "deny"
+    assert blocked["error"]["code"] == "permission_denied"
+
+
+def test_permission_mode_settings_are_isolated_by_workspace(
+    capability_workflow_client: tuple[TestClient, Engine, Path],
+) -> None:
+    client, engine, root = capability_workflow_client
+    workspace_a = DEFAULT_WORKSPACE_ID.value
+    headers_a = _headers(workspace_a)
+
+    other = client.post("/workspaces", json={"name": "Other"})
+    assert other.status_code == 201
+    workspace_b = other.json()["id"]
+    headers_b = _headers(workspace_b)
+
+    updated = client.put(
+        "/capabilities/filesystem/permission-mode",
+        headers=headers_a,
+        json={"permission_mode": "always_allow"},
+    )
+    assert updated.status_code == 200
+
+    assert _filesystem_mode(client, workspace_id=workspace_a) == "always_allow"
+    assert _filesystem_mode(client, workspace_id=workspace_b) == "ask_every_time"
+
+    submitted_b = _submit_list_directory(client, root, workspace_id=workspace_b)
+    assert submitted_b["status"] == "pending_approval"
+    assert submitted_b["workspace_id"] == workspace_b
+
+    hijack = client.put(
+        "/capabilities/filesystem/permission-mode",
+        headers=headers_b,
+        json={"permission_mode": "deny"},
+    )
+    assert hijack.status_code == 200
+    assert _filesystem_mode(client, workspace_id=workspace_a) == "always_allow"
+    assert _filesystem_mode(client, workspace_id=workspace_b) == "deny"
+
+    with Session(engine) as session:
+        record_a = session.get(
+            CapabilityPermissionPolicyRecord,
+            {"workspace_id": workspace_a, "capability_id": "filesystem"},
+        )
+        record_b = session.get(
+            CapabilityPermissionPolicyRecord,
+            {"workspace_id": workspace_b, "capability_id": "filesystem"},
+        )
+        assert record_a is not None
+        assert record_a.permission_mode == "always_allow"
+        assert record_b is not None
+        assert record_b.permission_mode == "deny"
+
+
+def test_permission_mode_http_requires_workspace_owner(
+    capability_workflow_client: tuple[TestClient, Engine, Path],
+) -> None:
+    client, engine, _root = capability_workflow_client
+    member = TestClient(client.app, base_url="https://testserver")
+    registered = member.post(
+        "/auth/register",
+        json={"email": "capability-member@example.com", "password": "password123"},
+    )
+    assert registered.status_code == 201
+
+    team = client.post("/workspaces", json={"name": "Team"})
+    assert team.status_code == 201
+    workspace_id = team.json()["id"]
+    headers = _headers(workspace_id)
+
+    invited = client.post(
+        f"/workspaces/{workspace_id}/members",
+        json={"email": "capability-member@example.com"},
+    )
+    assert invited.status_code == 201
+    assert invited.json()["role"] == "member"
+
+    forbidden = member.put(
+        "/capabilities/filesystem/permission-mode",
+        headers=headers,
+        json={"permission_mode": "always_allow"},
+    )
+    assert forbidden.status_code == 403
+
+    allowed = client.put(
+        "/capabilities/filesystem/permission-mode",
+        headers=headers,
+        json={"permission_mode": "always_allow"},
+    )
+    assert allowed.status_code == 200
+    assert _filesystem_mode(client, workspace_id=workspace_id) == "always_allow"
+
+    with Session(engine) as session:
+        record = session.get(
+            CapabilityPermissionPolicyRecord,
+            {"workspace_id": workspace_id, "capability_id": "filesystem"},
+        )
+        assert record is not None
+        assert record.permission_mode == "always_allow"

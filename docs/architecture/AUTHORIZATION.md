@@ -71,8 +71,10 @@ ownership selector, not an authorization token.
 * Authenticated user must be a member (`workspace_memberships`)
 
 Creating a workspace enrolls the creator as `owner`. Registering a user enrolls
-them as `member` of the Default Workspace. Listing workspaces returns only
-workspaces the caller belongs to (including the caller's `role`).
+them in the Default Workspace: the first user becomes `owner` so owner-only
+settings (including capability permission modes) can be configured on the V1
+fallback workspace; later users are enrolled as `member`. Listing workspaces
+returns only workspaces the caller belongs to (including the caller's `role`).
 
 Membership administration (invite, remove, transfer, leave) is documented in
 [`WORKSPACES.md`](WORKSPACES.md). Roles are enforced through the same membership

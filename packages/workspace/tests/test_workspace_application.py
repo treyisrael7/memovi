@@ -5,6 +5,8 @@ from memovi_shared import InvalidWorkspaceIdError, WorkspaceId
 from memovi_workspace.application.commands import (
     CreateWorkspace,
     CreateWorkspaceCommand,
+    EnrollDefaultWorkspaceMember,
+    EnrollDefaultWorkspaceMemberCommand,
     InviteWorkspaceMember,
     InviteWorkspaceMemberCommand,
     LeaveWorkspace,
@@ -196,6 +198,24 @@ def test_list_workspaces_includes_role() -> None:
     )
     assert len(listed) == 1
     assert listed[0].role == "owner"
+
+
+def test_enroll_default_workspace_first_user_is_owner() -> None:
+    repo = InMemoryWorkspaceRepository()
+    memberships = InMemoryMembershipRepository()
+    repo.add(Workspace.default())
+    enroll = EnrollDefaultWorkspaceMember(workspaces=repo, memberships=memberships)
+
+    enroll.execute(EnrollDefaultWorkspaceMemberCommand(user_id="user-1"))
+    first = memberships.get(user_id="user-1", workspace_id=WorkspaceId.default())
+    assert first is not None
+    assert first.role == "owner"
+
+    enroll.execute(EnrollDefaultWorkspaceMemberCommand(user_id="user-2"))
+    second = memberships.get(user_id="user-2", workspace_id=WorkspaceId.default())
+    assert second is not None
+    assert second.role == "member"
+    assert memberships.count_by_role(workspace_id=WorkspaceId.default(), role="owner") == 1
 
 
 def test_invite_remove_transfer_leave_membership_lifecycle() -> None:
