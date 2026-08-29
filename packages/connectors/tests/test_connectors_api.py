@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -233,6 +234,81 @@ def test_filesystem_folder_lifecycle_persists_and_syncs_through_http(
     with Session(engine) as session:
         repository = SqlAlchemyFilesystemFolderRepository(session)
         assert repository.get_by_id(folder_id, workspace_id=WorkspaceId(workspace_id)) is None
+
+
+def test_filesystem_incremental_http_sync_updates_adds_and_deletes(
+    connectors_client: tuple[TestClient, Engine],
+    tmp_path: Path,
+) -> None:
+    client, engine = connectors_client
+    workspace_id = DEFAULT_WORKSPACE_ID.value
+    headers = _headers(workspace_id)
+    keep = tmp_path / "keep.md"
+    gone = tmp_path / "gone.md"
+    keep.write_text("original keep", encoding="utf-8")
+    gone.write_text("will be deleted", encoding="utf-8")
+
+    created = _add_folder(client, tmp_path, display_name="Incremental vault")
+    folder_id = str(created["id"])
+    sync_path = f"/connectors/filesystem/folders/{folder_id}/sync"
+
+    initial = client.post(sync_path, headers=headers, json={"sync_mode": "initial"})
+    assert initial.status_code == 200
+    initial_body = initial.json()
+    assert initial_body["success"] is True
+    assert initial_body["sync_mode"] == "initial"
+    assert initial_body["imported_count"] == 2
+    assert initial_body["folder"]["imported_document_count"] == 2
+
+    with Session(engine) as session:
+        repository = SqlAlchemyFilesystemFolderRepository(session)
+        after_initial = repository.get_by_id(folder_id, workspace_id=WorkspaceId(workspace_id))
+        assert after_initial is not None
+        initial_cursor = after_initial.sync_cursor
+        assert initial_cursor is not None
+        initial_entries = json.loads(initial_cursor)["entries"]
+        assert set(initial_entries) == {"keep.md", "gone.md"}
+
+    keep.write_text("updated keep", encoding="utf-8")
+    gone.unlink()
+    (tmp_path / "beta.md").write_text("new file", encoding="utf-8")
+
+    incremental = client.post(sync_path, headers=headers, json={"sync_mode": "incremental"})
+    assert incremental.status_code == 200
+    body = incremental.json()
+    assert body["success"] is True
+    assert body["sync_mode"] == "incremental"
+    assert body["imported_count"] == 1
+    assert body["updated_count"] == 1
+    assert body["deleted_count"] == 1
+    assert body["skipped_count"] == 0
+    assert body["error_code"] is None
+    folder_payload = body["folder"]
+    assert folder_payload["workspace_id"] == workspace_id
+    assert folder_payload["sync_status"] == "healthy"
+    assert folder_payload["imported_document_count"] == 2
+    assert folder_payload["last_error"] is None
+    assert folder_payload["last_synchronized_at"] is not None
+
+    documents = client.get("/documents", headers=headers)
+    assert documents.status_code == 200
+    names = {item["name"] for item in documents.json()["items"]}
+    assert names == {"keep.md", "beta.md"}
+
+    with Session(engine) as session:
+        repository = SqlAlchemyFilesystemFolderRepository(session)
+        persisted = repository.get_by_id(folder_id, workspace_id=WorkspaceId(workspace_id))
+        assert persisted is not None
+        assert persisted.workspace_id.value == workspace_id
+        assert persisted.sync_status == "healthy"
+        assert persisted.imported_document_count == 2
+        assert persisted.last_error is None
+        assert persisted.sync_cursor is not None
+        assert persisted.sync_cursor != initial_cursor
+        entries = json.loads(persisted.sync_cursor)["entries"]
+        assert set(entries) == {"keep.md", "beta.md"}
+        assert "gone.md" not in entries
+        assert entries["keep.md"]["sha256"] != initial_entries["keep.md"]["sha256"]
 
 
 def test_connectors_reject_invalid_input_unknown_and_duplicate_folder(
