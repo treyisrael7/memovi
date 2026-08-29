@@ -1,3 +1,4 @@
+import json
 from collections.abc import Iterator
 from datetime import UTC, datetime
 
@@ -19,7 +20,7 @@ from memovi_intelligence.api.dependencies import (
 from memovi_intelligence.api.dependencies import (
     get_database_session as get_intelligence_database_session,
 )
-from memovi_intelligence.domain.value_objects import ConversationId
+from memovi_intelligence.domain.value_objects import ConversationId, ConversationRole
 from memovi_intelligence.infrastructure import (
     FakeKnowledgeRetriever,
     InMemoryConversationRepository,
@@ -196,6 +197,71 @@ def test_conversation_history_survives_new_repository_session(
     assert len(history) == 6
     assert history[4]["content"] == "Continue after reload."
     assert history[5]["role"] == "assistant"
+
+
+def test_conversation_sse_stream_persists_through_sqlalchemy(
+    conversation_api_client: tuple[TestClient, sessionmaker[Session], Engine],
+) -> None:
+    client, session_factory, _engine = conversation_api_client
+    created = client.post("/conversations")
+    assert created.status_code == 201
+    conversation_id = created.json()["conversation_id"]
+    question = "What is Memovi?"
+
+    with client.stream(
+        "POST",
+        f"/conversations/{conversation_id}/messages/stream",
+        json={"message": question},
+    ) as response:
+        assert response.status_code == 200
+        assert "text/event-stream" in response.headers.get("content-type", "")
+        body = "".join(response.iter_text())
+
+    assert "event: token" in body
+    assert "event: done" in body
+    assert "event: error" not in body
+    assert "Memovi is a self-hosted knowledge platform." in body
+
+    done_payload: dict[str, object] | None = None
+    for block in body.split("\n\n"):
+        if "event: done" not in block:
+            continue
+        for line in block.split("\n"):
+            if line.startswith("data:"):
+                done_payload = json.loads(line[5:].strip())
+    assert done_payload is not None
+    assert done_payload["conversation_id"] == conversation_id
+    assistant_message = str(done_payload["assistant_message"])
+    assert "Memovi is a self-hosted knowledge platform." in assistant_message
+    citations = done_payload["citations"]
+    assert isinstance(citations, list)
+    assert citations[0]["chunk_id"] == "chunk-memovi"
+    assert citations[0]["document_id"] == "doc-memovi"
+
+    listed = client.get(f"/conversations/{conversation_id}/messages")
+    assert listed.status_code == 200
+    messages = listed.json()["messages"]
+    assert len(messages) == 2
+    assert messages[0]["role"] == "user"
+    assert messages[0]["content"] == question
+    assert messages[1]["role"] == "assistant"
+    assert messages[1]["content"] == assistant_message
+    assert messages[1]["citations"][0]["chunk_id"] == "chunk-memovi"
+
+    with session_factory() as session:
+        repository = SqlAlchemyConversationRepository(session)
+        loaded = repository.get(
+            ConversationId(conversation_id),
+            workspace_id=WorkspaceId.default(),
+        )
+        assert loaded is not None
+        assert loaded.workspace_id == WorkspaceId.default()
+        assert len(loaded.turns) == 2
+        assert loaded.turns[0].role is ConversationRole.USER
+        assert loaded.turns[0].content == question
+        assert loaded.turns[1].role is ConversationRole.ASSISTANT
+        assert loaded.turns[1].content == assistant_message
+        assert loaded.turns[1].citations[0].chunk_id == "chunk-memovi"
 
 
 def test_composition_root_uses_sqlalchemy_conversation_repository() -> None:
