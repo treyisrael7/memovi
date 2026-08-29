@@ -223,9 +223,10 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
 | Local CI parity | `task ci` | Backend lint/types/tests/coverage + desktop typecheck/unit/mock smoke/Vite build + optional web lint/types/build |
 
 `task ci` does **not** run live smoke, does **not** launch a native Tauri
-window, and does **not** run Tauri packaging. Linux Tauri packaging runs in
-GitHub Actions (`.github/workflows/desktop.yml`). Packaged WebView session
-cookies are a local check (`task desktop:smoke:native`); see
+window, and does **not** run Tauri packaging. Linux and unsigned Windows Tauri
+packaging run in GitHub Actions (`.github/workflows/desktop.yml`). macOS
+packaging is not in CI. Signing and GitHub Releases are future work. Packaged
+WebView session cookies are a local check (`task desktop:smoke:native`); see
 [`docs/testing/NATIVE_DESKTOP_SMOKE.md`](docs/testing/NATIVE_DESKTOP_SMOKE.md).
 
 Live smoke (`task desktop:smoke:live`) requires Postgres, MinIO, migrated

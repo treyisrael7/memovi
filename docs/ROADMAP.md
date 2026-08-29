@@ -311,7 +311,8 @@ Not a new architecture. Verify against [`STATUS.md`](STATUS.md) Current V1.
 * OSS process files (SECURITY, code of conduct, GitHub templates) — not started
 * Contributor/operator experience after README and architecture truth passes
 * Coverage floor is enforced at 80%; application coverage last measured at 78%
-* Linux packaging exists in CI; Windows/macOS matrices and signing do not
+* Linux and unsigned Windows packaging exist in CI; macOS packaging and
+  signing do not
 * GitHub Release / tag automation does not exist
 * Operator UX: capability permission settings UI; deeper model / workspace /
   indexing-status product surfaces
@@ -343,8 +344,8 @@ summaries) — **V2**.
 documents, search, connectors, workflows, tags, activity, settings), design
 system, session auth, processing-status UX, mock + live API smoke.
 
-**Remaining V1:** packaging matrices / signing, operator UX depth — not “build
-chat/documents/settings.”
+**Remaining V1:** macOS packaging / code signing / GitHub Releases, operator UX
+depth — not “build chat/documents/settings.”
 
 ---
 

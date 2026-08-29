@@ -4,8 +4,9 @@ How to verify Memovi session cookies in a **real packaged Tauri WebView**, not i
 TestClient or jsdom.
 
 This is maintainer/host evidence. It is **not** part of `task ci` and is **not**
-run in GitHub Actions. Linux packaging CI compiles a bundle; it does not drive
-WebKitGTK.
+run in GitHub Actions. Linux and unsigned Windows packaging CI compile
+installable bundles; they do not drive WebKitGTK or WebView2. macOS packaging
+is not in CI.
 
 ---
 
@@ -152,6 +153,7 @@ not a cookie-jar failure.
 | Backend pytest CORS / `Set-Cookie` | None (TestClient) |
 | `desktop-live-smoke` | jsdom + test cookie bridge |
 | `desktop-package` | Compiles Linux bundle; does not log in |
+| `desktop-package-windows` | Compiles unsigned Windows NSIS/MSI (as produced); does not log in |
 | `task desktop:smoke:native` | Real WebView, **local only** |
 
 Keep CI as-is. Do not add WebDriver or xvfb to claim native coverage.
