@@ -18,7 +18,7 @@ release validation. It does not change product behavior.
 | Integration (backend) | `packages/**/tests`, API suites | Platform contracts the desktop calls | separate Backend CI |
 | Mock critical-path smoke | `apps/desktop/src/smoke/criticalPath.smoke.test.tsx` | Critical UI journey against an in-memory API stub | ~5–15 s |
 | Live API smoke | `apps/desktop/src/smoke/liveCriticalPath.smoke.test.tsx` | Same React shell against a real FastAPI process (Postgres + MinIO + worker + search + fake providers) | ~30–90 s after infra is up |
-| Packaging | Tauri `tauri build` in CI | Native Linux and unsigned Windows bundles still produce installable artifacts | ~10–30 min (cold cache) |
+| Packaging | Tauri `tauri build` in CI | Native Linux, unsigned Windows, and unsigned macOS bundles still produce packaged artifacts | ~10–30 min (cold cache) |
 | Native packaged auth smoke | `task desktop:smoke:native` or manual checklist | Real WebView cookie jar (register → `/auth/me` → logout). Local display required; **not CI** | operator / host |
 | Manual native-app release verification | Release host | Launch the real Tauri window, native dialogs, workflows | operator-driven |
 
@@ -33,9 +33,11 @@ real document processing, real search indexing, real conversation SSE, real
 citations, and desktop source navigation. It still runs in **jsdom** via Vitest
 + Testing Library. It does **not** launch the native Tauri window.
 
-**Packaging** proves the Linux and unsigned Windows bundles still compile. It
-does not interact with the UI. macOS packaging is not in CI. Artifacts are
-unsigned. Signing, GitHub Releases, and the auto-updater are future work.
+**Packaging** proves the Linux, unsigned Windows, and unsigned macOS bundles
+still compile. It does not interact with the UI and is not native launch or
+auth testing. Artifacts are unsigned. Unsigned macOS packages are not
+Gatekeeper-ready; signing and notarization remain future work. GitHub Releases
+and the auto-updater are also future work.
 
 **Manual native-app verification** remains required for OS window launch, native
 folder dialogs, and host-specific packaging. Packaged WebView session cookies
@@ -162,13 +164,33 @@ Runs after `desktop` succeeds, in parallel with Linux packaging, on
 
 This job does **not** start FastAPI, Postgres, MinIO, Docker, or Python. It does
 **not** set `MEMOVI_NATIVE_AUTH_SMOKE=1`. Native Windows WebView2 auth remains a
-local proof (`task desktop:smoke:native`). macOS packaging is not in CI.
+local proof (`task desktop:smoke:native`).
 
-| Platform | Build CI | Package CI | Native launch | Native auth | Signing |
-| --- | --- | --- | --- | --- | --- |
-| Linux | yes | yes | no CI | unverified | no |
-| Windows | yes | yes (unsigned artifact) | local proven | local WebView2 proven | no |
-| macOS | no | no | no | unverified | no |
+### Job: `desktop-package-macos` (unsigned macOS packaging)
+
+Runs after `desktop` succeeds, in parallel with Linux and Windows packaging, on
+`macos-latest`:
+
+1. Install the same Node/pnpm and Rust stable + Cargo cache toolchain
+2. `pnpm tauri build` from `apps/desktop` (unsigned; no Apple Developer
+   credentials, notarization, or signing secrets)
+3. List files under `src-tauri/target/release/bundle` and fail if that
+   directory is missing or contains neither a `.app` nor a `.dmg`
+4. Upload generated macOS packages (`memovi-desktop-macos-bundle`) from
+   `bundle/dmg/*.dmg` and `bundle/macos` (Tauri’s `.app` tree). Missing
+   package files fail this job (`if-no-files-found: error`).
+
+This is an **unsigned macOS Tauri package**. It is not signed or notarized, so
+it is not a Gatekeeper-ready distribution. The job does **not** start FastAPI,
+Postgres, MinIO, Docker, or Python. It does **not** set
+`MEMOVI_NATIVE_AUTH_SMOKE=1`. Packaging does not prove native WKWebView launch
+or auth; those remain unverified until actually tested on macOS.
+
+| Platform | Package CI | Native launch in CI | Native auth | Signing |
+| --- | --- | --- | --- | --- |
+| Linux | yes | no | unverified | no |
+| Windows | yes | no | locally proven with WebView2 | no |
+| macOS | yes | no | unverified | no |
 
 Expected CI runtime:
 
@@ -176,6 +198,7 @@ Expected CI runtime:
 * Live API smoke job: ~5–12 minutes depending on image pull and Cargo-less Python sync
 * Linux packaging job: ~10–30 minutes depending on Cargo cache warmth
 * Windows packaging job: ~10–30 minutes depending on Cargo cache warmth
+* macOS packaging job: ~10–30 minutes depending on Cargo cache warmth (GitHub-hosted; not run locally on Windows)
 
 ---
 
@@ -261,7 +284,8 @@ native window and host packaging sanity.
 * [ ] Desktop CI `desktop-live-smoke` job green (real FastAPI + MinIO path)
 * [ ] Desktop CI `desktop-package` job green (Linux Tauri packaging)
 * [ ] Desktop CI `desktop-package-windows` job green (unsigned Windows Tauri packaging)
-* [ ] Artifacts available: `memovi-desktop-dist`, `memovi-desktop-linux-bundle`, `memovi-desktop-windows-bundle`
+* [ ] Desktop CI `desktop-package-macos` job green (unsigned macOS Tauri packaging)
+* [ ] Artifacts available: `memovi-desktop-dist`, `memovi-desktop-linux-bundle`, `memovi-desktop-windows-bundle`, `memovi-desktop-macos-bundle`
 
 ### Manual / host validation
 

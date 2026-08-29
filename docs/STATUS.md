@@ -37,8 +37,9 @@ in V1**.
 * Contributor / operator docs polish after README + architecture truth passes
 * Coverage floor is enforced at 80% on application sources; measured total
   meets the **80%** requirement
-* Linux and unsigned Windows Tauri packaging in CI; macOS packaging and code
-  signing not done; GitHub Releases / updater not done
+* Linux, unsigned Windows, and unsigned macOS Tauri packaging wired in CI;
+  signing, notarization, GitHub Releases / updater not done. macOS packaging
+  is not native runtime or WKWebView auth proof
 * Packaged WebView session cookies: Windows WebView2 CHIPS store/send and
   logout clearing proven locally
   (`task desktop:smoke:native` / [`testing/NATIVE_DESKTOP_SMOKE.md`](testing/NATIVE_DESKTOP_SMOKE.md)), not CI
@@ -761,7 +762,7 @@ the platform APIs. Remaining items are packaging and operator-UX depth, not
 * Model management product depth beyond Settings selectors
 * Workspace management product depth beyond Settings (members shipped in M43)
 * Indexing status surface beyond Documents processing lifecycle (M42)
-* macOS packaging CI; Windows/macOS code signing; GitHub Releases / updater
+* Windows/macOS code signing and notarization; GitHub Releases / updater
 * Native Tauri window automation (explicitly not V1)
 
 **Known Risks**
@@ -1216,7 +1217,7 @@ without product redesign or new desktop features.
 
 * Optional OS-native window launch automation beyond the packaged auth probe
   (`task desktop:smoke:native` is local/display-only; not GitHub Actions)
-* macOS packaging CI; Windows/macOS code signing; GitHub Release automation
+* Windows/macOS code signing and notarization; GitHub Release automation
 
 **Known Risks**
 
@@ -1227,7 +1228,7 @@ without product redesign or new desktop features.
 **Next Recommended Work**
 
 * Keep Desktop CI green on every PR into public V1
-* macOS packaging CI and signing when cutting signed installers
+* Windows/macOS signing and notarization when cutting signed installers
 
 ---
 
@@ -1580,7 +1581,7 @@ Tauri window automation was not introduced.
 
 * Optional OS-native window launch automation beyond the packaged auth probe
   (`task desktop:smoke:native` is local/display-only; not GitHub Actions)
-* macOS packaging CI; Windows/macOS code signing; GitHub Release automation
+* Windows/macOS code signing and notarization; GitHub Release automation
 
 **Known Risks**
 
