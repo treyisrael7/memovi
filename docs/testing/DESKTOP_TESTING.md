@@ -19,7 +19,7 @@ release validation. It does not change product behavior.
 | Mock critical-path smoke | `apps/desktop/src/smoke/criticalPath.smoke.test.tsx` | Critical UI journey against an in-memory API stub | ~5–15 s |
 | Live API smoke | `apps/desktop/src/smoke/liveCriticalPath.smoke.test.tsx` | Same React shell against a real FastAPI process (Postgres + MinIO + worker + search + fake providers) | ~30–90 s after infra is up |
 | Packaging | Tauri `tauri build` in CI | Unsigned V1 packages: Linux `.deb`, Windows NSIS `.exe` + MSI `.msi`, macOS `.dmg` | ~10–30 min (cold cache) |
-| Native packaged auth smoke | `task desktop:smoke:native` or manual checklist | Real WebView cookie jar (register → `/auth/me` → logout). Local display required; **not CI** | operator / host |
+| Native packaged auth smoke | `task desktop:smoke:native` or manual checklist | Real packaged WebView cookie jar (register → `/auth/me` → logout → `/auth/me` 401). Local display required; **not CI**. Windows WebView2 is proven; macOS WKWebView and Linux WebKitGTK have a manual path until actually run | operator / host |
 | Manual native-app release verification | Release host | Launch the real Tauri window, native dialogs, workflows | operator-driven |
 
 Backend and optional web tests stay in their own workflows.
@@ -212,9 +212,9 @@ or auth; those remain unverified until actually tested on macOS.
 
 | Platform | Package CI | Native launch in CI | Native auth | Signing |
 | --- | --- | --- | --- | --- |
-| Linux | yes | no | unverified | no |
+| Linux | yes | no | manual test path (WebKitGTK); pending until actually run | no |
 | Windows | yes | no | locally proven with WebView2 | no |
-| macOS | yes | no | unverified | no |
+| macOS | yes | no | manual test path (WKWebView); pending until actually run | no |
 
 Expected CI runtime:
 
@@ -284,7 +284,8 @@ task desktop:smoke
 # Live API smoke (requires Postgres, MinIO, migrated DB, and `task backend`)
 task desktop:smoke:live
 
-# Packaged WebView auth smoke (built binary + running API; not in CI)
+# Packaged WebView auth smoke (packaged binary + running API; not in CI)
+# Windows: proven path. macOS/Linux: same command on that host; not proven until run.
 task desktop:smoke:native
 task desktop:smoke:native -- --manual
 
@@ -393,6 +394,7 @@ scripts/release_macos_verify.sh
 docs/testing/DESKTOP_TESTING.md
 docs/testing/NATIVE_DESKTOP_SMOKE.md
 scripts/native_desktop_auth_smoke.py
+scripts/test_native_desktop_auth_smoke.py
 ```
 
 Backend unit/integration tests remain under `packages/*/tests` and Backend CI.

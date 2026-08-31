@@ -219,7 +219,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
 | Desktop unit + mock smoke | `task desktop:test` | Desktop unit tests and mock-backend critical path |
 | Mock desktop smoke only | `task desktop:smoke` | Critical UI path against an in-memory API stub |
 | Live desktop/API smoke | `task desktop:smoke:live` | Same React shell against real FastAPI + Postgres + MinIO |
-| Native packaged auth smoke | `task desktop:smoke:native` | Real WebView cookie jar (local packaged binary; not CI) |
+| Native packaged auth smoke | `task desktop:smoke:native` | Real packaged WebView cookie jar (local; not CI). Windows WebView2 proven; macOS/Linux path exists until actually run |
 | Local CI parity | `task ci` | Backend lint/types/tests/coverage + desktop typecheck/unit/mock smoke/Vite build + optional web lint/types/build |
 
 `task ci` does **not** run live smoke, does **not** launch a native Tauri
@@ -231,9 +231,10 @@ tag `v<application-version>` (for example `v0.1.0`) runs
 GitHub Release: Windows Authenticode-signed, macOS Developer ID signed and
 notarized, Linux `.deb` unsigned. The tag job **fails** if Windows/macOS
 signing secrets are missing; it does not publish unsigned Windows/macOS
-installers. Packaging is not native launch or auth testing; macOS WKWebView
-auth remains unverified. The auto-updater remains future work. Packaged
-WebView session cookies are a local check (`task desktop:smoke:native`); see
+installers. Packaging is not native launch or auth testing. Windows WebView2 session
+cookies are proven locally; macOS WKWebView and Linux WebKitGTK still need a
+real packaged run of `task desktop:smoke:native` on those hosts. The
+auto-updater remains future work. See
 [`docs/testing/NATIVE_DESKTOP_SMOKE.md`](docs/testing/NATIVE_DESKTOP_SMOKE.md).
 The packaged app still requires a separately started FastAPI API, PostgreSQL,
 and MinIO. Secret **names** and setup are in

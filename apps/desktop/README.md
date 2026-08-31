@@ -68,8 +68,10 @@ Packaged origins therefore receive SameSite=None; Secure; Partitioned. Dev
 Native WebView cookie behavior is not covered by GitHub Actions. After
 packaging, use [`docs/testing/NATIVE_DESKTOP_SMOKE.md`](../../docs/testing/NATIVE_DESKTOP_SMOKE.md)
 (`task desktop:smoke:native` or the manual checklist) against a running local
-API. Settings → Diagnostics shows **Client origin** so you can confirm the
-packaged protocol rather than `tauri dev`.
+API. Windows WebView2 is proven; macOS WKWebView and Linux WebKitGTK use the
+same command and stay unproven until run on those hosts. Settings → Diagnostics
+shows **Client origin** so you can confirm the packaged protocol rather than
+`tauri dev`.
 
 ## Architecture
 

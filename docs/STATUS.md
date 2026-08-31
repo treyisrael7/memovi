@@ -1,8 +1,9 @@
 # Memovi Status
 
 Living implementation tracker for Memovi as a desktop-first knowledge operating
-system on a reusable backend platform. Last reviewed: 2026-08-17 (status
-reconciliation against shipped V1).
+system on a reusable backend platform. Last reviewed: 2026-08-31 (native
+packaged auth smoke path for macOS/Linux; Windows WebView2 remains the only
+executed native lifecycle).
 
 * [`README.md`](../README.md) — public 0.1.0 pre-alpha / public-development entry
 * [`ARCHITECTURE.md`](ARCHITECTURE.md) — current V1 vs future / V2
@@ -44,8 +45,11 @@ in V1**.
   missing. Updater not done. macOS packaging is not native runtime or
   WKWebView auth proof
 * Packaged WebView session cookies: Windows WebView2 CHIPS store/send and
-  logout clearing proven locally
-  (`task desktop:smoke:native` / [`testing/NATIVE_DESKTOP_SMOKE.md`](testing/NATIVE_DESKTOP_SMOKE.md)), not CI
+  logout clearing proven locally. macOS WKWebView and Linux WebKitGTK share
+  the same `task desktop:smoke:native` probe (unique profile, packaged origin,
+  register → `/me` → logout → `/me` 401) but remain **unproven until actually
+  run on those hosts**
+  ([`testing/NATIVE_DESKTOP_SMOKE.md`](testing/NATIVE_DESKTOP_SMOKE.md)). Not CI.
 * Tag-triggered GitHub Release automation exists; a successful **signed**
   GitHub run is still required before claiming signed artifacts in the wild
 * Operator UX follow-ups: capability permission settings UI, deeper model /

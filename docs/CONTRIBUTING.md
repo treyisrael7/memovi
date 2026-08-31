@@ -39,6 +39,7 @@ Environment variables: [`architecture/CONFIGURATION.md`](architecture/CONFIGURAT
   Requires a migrated database and a running API (`task backend` in another
   terminal). See [`testing/DESKTOP_TESTING.md`](testing/DESKTOP_TESTING.md).
 * Native packaged WebView auth: `task desktop:smoke:native` — local only; not CI.
+  Windows WebView2 is proven; macOS/Linux remain pending until actually run.
   See [`testing/NATIVE_DESKTOP_SMOKE.md`](testing/NATIVE_DESKTOP_SMOKE.md).
 * Local CI parity: `task ci`. This does **not** run live smoke or Tauri packaging.
 

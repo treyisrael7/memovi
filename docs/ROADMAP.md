@@ -316,6 +316,10 @@ Not a new architecture. Verify against [`STATUS.md`](STATUS.md) Current V1.
   updater is not implemented
 * Tag-triggered GitHub Releases exist; first successful signed GitHub run is
   still outstanding until secrets are configured and the workflow is executed
+* Native packaged auth smoke: Windows WebView2 is proven. Run the same
+  `task desktop:smoke:native` path on macOS (WKWebView) and Linux (WebKitGTK)
+  before treating those WebViews as proven; tooling is not a substitute for a
+  host run
 * Operator UX: capability permission settings UI; deeper model / workspace /
   indexing-status product surfaces
 * Architecture boundary tests (optional follow-up)
