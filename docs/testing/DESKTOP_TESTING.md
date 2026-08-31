@@ -18,7 +18,7 @@ release validation. It does not change product behavior.
 | Integration (backend) | `packages/**/tests`, API suites | Platform contracts the desktop calls | separate Backend CI |
 | Mock critical-path smoke | `apps/desktop/src/smoke/criticalPath.smoke.test.tsx` | Critical UI journey against an in-memory API stub | ~5–15 s |
 | Live API smoke | `apps/desktop/src/smoke/liveCriticalPath.smoke.test.tsx` | Same React shell against a real FastAPI process (Postgres + MinIO + worker + search + fake providers) | ~30–90 s after infra is up |
-| Packaging | Tauri `tauri build` in CI | Native Linux, unsigned Windows, and unsigned macOS bundles still produce packaged artifacts | ~10–30 min (cold cache) |
+| Packaging | Tauri `tauri build` in CI | Unsigned V1 packages: Linux `.deb`, Windows NSIS `.exe` + MSI `.msi`, macOS `.dmg` | ~10–30 min (cold cache) |
 | Native packaged auth smoke | `task desktop:smoke:native` or manual checklist | Real WebView cookie jar (register → `/auth/me` → logout). Local display required; **not CI** | operator / host |
 | Manual native-app release verification | Release host | Launch the real Tauri window, native dialogs, workflows | operator-driven |
 
@@ -33,11 +33,19 @@ real document processing, real search indexing, real conversation SSE, real
 citations, and desktop source navigation. It still runs in **jsdom** via Vitest
 + Testing Library. It does **not** launch the native Tauri window.
 
-**Packaging** proves the Linux, unsigned Windows, and unsigned macOS bundles
-still compile. It does not interact with the UI and is not native launch or
-auth testing. Artifacts are unsigned. Unsigned macOS packages are not
-Gatekeeper-ready; signing and notarization remain future work. GitHub Releases
-and the auto-updater are also future work.
+**Packaging** proves the unsigned V1 installers still compile. It does not
+interact with the UI and is not native launch or auth testing. Artifacts are
+unsigned. Unsigned macOS `.dmg` files are not Gatekeeper-ready; signing and
+notarization remain future work. GitHub Releases and the auto-updater are
+also future work.
+
+V1 package files (CI artifacts, still unsigned):
+
+| Platform | V1 package | CI artifact |
+| --- | --- | --- |
+| Linux | `.deb` | `memovi-desktop-linux-bundle` |
+| Windows | NSIS `.exe` and MSI `.msi` | `memovi-desktop-windows-bundle` |
+| macOS | `.dmg` | `memovi-desktop-macos-bundle` |
 
 **Manual native-app verification** remains required for OS window launch, native
 folder dialogs, and host-specific packaging. Packaged WebView session cookies
@@ -143,11 +151,14 @@ Runs after `desktop` succeeds:
 1. Install Linux WebKit / GTK dependencies
 2. Install Rust stable + Cargo cache
 3. `pnpm tauri build` from `apps/desktop`
-4. Upload Linux bundle artifacts (`memovi-desktop-linux-bundle`). Missing
-   bundle or binary files fail this job (`if-no-files-found: error`).
+4. List `src-tauri/target/release/bundle` and fail if no `.deb` exists
+5. Upload the Linux V1 package (`memovi-desktop-linux-bundle`) from
+   `bundle/deb/*.deb`. Missing `.deb` files fail this job
+   (`if-no-files-found: error`).
 
-This job does not produce Windows or macOS bundles and does not sign anything.
-It does not run live smoke or native WebView auth.
+This job does not produce Windows or macOS bundles, RPM, AppImage, or a
+raw binary artifact, and it does not sign anything. It does not run live
+smoke or native WebView auth.
 
 ### Job: `desktop-package-windows` (unsigned Windows packaging)
 
@@ -157,10 +168,11 @@ Runs after `desktop` succeeds, in parallel with Linux packaging, on
 1. Install the same Node/pnpm and Rust stable + Cargo cache toolchain
 2. `pnpm tauri build` from `apps/desktop` (unsigned; no certificates or
    Authenticode secrets)
-3. List files under `src-tauri/target/release/bundle`
-4. Upload generated Windows installers (`memovi-desktop-windows-bundle`) from
-   `bundle/nsis/*.exe` and `bundle/msi/*.msi`. Missing installer files fail
-   this job (`if-no-files-found: error`).
+3. List files under `src-tauri/target/release/bundle` and fail if either
+   NSIS `.exe` or MSI `.msi` is missing
+4. Upload generated Windows V1 installers (`memovi-desktop-windows-bundle`)
+   from `bundle/nsis/*.exe` and `bundle/msi/*.msi`. Missing installer files
+   fail this job (`if-no-files-found: error`).
 
 This job does **not** start FastAPI, Postgres, MinIO, Docker, or Python. It does
 **not** set `MEMOVI_NATIVE_AUTH_SMOKE=1`. Native Windows WebView2 auth remains a
@@ -174,14 +186,15 @@ Runs after `desktop` succeeds, in parallel with Linux and Windows packaging, on
 1. Install the same Node/pnpm and Rust stable + Cargo cache toolchain
 2. `pnpm tauri build` from `apps/desktop` (unsigned; no Apple Developer
    credentials, notarization, or signing secrets)
-3. List files under `src-tauri/target/release/bundle` and fail if that
-   directory is missing or contains neither a `.app` nor a `.dmg`
-4. Upload generated macOS packages (`memovi-desktop-macos-bundle`) from
-   `bundle/dmg/*.dmg` and `bundle/macos` (Tauri’s `.app` tree). Missing
-   package files fail this job (`if-no-files-found: error`).
+3. List files under `src-tauri/target/release/bundle` and fail if no `.dmg`
+   is present (the `.app` is a build intermediate, not a separate V1
+   installer artifact)
+4. Upload the macOS V1 package (`memovi-desktop-macos-bundle`) from
+   `bundle/dmg/*.dmg`. Missing `.dmg` files fail this job
+   (`if-no-files-found: error`).
 
-This is an **unsigned macOS Tauri package**. It is not signed or notarized, so
-it is not a Gatekeeper-ready distribution. The job does **not** start FastAPI,
+This is an **unsigned macOS `.dmg`**. It is not signed or notarized, so it is
+not a Gatekeeper-ready distribution. The job does **not** start FastAPI,
 Postgres, MinIO, Docker, or Python. It does **not** set
 `MEMOVI_NATIVE_AUTH_SMOKE=1`. Packaging does not prove native WKWebView launch
 or auth; those remain unverified until actually tested on macOS.

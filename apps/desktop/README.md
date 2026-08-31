@@ -56,6 +56,9 @@ FastAPI, Python, Postgres, or MinIO. Run the same backend steps as Develop,
 then launch the installed/built Memovi binary. It still calls
 `http://127.0.0.1:8000`.
 
+Unsigned V1 packages are Linux `.deb`, Windows NSIS `.exe` and MSI, and macOS
+`.dmg`. They are compiled in GitHub Actions; they are not signed releases.
+
 Packaged origins therefore receive SameSite=None; Secure; Partitioned. Dev
 (`tauri dev`) stays `SameSite=Lax`.
 

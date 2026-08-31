@@ -2,7 +2,7 @@
 name = "memovi-desktop"
 version = "0.1.0"
 description = "Memovi flagship desktop client"
-authors = ["Memovi"]
+authors = ["Trey Israel"]
 edition = "2021"
 
 [lib]

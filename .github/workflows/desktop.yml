@@ -241,13 +241,26 @@ jobs:
           # Keep CI artifacts off the default OneDrive-synced path conventions.
           CARGO_TARGET_DIR: ${{ github.workspace }}/apps/desktop/src-tauri/target
 
+      - name: List Linux bundle output
+        run: |
+          bundle="${{ github.workspace }}/apps/desktop/src-tauri/target/release/bundle"
+          if [ ! -d "$bundle" ]; then
+            echo "Linux Tauri bundle directory missing: $bundle"
+            exit 1
+          fi
+          echo "Tauri Linux bundle tree:"
+          find "$bundle" -print | sort
+          debs=$(find "$bundle/deb" -maxdepth 1 -name '*.deb' -type f 2>/dev/null || true)
+          if [ -z "$debs" ]; then
+            echo "No Linux .deb produced under $bundle/deb"
+            exit 1
+          fi
+
       - name: Upload packaging artifacts
         uses: actions/upload-artifact@v4
         with:
           name: memovi-desktop-linux-bundle
-          path: |
-            apps/desktop/src-tauri/target/release/bundle
-            apps/desktop/src-tauri/target/release/memovi-desktop
+          path: apps/desktop/src-tauri/target/release/bundle/deb/*.deb
           if-no-files-found: error
           retention-days: 14
 
@@ -301,6 +314,16 @@ jobs:
             exit 1
           }
           Get-ChildItem -Path $bundle -Recurse -File | Select-Object FullName, Length | Format-Table -AutoSize
+          $nsis = Get-ChildItem -Path (Join-Path $bundle "nsis") -Filter "*.exe" -ErrorAction SilentlyContinue
+          $msi = Get-ChildItem -Path (Join-Path $bundle "msi") -Filter "*.msi" -ErrorAction SilentlyContinue
+          if (-not $nsis) {
+            Write-Error "No Windows NSIS .exe produced under $bundle\nsis"
+            exit 1
+          }
+          if (-not $msi) {
+            Write-Error "No Windows MSI .msi produced under $bundle\msi"
+            exit 1
+          }
 
       - name: Upload packaging artifacts
         uses: actions/upload-artifact@v4
@@ -362,10 +385,9 @@ jobs:
           fi
           echo "Tauri macOS bundle tree:"
           find "$bundle" -print | sort
-          macos_apps=$(find "$bundle/macos" -maxdepth 1 -name '*.app' -type d 2>/dev/null || true)
           dmgs=$(find "$bundle/dmg" -maxdepth 1 -name '*.dmg' -type f 2>/dev/null || true)
-          if [ -z "$macos_apps" ] && [ -z "$dmgs" ]; then
-            echo "No macOS .app or .dmg produced under $bundle"
+          if [ -z "$dmgs" ]; then
+            echo "No macOS .dmg produced under $bundle/dmg"
             exit 1
           fi
 
@@ -373,8 +395,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: memovi-desktop-macos-bundle
-          path: |
-            apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
-            apps/desktop/src-tauri/target/release/bundle/macos
+          path: apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
           if-no-files-found: error
           retention-days: 14

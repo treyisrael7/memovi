@@ -37,9 +37,10 @@ in V1**.
 * Contributor / operator docs polish after README + architecture truth passes
 * Coverage floor is enforced at 80% on application sources; measured total
   meets the **80%** requirement
-* Linux, unsigned Windows, and unsigned macOS Tauri packaging wired in CI;
-  signing, notarization, GitHub Releases / updater not done. macOS packaging
-  is not native runtime or WKWebView auth proof
+* Linux `.deb`, unsigned Windows NSIS/MSI, and unsigned macOS `.dmg` packaging
+  wired in CI with explicit V1 bundle targets and installer identity; signing,
+  notarization, GitHub Releases / updater not done. macOS packaging is not
+  native runtime or WKWebView auth proof
 * Packaged WebView session cookies: Windows WebView2 CHIPS store/send and
   logout clearing proven locally
   (`task desktop:smoke:native` / [`testing/NATIVE_DESKTOP_SMOKE.md`](testing/NATIVE_DESKTOP_SMOKE.md)), not CI

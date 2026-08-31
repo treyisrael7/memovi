@@ -26,7 +26,14 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["deb", "nsis", "msi", "dmg"],
+    "publisher": "Trey Israel",
+    "copyright": "Copyright (c) 2026 Trey Israel",
+    "category": "Productivity",
+    "shortDescription": "Memovi flagship desktop client",
+    "longDescription": "Self-hosted knowledge platform for durable, organized, retrievable memory.",
+    "license": "MIT",
+    "licenseFile": "../../../LICENSE",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
