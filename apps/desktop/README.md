@@ -56,11 +56,11 @@ FastAPI, Python, Postgres, or MinIO. Run the same backend steps as Develop,
 then launch the installed/built Memovi binary. It still calls
 `http://127.0.0.1:8000`.
 
-Unsigned V1 packages are Linux `.deb`, Windows NSIS `.exe` and MSI, and macOS
-`.dmg`. Pull-request CI compiles them as temporary artifacts. A version tag
-(`v` + the `tauri.conf.json` version) publishes an **unsigned** GitHub Release
-of the same formats. They are not signed, and they still require the external
-backend.
+Unsigned V1 packages for pull-request CI are Linux `.deb`, Windows NSIS `.exe`
+and MSI, and macOS `.dmg`. A version tag (`v` + the `tauri.conf.json` version)
+publishes a GitHub Release: Windows Authenticode-signed, macOS Developer ID
+signed and notarized, Linux `.deb` still unsigned. Tag builds fail if signing
+secrets are missing. The packaged app still requires the external backend.
 
 Packaged origins therefore receive SameSite=None; Secure; Partitioned. Dev
 (`tauri dev`) stays `SameSite=Lax`.

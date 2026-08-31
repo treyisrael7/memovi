@@ -37,16 +37,17 @@ in V1**.
 * Contributor / operator docs polish after README + architecture truth passes
 * Coverage floor is enforced at 80% on application sources; measured total
   meets the **80%** requirement
-* Linux `.deb`, unsigned Windows NSIS/MSI, and unsigned macOS `.dmg` packaging
-  wired in CI (PR/main compile gates) and in a tag-triggered unsigned GitHub
-  Release workflow (`v*.*.*` must match `tauri.conf.json` version). Signing,
-  notarization, and updater not done. macOS packaging is not native runtime or
+* Linux `.deb` (unsigned), Windows NSIS/MSI, and macOS `.dmg` packaging wired
+  in CI as unsigned compile gates. Tag-triggered GitHub Releases sign Windows
+  (Authenticode) and macOS (Developer ID + App Store Connect notarization) when
+  repository secrets are configured, and fail closed if those secrets are
+  missing. Updater not done. macOS packaging is not native runtime or
   WKWebView auth proof
 * Packaged WebView session cookies: Windows WebView2 CHIPS store/send and
   logout clearing proven locally
   (`task desktop:smoke:native` / [`testing/NATIVE_DESKTOP_SMOKE.md`](testing/NATIVE_DESKTOP_SMOKE.md)), not CI
-* Unsigned GitHub Release automation exists for version tags; signed releases
-  do not
+* Tag-triggered GitHub Release automation exists; a successful **signed**
+  GitHub run is still required before claiming signed artifacts in the wild
 * Operator UX follow-ups: capability permission settings UI, deeper model /
   workspace / indexing-status product depth
 * Architecture boundary tests (never shipped; not a user-facing V1 blocker)

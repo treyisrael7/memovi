@@ -311,10 +311,11 @@ Not a new architecture. Verify against [`STATUS.md`](STATUS.md) Current V1.
 * OSS process files (SECURITY, code of conduct, GitHub templates) — not started
 * Contributor/operator experience after README and architecture truth passes
 * Coverage floor is enforced at 80%; application coverage last measured at 78%
-* Linux `.deb`, unsigned Windows NSIS/MSI, and unsigned macOS `.dmg` packaging
-  are wired in CI (PR/main compile gates) and as unsigned GitHub Release assets
-  on `v*.*.*` tags; signing, notarization, and updater are not
-* Tag-triggered unsigned GitHub Releases exist; signed distribution does not
+* Linux `.deb` stays unsigned; Windows/macOS tag Releases require signing
+  secrets (Authenticode + Developer ID/notarization) and fail closed without them;
+  updater is not implemented
+* Tag-triggered GitHub Releases exist; first successful signed GitHub run is
+  still outstanding until secrets are configured and the workflow is executed
 * Operator UX: capability permission settings UI; deeper model / workspace /
   indexing-status product surfaces
 * Architecture boundary tests (optional follow-up)
@@ -345,9 +346,11 @@ summaries) — **V2**.
 documents, search, connectors, workflows, tags, activity, settings), design
 system, session auth, processing-status UX, mock + live API smoke.
 
-**Remaining V1:** Windows/macOS code signing and notarization, updater, operator UX
+**Remaining V1:** first successful signed GitHub Release (requires repository
+signing secrets), updater, operator UX
 depth — not “build chat/documents/settings.” Unsigned Linux `.deb`, Windows NSIS/MSI, and macOS `.dmg`
-packaging is wired in CI and as tag-triggered GitHub Release assets; it is not signed distribution.
+packaging is wired in CI; tag Releases are configured to Authenticode-sign
+Windows and Developer ID–sign/notarize macOS.
 
 ---
 

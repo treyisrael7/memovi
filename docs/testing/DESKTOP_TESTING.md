@@ -33,25 +33,26 @@ real document processing, real search indexing, real conversation SSE, real
 citations, and desktop source navigation. It still runs in **jsdom** via Vitest
 + Testing Library. It does **not** launch the native Tauri window.
 
-**Packaging** proves the unsigned V1 installers still compile. It does not
-interact with the UI and is not native launch or auth testing. Artifacts are
-unsigned. Unsigned macOS `.dmg` files are not Gatekeeper-ready; signing and
-notarization remain future work. The auto-updater is also future work.
+**Packaging** proves V1 installers still compile. It does not interact with the
+UI and is not native launch or auth testing. Pull-request and main CI artifacts
+are **unsigned**. Tag-triggered Releases Authenticode-sign Windows and
+Developer ID–sign/notarize macOS, and **fail closed** if those secrets are
+missing. Linux `.deb` stays unsigned. The auto-updater is future work.
 
 Two packaging paths exist and must not be confused:
 
 | Path | Workflow | When | What it publishes |
 | --- | --- | --- | --- |
-| CI compile gate | [`.github/workflows/desktop.yml`](../../.github/workflows/desktop.yml) | every push / pull request | Temporary artifacts (`memovi-desktop-*-bundle`, 14-day retention). **Not** a GitHub Release. |
-| Unsigned GitHub Release | [`.github/workflows/release.yml`](../../.github/workflows/release.yml) | tags matching `v*.*.*` that equal `v` + `tauri.conf.json` `version` | Freshly built, versioned V1 assets on a GitHub Release. **Unsigned.** |
+| CI compile gate | [`.github/workflows/desktop.yml`](../../.github/workflows/desktop.yml) | every push / pull request | Temporary **unsigned** artifacts (`memovi-desktop-*-bundle`, 14-day retention). **Not** a GitHub Release. Never uses signing secrets. |
+| GitHub Release | [`.github/workflows/release.yml`](../../.github/workflows/release.yml) | tags matching `v*.*.*` that equal `v` + `tauri.conf.json` `version` | Freshly built V1 assets. Windows Authenticode-signed; macOS Developer ID signed and notarized; Linux `.deb` unsigned. Checksums cover these final files. |
 
-V1 package files (still unsigned):
+V1 package files:
 
-| Platform | V1 package | CI artifact name | Release asset name |
+| Platform | V1 package | CI artifact (unsigned) | Release asset |
 | --- | --- | --- | --- |
-| Linux | `.deb` | `memovi-desktop-linux-bundle` | `Memovi_<version>_linux_<arch>.deb` |
-| Windows | NSIS `.exe` and MSI `.msi` | `memovi-desktop-windows-bundle` | `Memovi_<version>_windows_<arch>_setup.exe` and `Memovi_<version>_windows_<arch>.msi` |
-| macOS | `.dmg` | `memovi-desktop-macos-bundle` | `Memovi_<version>_macos_<arch>.dmg` |
+| Linux | `.deb` | `memovi-desktop-linux-bundle` | `Memovi_<version>_linux_<arch>.deb` (unsigned) |
+| Windows | NSIS `.exe` and MSI `.msi` | `memovi-desktop-windows-bundle` | `Memovi_<version>_windows_<arch>_setup.exe` and `Memovi_<version>_windows_<arch>.msi` (Authenticode) |
+| macOS | `.dmg` | `memovi-desktop-macos-bundle` | `Memovi_<version>_macos_<arch>.dmg` (Developer ID + notarization) |
 
 `<arch>` is taken from the GitHub-hosted runner (`runner.arch`: `X64` → `x64`, `ARM64` → `arm64`). Current labels: `ubuntu-latest` and `windows-latest` are x64; `macos-latest` is Apple silicon (arm64), not universal. A `SHA256SUMS.txt` file of those four packages is attached to the Release (checksums, not signatures).
 
@@ -223,22 +224,46 @@ Expected CI runtime:
 * Windows packaging job: ~10–30 minutes depending on Cargo cache warmth
 * macOS packaging job: ~10–30 minutes depending on Cargo cache warmth (GitHub-hosted; not run locally on Windows)
 
-### Workflow: unsigned GitHub Release (`release.yml`)
+### Workflow: GitHub Release (`release.yml`)
 
 Runs only on a pushed tag matching `v*.*.*` (for example `v0.1.0`). It does
 **not** run on pull requests or ordinary branch pushes. It does **not** reuse
-CI packaging artifacts.
+CI packaging artifacts. Missing Windows or macOS signing secrets **fail the
+job**; the workflow does not fall back to unsigned Release assets.
 
 1. `validate-tag` reads `apps/desktop/src-tauri/tauri.conf.json` and fails if
    the tag is not exactly `v` + that version.
-2. `package-linux`, `package-windows`, and `package-macos` rebuild with the
-   same Tauri setup as Desktop CI (`pnpm tauri build`).
-3. `publish` runs only if all three package jobs succeed. It attaches the
-   versioned V1 files plus `SHA256SUMS.txt` and creates the GitHub Release
-   (`contents: write` on this job only).
+2. `package-linux` rebuilds an **unsigned** `.deb` (no Linux signing).
+3. `package-windows` imports `WINDOWS_CERTIFICATE` into the runner store,
+   builds with Tauri `bundle.windows.certificateThumbprint`, and verifies
+   Authenticode on the NSIS `.exe` and MSI.
+4. `package-macos` imports `APPLE_CERTIFICATE` into an ephemeral keychain,
+   builds with Tauri `APPLE_SIGNING_IDENTITY` plus App Store Connect API
+   notarization (`APPLE_API_KEY`, `APPLE_API_ISSUER`, `APPLE_API_KEY_P8`),
+   then verifies `codesign` on the `.app` and `stapler validate` on the `.dmg`.
+5. `publish` runs only if all three package jobs succeed. SHA-256 sums are
+   computed from those **final** assets. `contents: write` is on this job only.
 
-The workflow contains no signing secrets, Apple credentials, or updater keys.
-Creating a Release does not prove native launch or WebView auth.
+A workflow that references secrets is not proof that a signed Release exists
+until this job has succeeded on GitHub with real certificates.
+
+#### Release secrets (names only)
+
+Store these in the GitHub repository secrets. Do not commit values.
+
+| Secret | Purpose |
+| --- | --- |
+| `WINDOWS_CERTIFICATE` | Base64 of the Authenticode `.pfx` (`certutil -encode certificate.pfx base64cert.txt` or `openssl base64 -A -in certificate.pfx`). Identity should match publisher **Trey Israel**. |
+| `WINDOWS_CERTIFICATE_PASSWORD` | Password used when exporting that `.pfx`. |
+| `APPLE_CERTIFICATE` | Base64 of the Developer ID Application `.p12` (`openssl base64 -A -in certificate.p12`). |
+| `APPLE_CERTIFICATE_PASSWORD` | Password for that `.p12`. |
+| `APPLE_SIGNING_IDENTITY` | Codesign identity string, e.g. `Developer ID Application: Trey Israel (TEAMID)`. |
+| `APPLE_API_KEY` | App Store Connect API Key ID. |
+| `APPLE_API_ISSUER` | App Store Connect Issuer ID. |
+| `APPLE_API_KEY_P8` | Contents of the downloaded `AuthKey_<id>.p8` (multiline secret). |
+
+Do not use `TAURI_SIGNING_PRIVATE_KEY` here; that is for the updater, which is
+not implemented.
 
 ---
 
@@ -325,9 +350,11 @@ native window and host packaging sanity.
 * [ ] Desktop CI `desktop-package` job green (Linux Tauri packaging)
 * [ ] Desktop CI `desktop-package-windows` job green (unsigned Windows Tauri packaging)
 * [ ] Desktop CI `desktop-package-macos` job green (unsigned macOS Tauri packaging)
-* [ ] If cutting a version tag: unsigned Release workflow green
-      (`.github/workflows/release.yml`); versioned `.deb` / NSIS / MSI / `.dmg`
-      plus `SHA256SUMS.txt` attached. This is **not** a signed release.
+* [ ] If cutting a version tag: Release workflow green
+      (`.github/workflows/release.yml`) with signing secrets configured;
+      versioned `.deb` (unsigned) / signed NSIS / signed MSI / notarized `.dmg`
+      plus `SHA256SUMS.txt`. Confirm Authenticode and `stapler validate` on the
+      GitHub run, not only that the workflow file exists.
 
 ### Manual / host validation
 
@@ -357,6 +384,12 @@ apps/desktop/
     test/liveApiCookies.ts             # test-only jsdom cookie bridge
     test/setup.ts                      # Vitest/jsdom setup
 .github/workflows/desktop.yml
+.github/workflows/release.yml
+scripts/desktop_release.py
+scripts/release_windows_certificate.ps1
+scripts/release_windows_verify.ps1
+scripts/release_macos_keychain.sh
+scripts/release_macos_verify.sh
 docs/testing/DESKTOP_TESTING.md
 docs/testing/NATIVE_DESKTOP_SMOKE.md
 scripts/native_desktop_auth_smoke.py

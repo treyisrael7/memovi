@@ -1,4 +1,4 @@
-name: Unsigned desktop release
+name: Desktop release
 
 on:
   push:
@@ -99,10 +99,16 @@ jobs:
     name: Release package (Windows NSIS + MSI)
     runs-on: windows-latest
     needs: validate-tag
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Checkout tag
         uses: actions/checkout@v5
+
+      - name: Require Windows signing secrets
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: python scripts/desktop_release.py require-env WINDOWS_CERTIFICATE WINDOWS_CERTIFICATE_PASSWORD
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -129,11 +135,21 @@ jobs:
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build unsigned Windows packages
+      - name: Import Authenticode certificate
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release_windows_certificate.ps1
+
+      - name: Build signed Windows packages
         working-directory: apps/desktop
-        run: pnpm tauri build
+        shell: pwsh
+        run: pnpm tauri build --config $env:WINDOWS_TAURI_SIGN_CONFIG
         env:
           CARGO_TARGET_DIR: ${{ github.workspace }}/apps/desktop/src-tauri/target
+
+      - name: Verify Authenticode signatures
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release_windows_verify.ps1
 
       - name: Stage versioned NSIS and MSI
         run: |
@@ -149,14 +165,41 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Remove signing material
+        if: always()
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "memovi-windows-signing"
+          if (Test-Path $dir) { Remove-Item -Recurse -Force $dir }
+          if ($env:WINDOWS_CERT_THUMBPRINT) {
+            Remove-Item "Cert:\CurrentUser\My\$($env:WINDOWS_CERT_THUMBPRINT)" -ErrorAction SilentlyContinue
+          }
+
   package-macos:
     name: Release package (macOS .dmg)
     runs-on: macos-latest
     needs: validate-tag
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Checkout tag
         uses: actions/checkout@v5
+
+      - name: Require macOS signing and notarization secrets
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          python3 scripts/desktop_release.py require-env \
+            APPLE_CERTIFICATE \
+            APPLE_CERTIFICATE_PASSWORD \
+            APPLE_SIGNING_IDENTITY \
+            APPLE_API_KEY \
+            APPLE_API_ISSUER \
+            APPLE_API_KEY_P8
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -183,11 +226,27 @@ jobs:
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build unsigned macOS package
+      - name: Import Developer ID certificate into ephemeral keychain
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: bash scripts/release_macos_keychain.sh
+
+      - name: Build signed and notarized macOS package
         working-directory: apps/desktop
-        run: pnpm tauri build
         env:
           CARGO_TARGET_DIR: ${{ github.workspace }}/apps/desktop/src-tauri/target
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: pnpm tauri build
+
+      - name: Verify macOS signature and staple
+        run: bash scripts/release_macos_verify.sh
 
       - name: Stage versioned .dmg
         run: |
@@ -203,6 +262,14 @@ jobs:
           path: release-assets/*.dmg
           if-no-files-found: error
           retention-days: 14
+
+      - name: Remove signing material
+        if: always()
+        run: |
+          if [ -n "${MACOS_KEYCHAIN_PATH:-}" ]; then
+            security delete-keychain "${MACOS_KEYCHAIN_PATH}" || true
+          fi
+          rm -rf "${RUNNER_TEMP}/memovi-macos-signing"
 
   publish:
     name: Create GitHub Release

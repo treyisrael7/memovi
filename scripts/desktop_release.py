@@ -1,7 +1,7 @@
-"""Helpers for unsigned desktop GitHub Releases.
+"""Helpers for tag-triggered desktop GitHub Releases.
 
-Used by .github/workflows/release.yml. Does not sign packages or change
-application version files.
+Used by .github/workflows/release.yml. Does not change application version
+files. Signing happens in the workflow via Tauri, not in this script.
 """
 
 from __future__ import annotations
@@ -79,6 +79,17 @@ def stage_macos(version: str, arch: str, dest_dir: pathlib.Path) -> pathlib.Path
     dest = dest_dir / f"Memovi_{version}_macos_{arch}.dmg"
     shutil.copy2(src, dest)
     return dest
+
+
+def cmd_require_env(args: argparse.Namespace) -> None:
+    missing = [name for name in args.names if not os.environ.get(name, "").strip()]
+    if missing:
+        raise SystemExit(
+            "Missing required GitHub secrets for a signed release: "
+            + ", ".join(missing)
+            + ". Tag releases fail closed; they do not publish unsigned Windows/macOS packages."
+        )
+    print("Required signing secrets are present (values not printed).")
 
 
 def cmd_validate(args: argparse.Namespace) -> None:
@@ -166,21 +177,22 @@ def cmd_prepare(args: argparse.Namespace) -> None:
         [
             f"# Memovi {version}",
             "",
-            f"Unsigned desktop packages from tag `{tag}`.",
+            f"Desktop packages from tag `{tag}`.",
             "",
             "## V1 package formats",
             "",
-            f"- Linux: `{linux}`",
-            f"- Windows NSIS: `{windows_exe}`",
-            f"- Windows MSI: `{windows_msi}`",
-            f"- macOS: `{macos}`",
-            "- Checksums: `SHA256SUMS.txt` (SHA-256 digests, not signatures)",
+            f"- Linux: `{linux}` — **unsigned**",
+            f"- Windows NSIS: `{windows_exe}` — Authenticode-signed",
+            f"- Windows MSI: `{windows_msi}` — Authenticode-signed",
+            f"- macOS: `{macos}` — Developer ID signed and notarized (`.app` inside the DMG)",
+            "- Checksums: `SHA256SUMS.txt` (SHA-256 of these final assets, not signatures)",
             "",
-            "## Unsigned",
+            "## Signing",
             "",
-            "These artifacts are **unsigned**. They are not Authenticode-signed,",
-            "not Apple-notarized, and not Gatekeeper-ready on macOS. Signing and",
-            "notarization remain future work. There is no auto-updater.",
+            "Windows installers are Authenticode-signed. macOS ships a Developer ID",
+            "Application-signed `.app` inside the `.dmg`, notarized with App Store Connect.",
+            "Linux `.deb` remains unsigned. There is no auto-updater.",
+            "PR/main Desktop CI packaging stays unsigned and is not this Release.",
             "",
             "## External backend required",
             "",
@@ -205,6 +217,13 @@ def cmd_prepare(args: argparse.Namespace) -> None:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+
+    require_env = sub.add_parser(
+        "require-env",
+        help="Fail if named environment variables (GitHub secrets) are empty",
+    )
+    require_env.add_argument("names", nargs="+")
+    require_env.set_defaults(func=cmd_require_env)
 
     validate = sub.add_parser("validate", help="Check tag matches tauri.conf.json version")
     validate.add_argument("--tag", required=True)
