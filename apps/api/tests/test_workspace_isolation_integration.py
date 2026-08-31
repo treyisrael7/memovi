@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import os
+import tempfile
 import time
 from collections.abc import Iterator
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from api.app import create_app
@@ -47,7 +50,7 @@ from postgres_support import (
 )
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool
 
 WORKSPACE_HEADER = "X-Memovi-Workspace-Id"
 
@@ -191,21 +194,31 @@ def _build_client(engine: Engine) -> Iterator[tuple[TestClient, Engine]]:
 
 @pytest.fixture
 def workspace_isolation_sqlite_client() -> Iterator[tuple[TestClient, Engine]]:
+    # Separate connections to one SQLite file match production session isolation.
+    # StaticPool shares one connection across the worker and overlapping uploads
+    # and can drop the second workspace's search documents.
+    fd, db_path_str = tempfile.mkstemp(suffix=".sqlite")
+    os.close(fd)
+    db_path = Path(db_path_str)
     engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
+        f"sqlite:///{db_path.as_posix()}",
+        connect_args={"check_same_thread": False, "timeout": 30},
+        poolclass=NullPool,
     )
-    for base in (
-        AuthBase,
-        WorkspaceBase,
-        DocumentsBase,
-        MemoryBase,
-        SearchBase,
-        IntelligenceBase,
-    ):
-        base.metadata.create_all(engine)
-    yield from _build_client(engine)
+    try:
+        for base in (
+            AuthBase,
+            WorkspaceBase,
+            DocumentsBase,
+            MemoryBase,
+            SearchBase,
+            IntelligenceBase,
+        ):
+            base.metadata.create_all(engine)
+        yield from _build_client(engine)
+    finally:
+        engine.dispose()
+        db_path.unlink(missing_ok=True)
 
 
 @pytest.fixture
