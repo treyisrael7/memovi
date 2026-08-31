@@ -36,16 +36,26 @@ citations, and desktop source navigation. It still runs in **jsdom** via Vitest
 **Packaging** proves the unsigned V1 installers still compile. It does not
 interact with the UI and is not native launch or auth testing. Artifacts are
 unsigned. Unsigned macOS `.dmg` files are not Gatekeeper-ready; signing and
-notarization remain future work. GitHub Releases and the auto-updater are
-also future work.
+notarization remain future work. The auto-updater is also future work.
 
-V1 package files (CI artifacts, still unsigned):
+Two packaging paths exist and must not be confused:
 
-| Platform | V1 package | CI artifact |
-| --- | --- | --- |
-| Linux | `.deb` | `memovi-desktop-linux-bundle` |
-| Windows | NSIS `.exe` and MSI `.msi` | `memovi-desktop-windows-bundle` |
-| macOS | `.dmg` | `memovi-desktop-macos-bundle` |
+| Path | Workflow | When | What it publishes |
+| --- | --- | --- | --- |
+| CI compile gate | [`.github/workflows/desktop.yml`](../../.github/workflows/desktop.yml) | every push / pull request | Temporary artifacts (`memovi-desktop-*-bundle`, 14-day retention). **Not** a GitHub Release. |
+| Unsigned GitHub Release | [`.github/workflows/release.yml`](../../.github/workflows/release.yml) | tags matching `v*.*.*` that equal `v` + `tauri.conf.json` `version` | Freshly built, versioned V1 assets on a GitHub Release. **Unsigned.** |
+
+V1 package files (still unsigned):
+
+| Platform | V1 package | CI artifact name | Release asset name |
+| --- | --- | --- | --- |
+| Linux | `.deb` | `memovi-desktop-linux-bundle` | `Memovi_<version>_linux_<arch>.deb` |
+| Windows | NSIS `.exe` and MSI `.msi` | `memovi-desktop-windows-bundle` | `Memovi_<version>_windows_<arch>_setup.exe` and `Memovi_<version>_windows_<arch>.msi` |
+| macOS | `.dmg` | `memovi-desktop-macos-bundle` | `Memovi_<version>_macos_<arch>.dmg` |
+
+`<arch>` is taken from the GitHub-hosted runner (`runner.arch`: `X64` → `x64`, `ARM64` → `arm64`). Current labels: `ubuntu-latest` and `windows-latest` are x64; `macos-latest` is Apple silicon (arm64), not universal. A `SHA256SUMS.txt` file of those four packages is attached to the Release (checksums, not signatures).
+
+`0.x` tags are published as GitHub **pre-releases**, matching the pre-alpha / public-development versioning in `pyproject.toml` and the README. The packaged app still requires the external FastAPI API, PostgreSQL, and MinIO.
 
 **Manual native-app verification** remains required for OS window launch, native
 folder dialogs, and host-specific packaging. Packaged WebView session cookies
@@ -213,6 +223,23 @@ Expected CI runtime:
 * Windows packaging job: ~10–30 minutes depending on Cargo cache warmth
 * macOS packaging job: ~10–30 minutes depending on Cargo cache warmth (GitHub-hosted; not run locally on Windows)
 
+### Workflow: unsigned GitHub Release (`release.yml`)
+
+Runs only on a pushed tag matching `v*.*.*` (for example `v0.1.0`). It does
+**not** run on pull requests or ordinary branch pushes. It does **not** reuse
+CI packaging artifacts.
+
+1. `validate-tag` reads `apps/desktop/src-tauri/tauri.conf.json` and fails if
+   the tag is not exactly `v` + that version.
+2. `package-linux`, `package-windows`, and `package-macos` rebuild with the
+   same Tauri setup as Desktop CI (`pnpm tauri build`).
+3. `publish` runs only if all three package jobs succeed. It attaches the
+   versioned V1 files plus `SHA256SUMS.txt` and creates the GitHub Release
+   (`contents: write` on this job only).
+
+The workflow contains no signing secrets, Apple credentials, or updater keys.
+Creating a Release does not prove native launch or WebView auth.
+
 ---
 
 ## Local execution
@@ -298,7 +325,9 @@ native window and host packaging sanity.
 * [ ] Desktop CI `desktop-package` job green (Linux Tauri packaging)
 * [ ] Desktop CI `desktop-package-windows` job green (unsigned Windows Tauri packaging)
 * [ ] Desktop CI `desktop-package-macos` job green (unsigned macOS Tauri packaging)
-* [ ] Artifacts available: `memovi-desktop-dist`, `memovi-desktop-linux-bundle`, `memovi-desktop-windows-bundle`, `memovi-desktop-macos-bundle`
+* [ ] If cutting a version tag: unsigned Release workflow green
+      (`.github/workflows/release.yml`); versioned `.deb` / NSIS / MSI / `.dmg`
+      plus `SHA256SUMS.txt` attached. This is **not** a signed release.
 
 ### Manual / host validation
 

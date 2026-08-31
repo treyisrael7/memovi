@@ -57,7 +57,10 @@ then launch the installed/built Memovi binary. It still calls
 `http://127.0.0.1:8000`.
 
 Unsigned V1 packages are Linux `.deb`, Windows NSIS `.exe` and MSI, and macOS
-`.dmg`. They are compiled in GitHub Actions; they are not signed releases.
+`.dmg`. Pull-request CI compiles them as temporary artifacts. A version tag
+(`v` + the `tauri.conf.json` version) publishes an **unsigned** GitHub Release
+of the same formats. They are not signed, and they still require the external
+backend.
 
 Packaged origins therefore receive SameSite=None; Secure; Partitioned. Dev
 (`tauri dev`) stays `SameSite=Lax`.

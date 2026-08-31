@@ -38,13 +38,15 @@ in V1**.
 * Coverage floor is enforced at 80% on application sources; measured total
   meets the **80%** requirement
 * Linux `.deb`, unsigned Windows NSIS/MSI, and unsigned macOS `.dmg` packaging
-  wired in CI with explicit V1 bundle targets and installer identity; signing,
-  notarization, GitHub Releases / updater not done. macOS packaging is not
-  native runtime or WKWebView auth proof
+  wired in CI (PR/main compile gates) and in a tag-triggered unsigned GitHub
+  Release workflow (`v*.*.*` must match `tauri.conf.json` version). Signing,
+  notarization, and updater not done. macOS packaging is not native runtime or
+  WKWebView auth proof
 * Packaged WebView session cookies: Windows WebView2 CHIPS store/send and
   logout clearing proven locally
   (`task desktop:smoke:native` / [`testing/NATIVE_DESKTOP_SMOKE.md`](testing/NATIVE_DESKTOP_SMOKE.md)), not CI
-* No GitHub Release / tag automation
+* Unsigned GitHub Release automation exists for version tags; signed releases
+  do not
 * Operator UX follow-ups: capability permission settings UI, deeper model /
   workspace / indexing-status product depth
 * Architecture boundary tests (never shipped; not a user-facing V1 blocker)

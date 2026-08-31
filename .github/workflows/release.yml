@@ -1,0 +1,253 @@
+name: Unsigned desktop release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+# Package jobs only read the tagged commit. Write is limited to the publish job.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate-tag:
+    name: Validate tag vs application version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      tag: ${{ steps.check.outputs.tag }}
+      prerelease: ${{ steps.check.outputs.prerelease }}
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v5
+
+      - name: Require tag v<tauri.conf.json version>
+        id: check
+        run: python3 scripts/desktop_release.py validate --tag "${GITHUB_REF_NAME}"
+
+  package-linux:
+    name: Release package (Linux .deb)
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    timeout-minutes: 45
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v5
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install Linux Tauri dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+          cache-on-failure: true
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build unsigned Linux package
+        working-directory: apps/desktop
+        run: pnpm tauri build
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/apps/desktop/src-tauri/target
+
+      - name: Stage versioned .deb
+        run: |
+          python3 scripts/desktop_release.py stage \
+            --platform linux \
+            --arch "${{ runner.arch }}" \
+            --version "${{ needs.validate-tag.outputs.version }}"
+
+      - name: Upload Linux release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: memovi-release-linux
+          path: release-assets/*.deb
+          if-no-files-found: error
+          retention-days: 14
+
+  package-windows:
+    name: Release package (Windows NSIS + MSI)
+    runs-on: windows-latest
+    needs: validate-tag
+    timeout-minutes: 45
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v5
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+          cache-on-failure: true
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build unsigned Windows packages
+        working-directory: apps/desktop
+        run: pnpm tauri build
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/apps/desktop/src-tauri/target
+
+      - name: Stage versioned NSIS and MSI
+        run: |
+          python scripts/desktop_release.py stage --platform windows --arch "${{ runner.arch }}" --version "${{ needs.validate-tag.outputs.version }}"
+
+      - name: Upload Windows release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: memovi-release-windows
+          path: |
+            release-assets/*.exe
+            release-assets/*.msi
+          if-no-files-found: error
+          retention-days: 14
+
+  package-macos:
+    name: Release package (macOS .dmg)
+    runs-on: macos-latest
+    needs: validate-tag
+    timeout-minutes: 45
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v5
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+          cache-on-failure: true
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build unsigned macOS package
+        working-directory: apps/desktop
+        run: pnpm tauri build
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/apps/desktop/src-tauri/target
+
+      - name: Stage versioned .dmg
+        run: |
+          python3 scripts/desktop_release.py stage \
+            --platform macos \
+            --arch "${{ runner.arch }}" \
+            --version "${{ needs.validate-tag.outputs.version }}"
+
+      - name: Upload macOS release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: memovi-release-macos
+          path: release-assets/*.dmg
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      - validate-tag
+      - package-linux
+      - package-windows
+      - package-macos
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v5
+
+      - name: Download staged release assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: memovi-release-*
+          merge-multiple: true
+          path: release-assets
+
+      - name: Verify assets, checksums, and notes
+        run: |
+          python3 scripts/desktop_release.py prepare \
+            --assets-dir release-assets \
+            --notes-file release-notes.md \
+            --tag "${{ needs.validate-tag.outputs.tag }}" \
+            --version "${{ needs.validate-tag.outputs.version }}" \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.validate-tag.outputs.tag }}
+          APP_VERSION: ${{ needs.validate-tag.outputs.version }}
+          PRERELEASE: ${{ needs.validate-tag.outputs.prerelease }}
+        run: |
+          extra=()
+          if [ "$PRERELEASE" = "true" ]; then
+            extra+=(--prerelease)
+          fi
+          gh release create "$RELEASE_TAG" \
+            --title "Memovi ${APP_VERSION}" \
+            --notes-file release-notes.md \
+            "${extra[@]}" \
+            release-assets/*

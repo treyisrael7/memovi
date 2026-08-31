@@ -225,11 +225,16 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
 `task ci` does **not** run live smoke, does **not** launch a native Tauri
 window, and does **not** run Tauri packaging. Unsigned V1 packages (Linux
 `.deb`, Windows NSIS `.exe` and MSI, macOS `.dmg`) are built in GitHub Actions
-(`.github/workflows/desktop.yml`). Packaging is not native launch or auth
-testing; macOS WKWebView auth remains unverified. Signing, notarization, and
-GitHub Releases are future work. Packaged WebView session cookies are a local
+on every push/PR (`.github/workflows/desktop.yml`) as compile gates. Pushing a
+tag `v<application-version>` (for example `v0.1.0`) runs
+`.github/workflows/release.yml`, which rebuilds those formats and publishes an
+**unsigned** GitHub Release. Packaging is not native launch or auth testing;
+macOS WKWebView auth remains unverified. Signing, notarization, and the
+auto-updater remain future work. Packaged WebView session cookies are a local
 check (`task desktop:smoke:native`); see
 [`docs/testing/NATIVE_DESKTOP_SMOKE.md`](docs/testing/NATIVE_DESKTOP_SMOKE.md).
+The packaged app still requires a separately started FastAPI API, PostgreSQL,
+and MinIO.
 
 Live smoke (`task desktop:smoke:live`) requires Postgres, MinIO, migrated
 schema, and a running API. It sets `MEMOVI_LIVE_API=1`. It uses **fake**

@@ -312,9 +312,9 @@ Not a new architecture. Verify against [`STATUS.md`](STATUS.md) Current V1.
 * Contributor/operator experience after README and architecture truth passes
 * Coverage floor is enforced at 80%; application coverage last measured at 78%
 * Linux `.deb`, unsigned Windows NSIS/MSI, and unsigned macOS `.dmg` packaging
-  are wired in CI with explicit V1 bundle targets; signing, notarization, and
-  GitHub Releases are not
-* GitHub Release / tag automation does not exist
+  are wired in CI (PR/main compile gates) and as unsigned GitHub Release assets
+  on `v*.*.*` tags; signing, notarization, and updater are not
+* Tag-triggered unsigned GitHub Releases exist; signed distribution does not
 * Operator UX: capability permission settings UI; deeper model / workspace /
   indexing-status product surfaces
 * Architecture boundary tests (optional follow-up)
@@ -345,9 +345,9 @@ summaries) — **V2**.
 documents, search, connectors, workflows, tags, activity, settings), design
 system, session auth, processing-status UX, mock + live API smoke.
 
-**Remaining V1:** code signing / notarization / GitHub Releases, operator UX
+**Remaining V1:** Windows/macOS code signing and notarization, updater, operator UX
 depth — not “build chat/documents/settings.” Unsigned Linux `.deb`, Windows NSIS/MSI, and macOS `.dmg`
-packaging is wired in CI; it is not signed distribution.
+packaging is wired in CI and as tag-triggered GitHub Release assets; it is not signed distribution.
 
 ---
 
